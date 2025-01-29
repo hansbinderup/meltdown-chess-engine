@@ -4,36 +4,42 @@
 #include <string_view>
 
 class UciHandler {
-   public:
-    static void run() {
-        is_running = true;
+public:
+    // no need to create an object - the methods are purely to group the
+    // functionality
+    UciHandler() = delete;
+
+    static void run()
+    {
+        s_isRunning = true;
 
         std::string input;
-        while (is_running && std::getline(std::cin, input)) {
-            process_input(input);
+        while (s_isRunning && std::getline(std::cin, input)) {
+            processInput(input);
         }
     }
 
-   private:
-    static bool process_input(std::string_view input) {
+private:
+    static bool processInput(std::string_view input)
+    {
         std::cout << "input: " << input << std::endl;
 
-        const auto command_sep = input.find_first_of(' ');
-        const auto command = input.substr(0, command_sep);
-        const auto args = command_sep == std::string_view::npos
-                              ? ""
-                              : input.substr(command_sep + 1);
+        const auto commandSep = input.find_first_of(' ');
+        const auto command = input.substr(0, commandSep);
+        const auto args = commandSep == std::string_view::npos
+            ? ""
+            : input.substr(commandSep + 1);
 
         if (command == "uci") {
-            return handle_uci();
+            return handleUci();
         } else if (command == "isready") {
-            return handle_is_ready();
+            return handleIsReady();
         } else if (command == "position") {
-            return handle_position(args);
+            return handlePosition(args);
         } else if (command == "go") {
-            return handle_go(args);
+            return handleGo(args);
         } else if (command == "quit") {
-            is_running = false;
+            s_isRunning = false;
         } else {
             // invalid input
             return false;
@@ -42,7 +48,8 @@ class UciHandler {
         return true;
     }
 
-    static bool handle_uci() {
+    static bool handleUci()
+    {
         std::cout << "id engine Meltdown" << std::endl;
         std::cout << "id author Hans Binderup" << std::endl;
         std::cout << "uciok" << std::endl;
@@ -50,23 +57,26 @@ class UciHandler {
         return true;
     }
 
-    static bool handle_is_ready() {
+    static bool handleIsReady()
+    {
         std::cout << "readyok" << std::endl;
 
         return true;
     }
 
-    static bool handle_position(std::string_view args) {
+    static bool handlePosition(std::string_view args)
+    {
         std::ignore = args;
         return true;
     }
 
-    static bool handle_go(std::string_view args) {
+    static bool handleGo(std::string_view args)
+    {
         std::ignore = args;
 
         std::cout << "bestmove e2e4" << std::endl;
         return true;
     }
 
-    static inline bool is_running = false;
+    static inline bool s_isRunning = false;
 };
