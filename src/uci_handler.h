@@ -1,5 +1,6 @@
 #pragma once
 
+#include "file_logger.h"
 #include <iostream>
 #include <string_view>
 
@@ -11,6 +12,7 @@ public:
 
     static void run()
     {
+        s_fileLogger.log("\n\n*** Running UciHandler! ***\n");
         s_isRunning = true;
 
         std::string input;
@@ -22,13 +24,15 @@ public:
 private:
     static bool processInput(std::string_view input)
     {
-        std::cout << "input: " << input << std::endl;
+        s_fileLogger.flush();
 
         const auto commandSep = input.find_first_of(' ');
         const auto command = input.substr(0, commandSep);
         const auto args = commandSep == std::string_view::npos
             ? ""
             : input.substr(commandSep + 1);
+
+        s_fileLogger.log("processInput, command: {}, args: {}", command, args);
 
         if (command == "uci") {
             return handleUci();
@@ -42,6 +46,7 @@ private:
             s_isRunning = false;
         } else {
             // invalid input
+            s_fileLogger.log("processing input failed!");
             return false;
         }
 
@@ -50,16 +55,16 @@ private:
 
     static bool handleUci()
     {
-        std::cout << "id engine Meltdown" << std::endl;
-        std::cout << "id author Hans Binderup" << std::endl;
-        std::cout << "uciok" << std::endl;
+        std::cout << "id engine Meltdown\n"
+                  << "id author Hans Binderup\n"
+                  << "uciok\n";
 
         return true;
     }
 
     static bool handleIsReady()
     {
-        std::cout << "readyok" << std::endl;
+        std::cout << "readyok\n";
 
         return true;
     }
@@ -74,9 +79,10 @@ private:
     {
         std::ignore = args;
 
-        std::cout << "bestmove e2e4" << std::endl;
+        std::cout << "bestmove e2e4\n";
         return true;
     }
 
     static inline bool s_isRunning = false;
+    static inline FileLogger s_fileLogger { "/tmp/uci.log" };
 };
