@@ -1,12 +1,8 @@
 #pragma once
 
+#include "board_defs.h"
 #include "file_logger.h"
-#include <cstdint>
-
-constexpr static inline uint8_t s_firstRow { 0 };
-constexpr static inline uint8_t s_secondRow { 8 };
-constexpr static inline uint8_t s_seventhRow { 48 };
-constexpr static inline uint8_t s_eightRow { 56 };
+#include "move_generation.h"
 
 class BitBoard {
 public:
@@ -16,12 +12,18 @@ public:
         reset();
     }
 
-    struct Move {
-        const uint8_t from;
-        const uint8_t to;
-    };
+    gen::ValidMoves getValidMoves()
+    {
+        gen::ValidMoves validMoves;
 
-    void reset()
+        if (m_player == Player::White) {
+            gen::getWhitePawnMoves(validMoves, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
+        }
+
+        return validMoves;
+    }
+
+    constexpr void reset()
     {
         m_whitePawns = { 0xffULL << s_secondRow };
         m_whiteRooks = { 0x81ULL };
@@ -36,9 +38,11 @@ public:
         m_blackKnights = { 0x42ULL << s_eightRow };
         m_blackQueens = { 0x08ULL << s_eightRow };
         m_blackKing = { 0x10ULL << s_eightRow };
+
+        m_player = Player::White;
     }
 
-    void perform_move(const Move& move)
+    void perform_move(const gen::Move& move)
     {
         m_logger.log("move: {}->{}", move.from, move.to);
 
@@ -72,11 +76,13 @@ public:
 
         if (!piece.has_value()) {
             m_logger.log("could not find a piece at given position..");
-            return;
+            abort();
         }
 
         **piece &= ~(1ULL << move.from);
         **piece |= (1ULL << move.to);
+
+        m_player = nextPlayer(m_player);
     }
 
     void print_board_debug()
@@ -127,6 +133,21 @@ public:
     }
 
 private:
+    constexpr uint64_t getWhiteOccupation()
+    {
+        return m_whitePawns | m_whiteRooks | m_whiteBishops | m_whiteKnights | m_whiteQueens | m_whiteKing;
+    }
+
+    constexpr uint64_t getBlackOccupation()
+    {
+        return m_blackPawns | m_blackRooks | m_blackBishops | m_blackKnights | m_blackQueens | m_blackKing;
+    }
+
+    constexpr uint64_t getAllOccupation()
+    {
+        return getWhiteOccupation() | getBlackOccupation();
+    }
+
     uint64_t m_whitePawns;
     uint64_t m_whiteRooks;
     uint64_t m_whiteBishops;
@@ -140,6 +161,8 @@ private:
     uint64_t m_blackKnights;
     uint64_t m_blackQueens;
     uint64_t m_blackKing;
+
+    Player m_player { Player::White };
 
     FileLogger& m_logger;
 };

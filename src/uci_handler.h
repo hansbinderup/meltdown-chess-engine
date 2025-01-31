@@ -2,6 +2,7 @@
 
 #include "bit_board.h"
 #include "file_logger.h"
+#include "move_generation.h"
 #include <iostream>
 #include <string_view>
 
@@ -88,7 +89,7 @@ private:
         return true;
     }
 
-    static std::optional<BitBoard::Move> move_from_input(std::string_view sv)
+    static std::optional<gen::Move> move_from_input(std::string_view sv)
     {
         if (sv.size() < 4) {
             return std::nullopt;
@@ -98,7 +99,20 @@ private:
         const uint8_t fromIndex = (sv.at(0) - 'a') + (sv.at(1) - '1') * 8;
         const uint8_t toIndex = (sv.at(2) - 'a') + (sv.at(3) - '1') * 8;
 
-        return BitBoard::Move { fromIndex, toIndex };
+        return gen::Move { fromIndex, toIndex };
+    }
+
+    static std::string move_to_string(gen::Move move)
+    {
+        std::string result;
+        result.resize(4); // Preallocate space
+
+        result[0] = 'a' + (move.from % 8); // Column
+        result[1] = '1' + (move.from / 8); // Row
+        result[2] = 'a' + (move.to % 8); // Column
+        result[3] = '1' + (move.to / 8); // Row
+
+        return result;
     }
 
     static bool handlePosition(std::string_view input)
@@ -130,6 +144,16 @@ private:
     static bool handleGo(std::string_view args)
     {
         std::ignore = args;
+
+        const auto validMoves = s_bitBoard.getValidMoves();
+
+        s_fileLogger << "Valid moves:\n";
+        for (const auto& move : validMoves.getMoves()) {
+            s_fileLogger << std::to_string(move.from) << "->" << std::to_string(move.to) << " " << move_to_string(move) << "\n";
+        }
+
+        s_fileLogger << "\n";
+        s_fileLogger.flush();
 
         std::cout << "bestmove e2e4\n";
         return true;
