@@ -1,6 +1,8 @@
 #pragma once
 
 #include "board_defs.h"
+#include "knights_magic.h"
+
 #include <array>
 #include <span>
 
@@ -11,21 +13,41 @@ struct Move {
     uint8_t to {};
 };
 
-struct ValidMoves {
+class ValidMoves {
+public:
     std::span<const Move> getMoves() const
     {
-        return std::span(moves.data(), count);
+        return std::span(m_moves.data(), m_count);
+    }
+
+    uint16_t count() const
+    {
+        return m_count;
     }
 
     void addMove(Move move)
     {
-        moves[count++] = std::move(move);
+        m_moves[m_count++] = std::move(move);
     }
 
 private:
-    std::array<Move, s_maxMoves> moves {};
-    uint16_t count = 0;
+    std::array<Move, s_maxMoves> m_moves {};
+    uint16_t m_count = 0;
 };
+
+namespace {
+
+constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt)
+{
+    while (moves) {
+        int to = std::countr_zero(moves); // Find first set bit
+        moves &= moves - 1; // Clear bit
+        int from = to - bitCnt; // Backtrack the pawn's original position
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+    }
+}
+
+}
 
 constexpr static inline void getWhitePawnMoves(gen::ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
 {
@@ -36,34 +58,41 @@ constexpr static inline void getWhitePawnMoves(gen::ValidMoves& validMoves, uint
     uint64_t attackLeft = ((pawns & ~s_row7Mask & ~s_aFileMask) << 7) & blackOccupation;
     uint64_t attackRight = ((pawns & ~s_row7Mask & ~s_hFileMask) << 9) & blackOccupation;
 
-    while (moveStraight) {
-        int to = std::countr_zero(moveStraight); // Find first set bit
-        moveStraight &= moveStraight - 1; // Clear bit
-        int from = to - 8; // Backtrack the pawn's original position
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
-    }
+    backtrackPawnMoves(validMoves, moveStraight, 8);
+    backtrackPawnMoves(validMoves, moveStraightDouble, 16);
+    backtrackPawnMoves(validMoves, attackLeft, 7);
+    backtrackPawnMoves(validMoves, attackRight, 9);
+}
 
-    while (moveStraightDouble) {
-        int to = std::countr_zero(moveStraightDouble);
-        moveStraightDouble &= moveStraightDouble - 1;
-        int from = to - 16;
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
-    }
+constexpr static inline void getBlackPawnMoves(gen::ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
+{
+    const uint64_t allOccupation = whiteOccupation | blackOccupation;
 
-    while (attackLeft) {
-        int to = std::countr_zero(attackLeft);
-        attackLeft &= attackLeft - 1;
-        int from = to - 7;
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
-    }
+    uint64_t moveStraight = ((pawns & ~s_row2Mask) >> 8) & ~allOccupation;
+    uint64_t moveStraightDouble = ((pawns & s_row7Mask) >> 16) & ~allOccupation;
+    uint64_t attackLeft = ((pawns & ~s_row2Mask & ~s_aFileMask) >> 7) & whiteOccupation;
+    uint64_t attackRight = ((pawns & ~s_row2Mask & ~s_hFileMask) >> 9) & whiteOccupation;
 
-    while (attackRight) {
-        int to = std::countr_zero(attackRight);
-        attackRight &= attackRight - 1;
-        int from = to - 9;
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+    backtrackPawnMoves(validMoves, moveStraight, -8);
+    backtrackPawnMoves(validMoves, moveStraightDouble, -16);
+    backtrackPawnMoves(validMoves, attackLeft, -7);
+    backtrackPawnMoves(validMoves, attackRight, -9);
+}
+
+constexpr static inline void getKnightMoves(ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation)
+{
+    while (knights) {
+        const int from = std::countr_zero(knights);
+        knights &= knights - 1;
+
+        uint64_t moves = magic::s_knightsTable.at(from) & ~ownOccupation;
+
+        while (moves) {
+            int to = std::countr_zero(moves);
+            moves &= moves - 1;
+            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+        }
     }
 }
 
 }
-
