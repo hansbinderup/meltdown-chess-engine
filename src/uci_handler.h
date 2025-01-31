@@ -136,8 +136,6 @@ private:
             }
         }
 
-        s_bitBoard.print_board_debug();
-
         return true;
     }
 
@@ -145,17 +143,22 @@ private:
     {
         std::ignore = args;
 
+        s_bitBoard.print_board_debug();
+
         const auto validMoves = s_bitBoard.getValidMoves();
 
-        s_fileLogger << "Valid moves:\n";
+        s_fileLogger << validMoves.count() << " valid moves:\n";
         for (const auto& move : validMoves.getMoves()) {
-            s_fileLogger << std::to_string(move.from) << "->" << std::to_string(move.to) << " " << move_to_string(move) << "\n";
+            s_fileLogger << move_to_string(move) << " ";
         }
 
         s_fileLogger << "\n";
         s_fileLogger.flush();
 
-        std::cout << "bestmove e2e4\n";
+        const auto randIndex = std::rand() % (validMoves.count());
+        const auto bestMove = validMoves.getMoves().at(randIndex);
+
+        std::cout << "bestmove " << move_to_string(bestMove) << "\n";
         return true;
     }
 
