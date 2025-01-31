@@ -44,43 +44,22 @@ public:
 
     void perform_move(const gen::Move& move)
     {
-        m_logger.log("move: {}->{}", move.from, move.to);
-
-        std::optional<uint64_t*> piece;
         const auto fromSquare = 1ULL << move.from;
+        const auto toSquare = 1ULL << move.to;
 
-        if (fromSquare & m_whitePawns)
-            piece = &m_whitePawns;
-        else if (fromSquare & m_whiteRooks)
-            piece = &m_whiteRooks;
-        else if (fromSquare & m_whiteBishops)
-            piece = &m_whiteBishops;
-        else if (fromSquare & m_whiteKnights)
-            piece = &m_whiteKnights;
-        else if (fromSquare & m_whiteQueens)
-            piece = &m_whiteQueens;
-        else if (fromSquare & m_whiteKing)
-            piece = &m_whiteKing;
-        else if (fromSquare & m_blackPawns)
-            piece = &m_blackPawns;
-        else if (fromSquare & m_blackRooks)
-            piece = &m_blackRooks;
-        else if (fromSquare & m_blackBishops)
-            piece = &m_blackBishops;
-        else if (fromSquare & m_blackKnights)
-            piece = &m_blackKnights;
-        else if (fromSquare & m_blackQueens)
-            piece = &m_blackQueens;
-        else if (fromSquare & m_blackKing)
-            piece = &m_blackKing;
+        bitToggleMove(m_whitePawns, fromSquare, toSquare);
+        bitToggleMove(m_whiteRooks, fromSquare, toSquare);
+        bitToggleMove(m_whiteBishops, fromSquare, toSquare);
+        bitToggleMove(m_whiteKnights, fromSquare, toSquare);
+        bitToggleMove(m_whiteQueens, fromSquare, toSquare);
+        bitToggleMove(m_whiteKing, fromSquare, toSquare);
 
-        if (!piece.has_value()) {
-            m_logger.log("could not find a piece at given position..");
-            abort();
-        }
-
-        **piece &= ~(1ULL << move.from);
-        **piece |= (1ULL << move.to);
+        bitToggleMove(m_blackPawns, fromSquare, toSquare);
+        bitToggleMove(m_blackRooks, fromSquare, toSquare);
+        bitToggleMove(m_blackBishops, fromSquare, toSquare);
+        bitToggleMove(m_blackKnights, fromSquare, toSquare);
+        bitToggleMove(m_blackQueens, fromSquare, toSquare);
+        bitToggleMove(m_blackKing, fromSquare, toSquare);
 
         m_player = nextPlayer(m_player);
     }
@@ -133,6 +112,18 @@ public:
     }
 
 private:
+    constexpr void bitToggleMove(uint64_t& piece, uint64_t fromSquare, uint64_t toSquare)
+    {
+        if (toSquare & piece) {
+            // clear piece if being attacked
+            piece &= ~toSquare;
+        } else if (fromSquare & piece) {
+            // move if given piece is located at "fromSquare"
+            piece &= ~fromSquare;
+            piece |= toSquare;
+        }
+    }
+
     constexpr uint64_t getWhiteOccupation()
     {
         return m_whitePawns | m_whiteRooks | m_whiteBishops | m_whiteKnights | m_whiteQueens | m_whiteKing;
