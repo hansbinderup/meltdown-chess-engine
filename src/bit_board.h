@@ -18,6 +18,10 @@ public:
 
         if (m_player == Player::White) {
             gen::getWhitePawnMoves(validMoves, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
+            gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
+        } else {
+            gen::getBlackPawnMoves(validMoves, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
+            gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
         }
 
         return validMoves;
@@ -25,6 +29,7 @@ public:
 
     constexpr void reset()
     {
+        // Binary represensation of each piece at start of game
         m_whitePawns = { 0xffULL << s_secondRow };
         m_whiteRooks = { 0x81ULL };
         m_whiteBishops = { 0x24ULL };
