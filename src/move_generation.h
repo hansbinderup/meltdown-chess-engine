@@ -1,6 +1,7 @@
 #pragma once
 
 #include "board_defs.h"
+#include "kings_magic.h"
 #include "knights_magic.h"
 
 #include <array>
@@ -92,6 +93,20 @@ constexpr static inline void getKnightMoves(ValidMoves& validMoves, uint64_t kni
             moves &= moves - 1;
             validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
         }
+    }
+}
+
+constexpr static inline void getKingMoves(ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t attacks)
+{
+    const int from = std::countr_zero(king);
+    king &= king - 1;
+
+    uint64_t moves = magic::s_kingsTable.at(from) & ~ownOccupation & ~attacks;
+
+    while (moves) {
+        int to = std::countr_zero(moves);
+        moves &= moves - 1;
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
     }
 }
 

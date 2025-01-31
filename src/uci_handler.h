@@ -52,7 +52,7 @@ private:
     static bool processInput(std::string_view input)
     {
         const auto [command, args] = split_sv_by_space(input);
-        s_fileLogger.log("processInput, command: {}, args: {}", command, args);
+        /* s_fileLogger.log("processInput, command: {}, args: {}", command, args); */
 
         if (command == "uci") {
             return handleUci();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "attack_generation.h"
 #include "board_defs.h"
 #include "file_logger.h"
 #include "move_generation.h"
@@ -17,11 +18,25 @@ public:
         gen::ValidMoves validMoves;
 
         if (m_player == Player::White) {
-            gen::getWhitePawnMoves(validMoves, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
-            gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
+            uint64_t attacks = getAllAttacks(Player::Black);
+
+            gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), attacks);
+
+            bool kingAttacked = m_whiteKing & attacks;
+            if (!kingAttacked) {
+                gen::getWhitePawnMoves(validMoves, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
+                gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
+            }
         } else {
-            gen::getBlackPawnMoves(validMoves, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
-            gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
+            uint64_t attacks = getAllAttacks(Player::White);
+
+            gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
+
+            bool kingAttacked = m_blackKing & attacks;
+            if (!kingAttacked) {
+                gen::getBlackPawnMoves(validMoves, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
+                gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
+            }
         }
 
         return validMoves;
@@ -117,6 +132,30 @@ public:
     }
 
 private:
+    constexpr uint64_t getAllAttacks(Player player)
+    {
+        if (player == Player::White) {
+            uint64_t attacks = gen::getWhitePawnAttacks(m_whitePawns);
+            attacks |= gen::getKnightAttacks(m_whiteKnights);
+
+            return attacks;
+        } else {
+            uint64_t attacks = gen::getBlackPawnAttacks(m_blackPawns);
+            attacks |= gen::getKnightAttacks(m_blackKnights);
+
+            return attacks;
+        }
+    }
+
+    constexpr bool isKingAttacked()
+    {
+        if (m_player == Player::White) {
+            return m_whiteKing & getAllAttacks(Player::Black);
+        } else {
+            return m_blackKing & getAllAttacks(Player::White);
+        }
+    }
+
     constexpr void bitToggleMove(uint64_t& piece, uint64_t fromSquare, uint64_t toSquare)
     {
         if (toSquare & piece) {
