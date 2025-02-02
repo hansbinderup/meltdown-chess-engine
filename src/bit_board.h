@@ -6,6 +6,7 @@
 
 #include "movement/move_types.h"
 #include "src/movement/move_generation.h"
+#include "src/positioning.h"
 
 class BitBoard {
 public:
@@ -15,60 +16,59 @@ public:
         reset();
     }
 
-    movement::ValidMoves getValidMoves()
+    movement::Move getBestMove()
+    {
+        return scanForBestMove(4, *this);
+    }
+
+    movement::ValidMoves getValidMoves() const
     {
         movement::ValidMoves validMoves;
 
         if (m_player == Player::White) {
             uint64_t attacks = getAllAttacks(Player::Black);
-
-            bool kingAttacked = m_whiteKing & attacks;
-            if (kingAttacked) {
-                gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), attacks);
-            } else {
-                gen::getPawnMoves(validMoves, m_player, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
-                gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
-                gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation(), getBlackOccupation());
-                gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation(), getBlackOccupation());
-                gen::getQueenMoves(validMoves, m_whiteQueens, getWhiteOccupation(), getBlackOccupation());
-            }
+            gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), attacks);
+            gen::getPawnMoves(validMoves, m_player, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
+            gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
+            gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation(), getBlackOccupation());
+            gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation(), getBlackOccupation());
+            gen::getQueenMoves(validMoves, m_whiteQueens, getWhiteOccupation(), getBlackOccupation());
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
-
-            bool kingAttacked = m_blackKing & attacks;
-            if (kingAttacked) {
-                gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
-            } else {
-                gen::getPawnMoves(validMoves, m_player, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
-                gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
-                gen::getRookMoves(validMoves, m_blackRooks, getBlackOccupation(), getWhiteOccupation());
-                gen::getBishopMoves(validMoves, m_blackBishops, getBlackOccupation(), getWhiteOccupation());
-                gen::getQueenMoves(validMoves, m_blackQueens, getBlackOccupation(), getWhiteOccupation());
-            }
+            gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
+            gen::getPawnMoves(validMoves, m_player, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
+            gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
+            gen::getRookMoves(validMoves, m_blackRooks, getBlackOccupation(), getWhiteOccupation());
+            gen::getBishopMoves(validMoves, m_blackBishops, getBlackOccupation(), getWhiteOccupation());
+            gen::getQueenMoves(validMoves, m_blackQueens, getBlackOccupation(), getWhiteOccupation());
         }
 
         return validMoves;
     }
 
-    uint64_t getScore(Player player)
+    constexpr int64_t getScore(Player player) const
     {
-        uint64_t score {};
+        uint64_t score = 0;
+        const bool isWhite = (player == Player::White);
 
-        if (player == Player::White) {
-            score += __builtin_popcountll(m_whitePawns) * 1;
-            score += __builtin_popcountll(m_whiteRooks) * 4;
-            score += __builtin_popcountll(m_whiteBishops) * 3;
-            score += __builtin_popcountll(m_whiteKnights) * 3;
-            score += __builtin_popcountll(m_whiteQueens) * 9;
-            score += __builtin_popcountll(m_whiteKing) * 100;
-        } else {
-            score += __builtin_popcountll(m_blackPawns) * 1;
-            score += __builtin_popcountll(m_blackRooks) * 4;
-            score += __builtin_popcountll(m_blackBishops) * 3;
-            score += __builtin_popcountll(m_blackKnights) * 3;
-            score += __builtin_popcountll(m_blackQueens) * 9;
-            score += __builtin_popcountll(m_blackKing) * 100;
-        }
+        // Material scoring
+        score += std::popcount(isWhite ? m_whitePawns : m_blackPawns) * 100;
+        score += std::popcount(isWhite ? m_whiteKnights : m_blackKnights) * 320;
+        score += std::popcount(isWhite ? m_whiteBishops : m_blackBishops) * 330;
+        score += std::popcount(isWhite ? m_whiteRooks : m_blackRooks) * 500;
+        score += std::popcount(isWhite ? m_whiteQueens : m_blackQueens) * 900;
+        score += std::popcount(isWhite ? m_whiteKing : m_blackKing) * 10000;
+
+        // Positional scoring
+        score += positioning::calculatePawnScore(player == Player::White ? m_whitePawns : m_blackPawns, player);
+        score += positioning::calculateRookScore(player == Player::White ? m_whiteRooks : m_blackRooks, player);
+        score += positioning::calculateBishopScore(player == Player::White ? m_whiteBishops : m_blackBishops, player);
+        score += positioning::calculateKnightScore(player == Player::White ? m_whiteKnights : m_blackKnights, player);
+        score += positioning::calculateQueenScore(player == Player::White ? m_whiteQueens : m_blackQueens, player);
+        score += positioning::calculateKingScore(player == Player::White ? m_whiteKing : m_blackKing, player);
+
+        // Mobility: Number of legal moves
+        score += getValidMoves().getMoves().size() * 5;
 
         return score;
     }
@@ -91,6 +91,7 @@ public:
         m_blackKing = { 0x10ULL << s_eightRow };
 
         m_player = Player::White;
+        m_moveCount = 0;
     }
 
     void perform_move(const movement::Move& move)
@@ -113,6 +114,7 @@ public:
         bitToggleMove(m_blackKing, fromSquare, toSquare);
 
         m_player = nextPlayer(m_player);
+        m_moveCount++;
     }
 
     void print_board_debug()
@@ -168,7 +170,7 @@ public:
     }
 
 private:
-    constexpr uint64_t getAllAttacks(Player player)
+    constexpr uint64_t getAllAttacks(Player player) const
     {
         if (player == Player::White) {
             uint64_t attacks = gen::getWhitePawnAttacks(m_whitePawns);
@@ -189,9 +191,68 @@ private:
         }
     }
 
-    constexpr bool isKingAttacked()
+    constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        if (m_player == Player::White) {
+        const auto moves = board.getValidMoves();
+
+        int16_t highestScore = std::numeric_limits<int16_t>::min(); // Start with lowest possible score
+        std::optional<movement::Move> bestMove;
+
+        const auto player = board.getCurrentPlayer();
+
+        for (const auto& move : moves.getMoves()) {
+            BitBoard newBoard = board;
+            newBoard.perform_move(move);
+
+            // If making this move puts the current player in check, skip it
+            if (newBoard.isKingAttacked(player))
+                continue;
+
+            int16_t score = evaluateMove(depth - 1, newBoard, false);
+
+            if (score > highestScore) {
+                highestScore = score;
+                bestMove = move;
+            }
+        }
+
+        return bestMove.value(); // Make sure there is at least one valid move
+    }
+
+    constexpr int16_t evaluateMove(uint8_t depth, BitBoard board, bool maximizingPlayer)
+    {
+        if (depth == 0)
+            return board.getScore(board.getCurrentPlayer()); // Return static evaluation at depth 0
+
+        const auto moves = board.getValidMoves();
+
+        int16_t bestScore = maximizingPlayer
+            ? std::numeric_limits<int16_t>::min()
+            : std::numeric_limits<int16_t>::max();
+
+        for (const auto& move : moves.getMoves()) {
+            BitBoard newBoard = board;
+            newBoard.perform_move(move);
+
+            // If move puts player in check, discard it
+            if (newBoard.isKingAttacked(board.getCurrentPlayer()))
+                continue;
+
+            int16_t score = evaluateMove(depth - 1, newBoard, !maximizingPlayer);
+
+            if (maximizingPlayer) {
+                bestScore = std::max(bestScore, score);
+            } else {
+                bestScore = std::min(bestScore, score);
+            }
+        }
+
+        return bestScore;
+    }
+
+    constexpr bool isKingAttacked(Player player)
+    {
+        if (player == Player::White) {
             return m_whiteKing & getAllAttacks(Player::Black);
         } else {
             return m_blackKing & getAllAttacks(Player::White);
@@ -210,12 +271,12 @@ private:
         }
     }
 
-    constexpr uint64_t getWhiteOccupation()
+    constexpr uint64_t getWhiteOccupation() const
     {
         return m_whitePawns | m_whiteRooks | m_whiteBishops | m_whiteKnights | m_whiteQueens | m_whiteKing;
     }
 
-    constexpr uint64_t getBlackOccupation()
+    constexpr uint64_t getBlackOccupation() const
     {
         return m_blackPawns | m_blackRooks | m_blackBishops | m_blackKnights | m_blackQueens | m_blackKing;
     }
@@ -240,6 +301,8 @@ private:
     uint64_t m_blackKing;
 
     Player m_player { Player::White };
+    uint16_t m_moveCount { 0 };
 
     FileLogger& m_logger;
 };
+
