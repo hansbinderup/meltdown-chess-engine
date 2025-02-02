@@ -3,7 +3,9 @@
 #include "attack_generation.h"
 #include "board_defs.h"
 #include "file_logger.h"
-#include "move_generation.h"
+
+#include "movement/move_types.h"
+#include "src/movement/move_generation.h"
 
 class BitBoard {
 public:
@@ -13,28 +15,28 @@ public:
         reset();
     }
 
-    gen::ValidMoves getValidMoves()
+    movement::ValidMoves getValidMoves()
     {
-        gen::ValidMoves validMoves;
+        movement::ValidMoves validMoves;
 
         if (m_player == Player::White) {
             uint64_t attacks = getAllAttacks(Player::Black);
 
-            gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), attacks);
-
             bool kingAttacked = m_whiteKing & attacks;
-            if (!kingAttacked) {
-                gen::getWhitePawnMoves(validMoves, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
+            if (kingAttacked) {
+                gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), attacks);
+            } else {
+                gen::getPawnMoves(validMoves, m_player, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
                 gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
             }
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
 
-            gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
-
             bool kingAttacked = m_blackKing & attacks;
-            if (!kingAttacked) {
-                gen::getBlackPawnMoves(validMoves, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
+            if (kingAttacked) {
+                gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
+            } else {
+                gen::getPawnMoves(validMoves, m_player, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
                 gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
             }
         }
@@ -62,7 +64,7 @@ public:
         m_player = Player::White;
     }
 
-    void perform_move(const gen::Move& move)
+    void perform_move(const movement::Move& move)
     {
         const auto fromSquare = 1ULL << move.from;
         const auto toSquare = 1ULL << move.to;

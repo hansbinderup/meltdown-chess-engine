@@ -2,7 +2,7 @@
 #pragma once
 
 #include "board_defs.h"
-#include "knights_magic.h"
+#include "src/movement/knights.h"
 
 #include <bit>
 #include <cstdint>
@@ -16,7 +16,7 @@ constexpr static inline uint64_t getKnightAttacks(uint64_t knights)
         const int from = std::countr_zero(knights);
         knights &= knights - 1;
 
-        attacks |= magic::s_knightsTable.at(from);
+        attacks |= movement::s_knightsTable.at(from);
     }
 
     return attacks;

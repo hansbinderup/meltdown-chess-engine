@@ -1,40 +1,10 @@
 #pragma once
 
-#include "board_defs.h"
-#include "kings_magic.h"
-#include "knights_magic.h"
+#include "src/movement/move_types.h"
 
-#include <array>
-#include <span>
+#include <cstdint>
 
-namespace gen {
-
-struct Move {
-    uint8_t from {};
-    uint8_t to {};
-};
-
-class ValidMoves {
-public:
-    std::span<const Move> getMoves() const
-    {
-        return std::span(m_moves.data(), m_count);
-    }
-
-    uint16_t count() const
-    {
-        return m_count;
-    }
-
-    void addMove(Move move)
-    {
-        m_moves[m_count++] = std::move(move);
-    }
-
-private:
-    std::array<Move, s_maxMoves> m_moves {};
-    uint16_t m_count = 0;
-};
+namespace movement {
 
 namespace {
 
@@ -50,7 +20,7 @@ constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t
 
 }
 
-constexpr static inline void getWhitePawnMoves(gen::ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
+constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
 {
     const uint64_t allOccupation = whiteOccupation | blackOccupation;
 
@@ -72,7 +42,7 @@ constexpr static inline void getWhitePawnMoves(gen::ValidMoves& validMoves, uint
     backtrackPawnMoves(validMoves, attackRight, 9);
 }
 
-constexpr static inline void getBlackPawnMoves(gen::ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
+constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
 {
     const uint64_t allOccupation = whiteOccupation | blackOccupation;
 
@@ -87,34 +57,5 @@ constexpr static inline void getBlackPawnMoves(gen::ValidMoves& validMoves, uint
     backtrackPawnMoves(validMoves, attackRight, -7);
 }
 
-constexpr static inline void getKnightMoves(ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation)
-{
-    while (knights) {
-        const int from = std::countr_zero(knights);
-        knights &= knights - 1;
-
-        uint64_t moves = magic::s_knightsTable.at(from) & ~ownOccupation;
-
-        while (moves) {
-            int to = std::countr_zero(moves);
-            moves &= moves - 1;
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
-        }
-    }
 }
 
-constexpr static inline void getKingMoves(ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t attacks)
-{
-    const int from = std::countr_zero(king);
-    king &= king - 1;
-
-    uint64_t moves = magic::s_kingsTable.at(from) & ~ownOccupation & ~attacks;
-
-    while (moves) {
-        int to = std::countr_zero(moves);
-        moves &= moves - 1;
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
-    }
-}
-
-}

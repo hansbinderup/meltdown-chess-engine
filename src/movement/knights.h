@@ -3,7 +3,7 @@
 #include <array>
 #include <cstdint>
 
-namespace magic {
+namespace movement {
 
 namespace {
 

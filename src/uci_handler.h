@@ -2,7 +2,7 @@
 
 #include "bit_board.h"
 #include "file_logger.h"
-#include "move_generation.h"
+
 #include <iostream>
 #include <string_view>
 
@@ -89,7 +89,7 @@ private:
         return true;
     }
 
-    static std::optional<gen::Move> move_from_input(std::string_view sv)
+    static std::optional<movement::Move> move_from_input(std::string_view sv)
     {
         if (sv.size() < 4) {
             return std::nullopt;
@@ -99,10 +99,10 @@ private:
         const uint8_t fromIndex = (sv.at(0) - 'a') + (sv.at(1) - '1') * 8;
         const uint8_t toIndex = (sv.at(2) - 'a') + (sv.at(3) - '1') * 8;
 
-        return gen::Move { fromIndex, toIndex };
+        return movement::Move { fromIndex, toIndex };
     }
 
-    static std::string move_to_string(gen::Move move)
+    static std::string move_to_string(movement::Move move)
     {
         std::string result;
         result.resize(4); // Preallocate space
