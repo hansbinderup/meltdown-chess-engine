@@ -29,6 +29,7 @@ public:
                 gen::getPawnMoves(validMoves, m_player, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
                 gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
                 gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation());
+                gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation());
             }
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
@@ -40,6 +41,7 @@ public:
                 gen::getPawnMoves(validMoves, m_player, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
                 gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
                 gen::getRookMoves(validMoves, m_blackRooks, getWhiteOccupation());
+                gen::getBishopMoves(validMoves, m_blackBishops, getWhiteOccupation());
             }
         }
 
