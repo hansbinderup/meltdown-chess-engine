@@ -67,6 +67,12 @@ constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, ui
     }
 }
 
+constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation)
+{
+    getRookMoves(validMoves, queens, ownOccupation);
+    getBishopMoves(validMoves, queens, ownOccupation);
+}
+
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t attacks)
 {
     const int from = std::countr_zero(king);

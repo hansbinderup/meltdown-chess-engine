@@ -30,6 +30,7 @@ public:
                 gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
                 gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation());
                 gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation());
+                gen::getQueenMoves(validMoves, m_whiteQueens, getWhiteOccupation());
             }
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
@@ -42,10 +43,34 @@ public:
                 gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
                 gen::getRookMoves(validMoves, m_blackRooks, getWhiteOccupation());
                 gen::getBishopMoves(validMoves, m_blackBishops, getWhiteOccupation());
+                gen::getQueenMoves(validMoves, m_blackQueens, getWhiteOccupation());
             }
         }
 
         return validMoves;
+    }
+
+    uint64_t getScore(Player player)
+    {
+        uint64_t score {};
+
+        if (player == Player::White) {
+            score += __builtin_popcountll(m_whitePawns) * 1;
+            score += __builtin_popcountll(m_whiteRooks) * 4;
+            score += __builtin_popcountll(m_whiteBishops) * 3;
+            score += __builtin_popcountll(m_whiteKnights) * 3;
+            score += __builtin_popcountll(m_whiteQueens) * 9;
+            score += __builtin_popcountll(m_whiteKing) * 100;
+        } else {
+            score += __builtin_popcountll(m_blackPawns) * 1;
+            score += __builtin_popcountll(m_blackRooks) * 4;
+            score += __builtin_popcountll(m_blackBishops) * 3;
+            score += __builtin_popcountll(m_blackKnights) * 3;
+            score += __builtin_popcountll(m_blackQueens) * 9;
+            score += __builtin_popcountll(m_blackKing) * 100;
+        }
+
+        return score;
     }
 
     constexpr void reset()
@@ -133,8 +158,13 @@ public:
         }
 
         m_logger << "    A  B  C  D  E  F  G  H";
-        m_logger << "\n";
+        m_logger << "\n\n";
         m_logger.flush();
+    }
+
+    Player getCurrentPlayer() const
+    {
+        return m_player;
     }
 
 private:
