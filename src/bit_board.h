@@ -173,11 +173,17 @@ private:
         if (player == Player::White) {
             uint64_t attacks = gen::getWhitePawnAttacks(m_whitePawns);
             attacks |= gen::getKnightAttacks(m_whiteKnights);
+            attacks |= gen::getRookAttacks(m_whiteRooks, getWhiteOccupation() | getBlackOccupation());
+            attacks |= gen::getBishopAttacks(m_whiteBishops, getWhiteOccupation() | getBlackOccupation());
+            attacks |= gen::getQueenAttacks(m_whiteQueens, getWhiteOccupation() | getBlackOccupation());
 
             return attacks;
         } else {
             uint64_t attacks = gen::getBlackPawnAttacks(m_blackPawns);
             attacks |= gen::getKnightAttacks(m_blackKnights);
+            attacks |= gen::getRookAttacks(m_blackRooks, getWhiteOccupation() | getBlackOccupation());
+            attacks |= gen::getBishopAttacks(m_blackBishops, getWhiteOccupation() | getBlackOccupation());
+            attacks |= gen::getQueenAttacks(m_blackQueens, getWhiteOccupation() | getBlackOccupation());
 
             return attacks;
         }
