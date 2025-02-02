@@ -28,8 +28,8 @@ public:
             } else {
                 gen::getPawnMoves(validMoves, m_player, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
                 gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
-                gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation());
                 gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation(), getBlackOccupation());
+                gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation(), getBlackOccupation());
                 gen::getQueenMoves(validMoves, m_whiteQueens, getWhiteOccupation(), getBlackOccupation());
             }
         } else {
@@ -41,8 +41,8 @@ public:
             } else {
                 gen::getPawnMoves(validMoves, m_player, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
                 gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
-                gen::getBishopMoves(validMoves, m_blackBishops, getWhiteOccupation());
                 gen::getRookMoves(validMoves, m_blackRooks, getBlackOccupation(), getWhiteOccupation());
+                gen::getBishopMoves(validMoves, m_blackBishops, getBlackOccupation(), getWhiteOccupation());
                 gen::getQueenMoves(validMoves, m_blackQueens, getBlackOccupation(), getWhiteOccupation());
             }
         }

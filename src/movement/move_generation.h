@@ -51,13 +51,13 @@ constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, uint
     }
 }
 
-constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation)
+constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     while (bishops) {
         const int from = std::countr_zero(bishops);
         bishops &= bishops - 1;
 
-        uint64_t moves = movement::s_bishopsTable.at(from) & ~ownOccupation;
+        uint64_t moves = movement::getBishopAttacks(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
         while (moves) {
             int to = std::countr_zero(moves);
