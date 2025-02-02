@@ -35,13 +35,13 @@ constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, ui
     }
 }
 
-constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation)
+constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     while (rooks) {
         const int from = std::countr_zero(rooks);
         rooks &= rooks - 1;
 
-        uint64_t moves = movement::s_rooksTable.at(from) & ~ownOccupation;
+        uint64_t moves = movement::getRookAttacks(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
         while (moves) {
             int to = std::countr_zero(moves);
@@ -67,10 +67,10 @@ constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, ui
     }
 }
 
-constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation)
+constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    getRookMoves(validMoves, queens, ownOccupation);
-    getBishopMoves(validMoves, queens, ownOccupation);
+    getRookMoves(validMoves, queens, ownOccupation, theirOccupation);
+    getBishopMoves(validMoves, queens, ownOccupation, theirOccupation);
 }
 
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t attacks)
