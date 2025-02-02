@@ -7,6 +7,7 @@
 #include "rooks.h"
 
 #include "src/board_defs.h"
+#include <iostream>
 
 namespace gen {
 
@@ -75,6 +76,9 @@ constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, uin
 
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t attacks)
 {
+    if (king == 0)
+        return;
+
     const int from = std::countr_zero(king);
     king &= king - 1;
 

@@ -3,6 +3,7 @@
 #include "src/board_defs.h"
 #include <array>
 #include <cstdint>
+#include <limits>
 
 namespace positioning {
 
@@ -127,6 +128,10 @@ static inline int16_t calculateQueenScore(uint64_t queens, Player player)
 
 static inline int16_t calculateKingScore(uint64_t king, Player player)
 {
+    if (king == 0) {
+        return std::numeric_limits<int16_t>::min();
+    }
+
     int16_t score = 0;
 
     int square = std::countr_zero(king); // Find the lowest set bit
@@ -135,5 +140,9 @@ static inline int16_t calculateKingScore(uint64_t king, Player player)
 
     return score;
 }
+
+constexpr uint8_t s_earlyMovementClassification { 7 };
+constexpr int8_t s_earlyKingPenalty { 15 };
+constexpr int8_t s_earlyQueenPenalty { 10 };
 
 }

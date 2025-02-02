@@ -3,7 +3,9 @@
 #include "src/board_defs.h"
 
 #include <cstdint>
+#include <optional>
 #include <span>
+#include <string_view>
 
 namespace movement {
 
@@ -11,6 +13,32 @@ struct Move {
     uint8_t from {};
     uint8_t to {};
 };
+
+static inline std::optional<Move> moveFromString(std::string_view sv)
+{
+    if (sv.size() < 4) {
+        return std::nullopt;
+    }
+
+    // quick and dirty way to transform move string to integer values
+    const uint8_t fromIndex = (sv.at(0) - 'a') + (sv.at(1) - '1') * 8;
+    const uint8_t toIndex = (sv.at(2) - 'a') + (sv.at(3) - '1') * 8;
+
+    return movement::Move { fromIndex, toIndex };
+}
+
+static inline std::string moveToString(Move move)
+{
+    std::string result;
+    result.resize(4); // Preallocate space
+
+    result[0] = 'a' + (move.from % 8); // Column
+    result[1] = '1' + (move.from / 8); // Row
+    result[2] = 'a' + (move.to % 8); // Column
+    result[3] = '1' + (move.to / 8); // Row
+
+    return result;
+}
 
 class ValidMoves {
 public:

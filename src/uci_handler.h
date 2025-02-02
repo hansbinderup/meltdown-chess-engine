@@ -89,32 +89,6 @@ private:
         return true;
     }
 
-    static std::optional<movement::Move> move_from_input(std::string_view sv)
-    {
-        if (sv.size() < 4) {
-            return std::nullopt;
-        }
-
-        // quick and dirty way to transform move string to integer values
-        const uint8_t fromIndex = (sv.at(0) - 'a') + (sv.at(1) - '1') * 8;
-        const uint8_t toIndex = (sv.at(2) - 'a') + (sv.at(3) - '1') * 8;
-
-        return movement::Move { fromIndex, toIndex };
-    }
-
-    static std::string move_to_string(movement::Move move)
-    {
-        std::string result;
-        result.resize(4); // Preallocate space
-
-        result[0] = 'a' + (move.from % 8); // Column
-        result[1] = '1' + (move.from / 8); // Row
-        result[2] = 'a' + (move.to % 8); // Column
-        result[3] = '1' + (move.to / 8); // Row
-
-        return result;
-    }
-
     static bool handlePosition(std::string_view input)
     {
         auto [command, args] = split_sv_by_space(input);
@@ -123,7 +97,7 @@ private:
             const auto subCommand = sv_next_split(args);
 
             if (subCommand == "moves") {
-                while (const auto move = move_from_input(args.substr(0, 4))) {
+                while (const auto move = movement::moveFromString(args.substr(0, 4))) {
                     s_bitBoard.perform_move(move.value());
 
                     auto spaceSep = args.find(' ');
@@ -145,7 +119,7 @@ private:
 
         const auto bestMove = s_bitBoard.getBestMove();
 
-        std::cout << "bestmove " << move_to_string(bestMove) << "\n";
+        std::cout << "bestmove " << movement::moveToString(bestMove) << "\n";
         return true;
     }
 
