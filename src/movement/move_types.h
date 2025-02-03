@@ -47,6 +47,11 @@ public:
         return std::span(m_moves.data(), m_count);
     }
 
+    std::span<Move> getMoves()
+    {
+        return std::span(m_moves.data(), m_count);
+    }
+
     uint16_t count() const
     {
         return m_count;

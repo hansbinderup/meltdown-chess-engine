@@ -18,10 +18,13 @@ public:
 
     movement::Move getBestMove()
     {
-        return scanForBestMove(4, *this);
+        m_logger.log("Get best move for {}", m_player == Player::White ? "White" : "Black");
+
+        const uint8_t depth = 5;
+        return scanForBestMove(depth, *this);
     }
 
-    movement::ValidMoves getValidMoves() const
+    movement::ValidMoves getAllMoves() const
     {
         movement::ValidMoves validMoves;
 
@@ -46,31 +49,44 @@ public:
         return validMoves;
     }
 
-    constexpr int64_t getScore(Player player) const
+    /*
+     * Score in favour of current player
+     */
+    constexpr int16_t getScore() const
     {
-        uint64_t score = 0;
-        const bool isWhite = (player == Player::White);
+        int16_t score = 0;
 
         // Material scoring
-        score += std::popcount(isWhite ? m_whitePawns : m_blackPawns) * 100;
-        score += std::popcount(isWhite ? m_whiteKnights : m_blackKnights) * 320;
-        score += std::popcount(isWhite ? m_whiteBishops : m_blackBishops) * 330;
-        score += std::popcount(isWhite ? m_whiteRooks : m_blackRooks) * 500;
-        score += std::popcount(isWhite ? m_whiteQueens : m_blackQueens) * 900;
-        score += std::popcount(isWhite ? m_whiteKing : m_blackKing) * 10000;
+        score += std::popcount(m_whitePawns) * 100;
+        score += std::popcount(m_whiteKnights) * 300;
+        score += std::popcount(m_whiteBishops) * 350;
+        score += std::popcount(m_whiteRooks) * 500;
+        score += std::popcount(m_whiteQueens) * 1000;
+        score += std::popcount(m_whiteKing) * 10000;
+
+        score -= std::popcount(m_blackPawns) * 100;
+        score -= std::popcount(m_blackKnights) * 300;
+        score -= std::popcount(m_blackBishops) * 350;
+        score -= std::popcount(m_blackRooks) * 500;
+        score -= std::popcount(m_blackQueens) * 1000;
+        score -= std::popcount(m_blackKing) * 10000;
 
         // Positional scoring
-        score += positioning::calculatePawnScore(player == Player::White ? m_whitePawns : m_blackPawns, player);
-        score += positioning::calculateRookScore(player == Player::White ? m_whiteRooks : m_blackRooks, player);
-        score += positioning::calculateBishopScore(player == Player::White ? m_whiteBishops : m_blackBishops, player);
-        score += positioning::calculateKnightScore(player == Player::White ? m_whiteKnights : m_blackKnights, player);
-        score += positioning::calculateQueenScore(player == Player::White ? m_whiteQueens : m_blackQueens, player);
-        score += positioning::calculateKingScore(player == Player::White ? m_whiteKing : m_blackKing, player);
+        score += positioning::calculatePawnScore(m_whitePawns, Player::White);
+        score += positioning::calculateRookScore(m_whiteRooks, Player::White);
+        score += positioning::calculateBishopScore(m_whiteBishops, Player::White);
+        score += positioning::calculateKnightScore(m_whiteKnights, Player::White);
+        score += positioning::calculateQueenScore(m_whiteQueens, Player::White);
+        score += positioning::calculateKingScore(m_whiteKing, Player::White);
 
-        // Mobility: Number of legal moves
-        score += getValidMoves().getMoves().size() * 5;
+        score -= positioning::calculatePawnScore(m_blackPawns, Player::Black);
+        score -= positioning::calculateRookScore(m_blackRooks, Player::Black);
+        score -= positioning::calculateBishopScore(m_blackBishops, Player::Black);
+        score -= positioning::calculateKnightScore(m_blackKnights, Player::Black);
+        score -= positioning::calculateQueenScore(m_blackQueens, Player::Black);
+        score -= positioning::calculateKingScore(m_blackKing, Player::Black);
 
-        return score;
+        return getCurrentPlayer() == Player::White ? score : -score;
     }
 
     constexpr void reset()
@@ -92,6 +108,9 @@ public:
 
         m_player = Player::White;
         m_moveCount = 0;
+        m_ply = 0;
+        m_nodes = 0;
+        m_bestMove = std::nullopt;
     }
 
     void perform_move(const movement::Move& move)
@@ -114,7 +133,8 @@ public:
         bitToggleMove(m_blackKing, fromSquare, toSquare);
 
         m_player = nextPlayer(m_player);
-        m_moveCount++;
+        if (m_player == Player::White)
+            m_moveCount++;
     }
 
     void print_board_debug()
@@ -193,66 +213,96 @@ private:
 
     constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        const auto moves = board.getValidMoves();
+        m_bestMove = std::nullopt;
+        m_nodes = 0;
+        m_moveCounter = 0;
 
-        int16_t highestScore = std::numeric_limits<int16_t>::min(); // Start with lowest possible score
-        std::optional<movement::Move> bestMove;
+        int16_t score = negamax(depth, board, s_minScore, s_maxScore);
+        std::cout << std::format("info score cp {} depth {} nodes {}\n", score, depth, m_nodes);
 
-        const auto player = board.getCurrentPlayer();
-
-        for (const auto& move : moves.getMoves()) {
-            BitBoard newBoard = board;
-            newBoard.perform_move(move);
-
-            // If making this move puts the current player in check, skip it
-            if (newBoard.isKingAttacked(player))
-                continue;
-
-            int16_t score = evaluateMove(depth - 1, newBoard, false);
-
-            if (score > highestScore) {
-                highestScore = score;
-                bestMove = move;
-            }
+        if (m_bestMove.has_value()) {
+            m_logger.log("Found best move: {}, score={}", movement::moveToString(m_bestMove.value()), score);
+            return m_bestMove.value();
         }
 
-        return bestMove.value(); // Make sure there is at least one valid move
+        m_logger.log("No move was found, aborting");
+        std::cerr << "No move was found, aborting" << std::endl;
+        std::exit(1);
     }
 
-    constexpr int16_t evaluateMove(uint8_t depth, BitBoard board, bool maximizingPlayer)
+    constexpr int16_t negamax(uint8_t depth, BitBoard board, int16_t alpha = -s_minScore, int16_t beta = s_maxScore)
     {
-        if (depth == 0)
-            return board.getScore(board.getCurrentPlayer()); // Return static evaluation at depth 0
+        if (depth == 0) {
+            return board.getScore();
+        }
 
-        const auto moves = board.getValidMoves();
+        m_nodes++;
 
-        int16_t bestScore = maximizingPlayer
-            ? std::numeric_limits<int16_t>::min()
-            : std::numeric_limits<int16_t>::max();
+        std::optional<movement::Move> currentBestMove;
+        int16_t prevAlpha = alpha;
+        uint16_t legalMoves = 0;
+        const Player currentPlayer = board.getCurrentPlayer();
 
-        for (const auto& move : moves.getMoves()) {
+        auto allMoves = board.getAllMoves();
+        for (const auto& move : allMoves.getMoves()) {
+            m_ply++;
+
             BitBoard newBoard = board;
             newBoard.perform_move(move);
 
-            // If move puts player in check, discard it
-            if (newBoard.isKingAttacked(board.getCurrentPlayer()))
+            if (newBoard.isKingAttacked(currentPlayer)) {
+                // invalid move
+                m_ply--;
                 continue;
+            }
 
-            int16_t score = evaluateMove(depth - 1, newBoard, !maximizingPlayer);
+            legalMoves++;
+            int16_t score = -negamax(depth - 1, newBoard, -beta, -alpha);
+            m_ply--;
 
-            if (maximizingPlayer) {
-                bestScore = std::max(bestScore, score);
-            } else {
-                bestScore = std::min(bestScore, score);
+            if (score >= beta)
+                // change to beta for hard cutoff
+                return beta;
+
+            if (score > alpha) {
+                alpha = score;
+
+                if (m_ply == 0) {
+                    currentBestMove = move;
+                }
             }
         }
 
-        return bestScore;
+        if (legalMoves == 0) {
+            if (board.isKingAttacked()) {
+                // We want absolute negative score - but with amount of moves to the given checkmate
+                // we add the ply to make checkmate in less moves a better move
+                return s_minScore + m_ply;
+            } else {
+                // Stalemate - absolute neutral score
+                return 0;
+            }
+        }
+
+        if (prevAlpha != alpha) {
+            m_bestMove = currentBestMove;
+        }
+
+        return alpha;
     }
 
-    constexpr bool isKingAttacked(Player player)
+    constexpr bool isKingAttacked(Player player) const
     {
         if (player == Player::White) {
+            return m_whiteKing & getAllAttacks(Player::Black);
+        } else {
+            return m_blackKing & getAllAttacks(Player::White);
+        }
+    }
+
+    constexpr bool isKingAttacked() const
+    {
+        if (m_player == Player::White) {
             return m_whiteKing & getAllAttacks(Player::Black);
         } else {
             return m_blackKing & getAllAttacks(Player::White);
@@ -300,8 +350,13 @@ private:
     uint64_t m_blackQueens;
     uint64_t m_blackKing;
 
-    Player m_player { Player::White };
-    uint16_t m_moveCount { 0 };
+    Player m_player;
+    uint16_t m_moveCount;
+    uint64_t m_moveCounter;
+
+    std::optional<movement::Move> m_bestMove;
+    int16_t m_ply;
+    uint64_t m_nodes;
 
     FileLogger& m_logger;
 };
