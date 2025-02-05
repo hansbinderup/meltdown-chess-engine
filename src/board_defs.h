@@ -3,14 +3,17 @@
 #include <cstdint>
 #include <limits>
 
-enum class Player : bool {
-    White = true,
-    Black = false,
+enum class Player {
+    White,
+    Black,
 };
 
 constexpr Player nextPlayer(Player p)
 {
-    return static_cast<Player>(!static_cast<bool>(p));
+    if (p == Player::White)
+        return Player::Black;
+    else
+        return Player::White;
 }
 
 constexpr static inline uint8_t s_firstRow { 0 };
