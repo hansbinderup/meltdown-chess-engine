@@ -142,7 +142,7 @@ public:
 
     void printBoardDebug() const
     {
-        m_logger.log("\nBitboard debug:");
+        m_logger.log("\n******* Bitboard debug: *******\n");
 
         for (uint8_t row = 8; row > 0; row--) {
             m_logger << std::format("-{}- ", row);
@@ -183,6 +183,32 @@ public:
         }
 
         m_logger << "    A  B  C  D  E  F  G  H";
+        m_logger << "\n\n";
+
+        m_logger << "Player: " << (m_player == Player::White ? "white" : "black");
+        m_logger << "\nRound: " << m_roundsCount;
+
+        const auto allMoves = getAllMoves();
+        m_logger << "\nMoves:";
+        if (allMoves.count()) {
+            for (const auto& move : allMoves.getMoves()) {
+                m_logger << " " << movement::moveToString(move);
+            }
+        } else {
+            m_logger << " none";
+        }
+
+        m_logger << "\nCaptures:";
+        const auto captures = getAllCaptures();
+        if (captures.count()) {
+            for (const auto& move : captures.getMoves()) {
+                m_logger << " " << movement::moveToString(move);
+            }
+
+        } else {
+            m_logger << " none";
+        }
+
         m_logger << "\n\n";
         m_logger.flush();
     }

@@ -2,6 +2,7 @@
 
 #include "src/bit_board.h"
 #include "src/movement/move_types.h"
+#include <iostream>
 
 namespace evaluation {
 

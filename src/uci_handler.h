@@ -63,6 +63,8 @@ private:
             return handlePosition(args);
         } else if (command == "go") {
             return handleGo(args);
+        } else if (command == "debug") {
+            return handleDebug(args);
         } else if (command == "quit") {
             s_isRunning = false;
         } else {
@@ -122,6 +124,16 @@ private:
         const auto bestMove = evaluator.getBestMove(s_bitBoard);
 
         std::cout << "bestmove " << movement::moveToString(bestMove) << "\n";
+        return true;
+    }
+
+    static bool handleDebug(std::string_view input)
+    {
+        auto [command, args] = split_sv_by_space(input);
+        if (command == "position") {
+            s_bitBoard.printBoardDebug();
+        }
+
         return true;
     }
 
