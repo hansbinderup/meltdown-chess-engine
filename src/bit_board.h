@@ -16,14 +16,6 @@ public:
         reset();
     }
 
-    movement::Move getBestMove()
-    {
-        m_logger.log("Get best move for {}", m_player == Player::White ? "White" : "Black");
-
-        const uint8_t depth = 5;
-        return scanForBestMove(depth, *this);
-    }
-
     movement::ValidMoves getAllMoves() const
     {
         movement::ValidMoves validMoves;
@@ -107,13 +99,10 @@ public:
         m_blackKing = { 0x10ULL << s_eightRow };
 
         m_player = Player::White;
-        m_moveCount = 0;
-        m_ply = 0;
-        m_nodes = 0;
-        m_bestMove = std::nullopt;
+        m_roundsCount = 0;
     }
 
-    void perform_move(const movement::Move& move)
+    void performMove(const movement::Move& move)
     {
         const auto fromSquare = 1ULL << move.from;
         const auto toSquare = 1ULL << move.to;
@@ -133,11 +122,10 @@ public:
         bitToggleMove(m_blackKing, fromSquare, toSquare);
 
         m_player = nextPlayer(m_player);
-        if (m_player == Player::White)
-            m_moveCount++;
+        m_roundsCount++;
     }
 
-    void print_board_debug()
+    void printBoardDebug() const
     {
         m_logger.log("\nBitboard debug:");
 
@@ -189,7 +177,6 @@ public:
         return m_player;
     }
 
-private:
     constexpr uint64_t getAllAttacks(Player player) const
     {
         if (player == Player::White) {
@@ -211,86 +198,6 @@ private:
 
             return attacks;
         }
-    }
-
-    constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
-    {
-        m_bestMove = std::nullopt;
-        m_nodes = 0;
-        m_moveCounter = 0;
-
-        int16_t score = negamax(depth, board, s_minScore, s_maxScore);
-        std::cout << std::format("info score cp {} depth {} nodes {}\n", score, depth, m_nodes);
-
-        if (m_bestMove.has_value()) {
-            m_logger.log("Found best move: {}, score={}", movement::moveToString(m_bestMove.value()), score);
-            return m_bestMove.value();
-        }
-
-        m_logger.log("No move was found, aborting");
-        std::cerr << "No move was found, aborting" << std::endl;
-        std::exit(1);
-    }
-
-    constexpr int16_t negamax(uint8_t depth, BitBoard board, int16_t alpha = -s_minScore, int16_t beta = s_maxScore)
-    {
-        if (depth == 0) {
-            return board.getScore();
-        }
-
-        m_nodes++;
-
-        std::optional<movement::Move> currentBestMove;
-        int16_t prevAlpha = alpha;
-        uint16_t legalMoves = 0;
-        const Player currentPlayer = board.getCurrentPlayer();
-
-        auto allMoves = board.getAllMoves();
-        for (const auto& move : allMoves.getMoves()) {
-            m_ply++;
-
-            BitBoard newBoard = board;
-            newBoard.perform_move(move);
-
-            if (newBoard.isKingAttacked(currentPlayer)) {
-                // invalid move
-                m_ply--;
-                continue;
-            }
-
-            legalMoves++;
-            int16_t score = -negamax(depth - 1, newBoard, -beta, -alpha);
-            m_ply--;
-
-            if (score >= beta)
-                // change to beta for hard cutoff
-                return beta;
-
-            if (score > alpha) {
-                alpha = score;
-
-                if (m_ply == 0) {
-                    currentBestMove = move;
-                }
-            }
-        }
-
-        if (legalMoves == 0) {
-            if (board.isKingAttacked()) {
-                // We want absolute negative score - but with amount of moves to the given checkmate
-                // we add the ply to make checkmate in less moves a better move
-                return s_minScore + m_ply;
-            } else {
-                // Stalemate - absolute neutral score
-                return 0;
-            }
-        }
-
-        if (prevAlpha != alpha) {
-            m_bestMove = currentBestMove;
-        }
-
-        return alpha;
     }
 
     constexpr bool isKingAttacked(Player player) const
@@ -333,11 +240,18 @@ private:
         return m_blackPawns | m_blackRooks | m_blackBishops | m_blackKnights | m_blackQueens | m_blackKing;
     }
 
-    constexpr uint64_t getAllOccupation()
+    constexpr uint64_t getAllOccupation() const
     {
         return getWhiteOccupation() | getBlackOccupation();
     }
 
+    constexpr uint16_t getRoundsCount() const
+    {
+        return m_roundsCount;
+    }
+
+private:
+    // Bitboard represensation of each pieces
     uint64_t m_whitePawns;
     uint64_t m_whiteRooks;
     uint64_t m_whiteBishops;
@@ -352,13 +266,11 @@ private:
     uint64_t m_blackQueens;
     uint64_t m_blackKing;
 
+    // which player to perform next move
     Player m_player;
-    uint16_t m_moveCount;
-    uint64_t m_moveCounter;
 
-    std::optional<movement::Move> m_bestMove;
-    int16_t m_ply;
-    uint64_t m_nodes;
+    // amount of rounds that the game has been played
+    uint16_t m_roundsCount;
 
     FileLogger& m_logger;
 };

@@ -2,6 +2,7 @@
 
 #include "bit_board.h"
 #include "file_logger.h"
+#include "src/evaluation/evaluator.h"
 
 #include <iostream>
 #include <string_view>
@@ -98,7 +99,7 @@ private:
 
             if (subCommand == "moves") {
                 while (const auto move = movement::moveFromString(args.substr(0, 4))) {
-                    s_bitBoard.perform_move(move.value());
+                    s_bitBoard.performMove(move.value());
 
                     auto spaceSep = args.find(' ');
                     if (spaceSep == std::string_view::npos) {
@@ -117,7 +118,8 @@ private:
     {
         std::ignore = args;
 
-        const auto bestMove = s_bitBoard.getBestMove();
+        static evaluation::Evaluator evaluator(s_fileLogger);
+        const auto bestMove = evaluator.getBestMove(s_bitBoard);
 
         std::cout << "bestmove " << movement::moveToString(bestMove) << "\n";
         return true;
