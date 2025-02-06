@@ -198,6 +198,7 @@ private:
             attacks |= gen::getRookAttacks(m_whiteRooks, getWhiteOccupation() | getBlackOccupation());
             attacks |= gen::getBishopAttacks(m_whiteBishops, getWhiteOccupation() | getBlackOccupation());
             attacks |= gen::getQueenAttacks(m_whiteQueens, getWhiteOccupation() | getBlackOccupation());
+            attacks |= gen::getKingAttacks(m_whiteKing);
 
             return attacks;
         } else {
@@ -206,6 +207,7 @@ private:
             attacks |= gen::getRookAttacks(m_blackRooks, getWhiteOccupation() | getBlackOccupation());
             attacks |= gen::getBishopAttacks(m_blackBishops, getWhiteOccupation() | getBlackOccupation());
             attacks |= gen::getQueenAttacks(m_blackQueens, getWhiteOccupation() | getBlackOccupation());
+            attacks |= gen::getKingAttacks(m_blackKing);
 
             return attacks;
         }

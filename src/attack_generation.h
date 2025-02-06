@@ -2,7 +2,9 @@
 #pragma once
 
 #include "board_defs.h"
+
 #include "src/movement/bishops.h"
+#include "src/movement/kings.h"
 #include "src/movement/knights.h"
 #include "src/movement/rooks.h"
 
@@ -62,6 +64,16 @@ constexpr static inline uint64_t getQueenAttacks(uint64_t queens, uint64_t occup
     }
 
     return attacks;
+}
+
+constexpr static inline uint64_t getKingAttacks(uint64_t king)
+{
+    if (king == 0) {
+        return 0;
+    }
+
+    const int from = std::countr_zero(king);
+    return movement::s_kingsTable.at(from);
 }
 
 constexpr static inline uint64_t getWhitePawnAttacks(uint64_t pawns)
