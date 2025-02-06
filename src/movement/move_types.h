@@ -12,6 +12,8 @@ namespace movement {
 struct Move {
     uint8_t from {};
     uint8_t to {};
+
+    friend bool operator<=>(const Move&, const Move&) = default;
 };
 
 static inline std::optional<Move> moveFromString(std::string_view sv)

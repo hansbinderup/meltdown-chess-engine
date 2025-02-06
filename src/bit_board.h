@@ -28,6 +28,7 @@ public:
             gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation(), getBlackOccupation());
             gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation(), getBlackOccupation());
             gen::getQueenMoves(validMoves, m_whiteQueens, getWhiteOccupation(), getBlackOccupation());
+            gen::getCastlingMoves(validMoves, Player::White, m_whiteKing, m_whiteRooks, m_whiteCastlingRights, getWhiteOccupation() | getBlackOccupation(), attacks);
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
             gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
@@ -36,6 +37,7 @@ public:
             gen::getRookMoves(validMoves, m_blackRooks, getBlackOccupation(), getWhiteOccupation());
             gen::getBishopMoves(validMoves, m_blackBishops, getBlackOccupation(), getWhiteOccupation());
             gen::getQueenMoves(validMoves, m_blackQueens, getBlackOccupation(), getWhiteOccupation());
+            gen::getCastlingMoves(validMoves, Player::Black, m_blackKing, m_blackRooks, m_blackCastlingRights, getWhiteOccupation() | getBlackOccupation(), attacks);
         }
 
         return validMoves;
@@ -113,6 +115,9 @@ public:
         m_blackQueens = { 0x08ULL << s_eightRow };
         m_blackKing = { 0x10ULL << s_eightRow };
 
+        m_whiteCastlingRights = { s_whiteQueenSideCastleMask | s_whiteKingSideCastleMask };
+        m_blackCastlingRights = { s_blackQueenSideCastleMask | s_blackKingSideCastleMask };
+
         m_player = Player::White;
         m_roundsCount = 0;
     }
@@ -122,19 +127,21 @@ public:
         const auto fromSquare = 1ULL << move.from;
         const auto toSquare = 1ULL << move.to;
 
-        bitToggleMove(m_whitePawns, fromSquare, toSquare);
-        bitToggleMove(m_whiteRooks, fromSquare, toSquare);
-        bitToggleMove(m_whiteBishops, fromSquare, toSquare);
-        bitToggleMove(m_whiteKnights, fromSquare, toSquare);
-        bitToggleMove(m_whiteQueens, fromSquare, toSquare);
-        bitToggleMove(m_whiteKing, fromSquare, toSquare);
+        if (!performCastleMove(move)) {
+            bitToggleMove(m_whitePawns, fromSquare, toSquare);
+            bitToggleMove(m_whiteRooks, fromSquare, toSquare);
+            bitToggleMove(m_whiteBishops, fromSquare, toSquare);
+            bitToggleMove(m_whiteKnights, fromSquare, toSquare);
+            bitToggleMove(m_whiteQueens, fromSquare, toSquare);
+            bitToggleMove(m_whiteKing, fromSquare, toSquare);
 
-        bitToggleMove(m_blackPawns, fromSquare, toSquare);
-        bitToggleMove(m_blackRooks, fromSquare, toSquare);
-        bitToggleMove(m_blackBishops, fromSquare, toSquare);
-        bitToggleMove(m_blackKnights, fromSquare, toSquare);
-        bitToggleMove(m_blackQueens, fromSquare, toSquare);
-        bitToggleMove(m_blackKing, fromSquare, toSquare);
+            bitToggleMove(m_blackPawns, fromSquare, toSquare);
+            bitToggleMove(m_blackRooks, fromSquare, toSquare);
+            bitToggleMove(m_blackBishops, fromSquare, toSquare);
+            bitToggleMove(m_blackKnights, fromSquare, toSquare);
+            bitToggleMove(m_blackQueens, fromSquare, toSquare);
+            bitToggleMove(m_blackKing, fromSquare, toSquare);
+        }
 
         m_player = nextPlayer(m_player);
         m_roundsCount++;
@@ -185,28 +192,26 @@ public:
         m_logger << "    A  B  C  D  E  F  G  H";
         m_logger << "\n\n";
 
-        m_logger << "Player: " << (m_player == Player::White ? "white" : "black");
-        m_logger << "\nRound: " << m_roundsCount;
-
         const auto allMoves = getAllMoves();
-        m_logger << "\nMoves:";
-        if (allMoves.count()) {
-            for (const auto& move : allMoves.getMoves()) {
-                m_logger << " " << movement::moveToString(move);
+        m_logger << "Player: " << (m_player == Player::White ? "white" : "black");
+        m_logger << "\nRound: " << std::to_string(m_roundsCount);
+        m_logger << "\nCastle: " << std::count_if(allMoves.getMoves().begin(), allMoves.getMoves().end(), [this](const auto& move) {
+            if (m_player == Player::White) {
+                return move == gen::s_whiteKingSideCastleMove || move == gen::s_whiteQueenSideCastleMove;
+            } else {
+                return move == gen::s_blackKingSideCastleMove || move == gen::s_blackQueenSideCastleMove;
             }
-        } else {
-            m_logger << " none";
+        });
+
+        m_logger << std::format("\nMoves[{}]:", allMoves.count());
+        for (const auto& move : allMoves.getMoves()) {
+            m_logger << " " << movement::moveToString(move);
         }
 
-        m_logger << "\nCaptures:";
         const auto captures = getAllCaptures();
-        if (captures.count()) {
-            for (const auto& move : captures.getMoves()) {
-                m_logger << " " << movement::moveToString(move);
-            }
-
-        } else {
-            m_logger << " none";
+        m_logger << std::format("\nCaptures[{}]:", captures.count());
+        for (const auto& move : captures.getMoves()) {
+            m_logger << " " << movement::moveToString(move);
         }
 
         m_logger << "\n\n";
@@ -259,6 +264,55 @@ public:
         }
     }
 
+    /*
+     * Could be made better I guess, but for now this should do
+     */
+    constexpr bool performCastleMove(const movement::Move& move)
+    {
+        const auto fromSquare = 1ULL << move.from;
+        const auto toSquare = 1ULL << move.to;
+
+        auto performSingleCastleMove = [&](uint64_t& king, uint64_t& rooks, uint64_t& castlingRights,
+                                           const movement::Move& queenSideMove, const movement::Move& kingSideMove,
+                                           const movement::Move& queenSideRookMove, const movement::Move& kingSideRookMove) -> bool {
+            if (move == queenSideMove) {
+                bitToggleMove(king, fromSquare, toSquare);
+                bitToggleMove(rooks, 1ULL << queenSideRookMove.from, 1ULL << queenSideRookMove.to);
+                castlingRights = 0;
+                return true;
+            }
+            if (move == kingSideMove) {
+                bitToggleMove(king, fromSquare, toSquare);
+                bitToggleMove(rooks, 1ULL << kingSideRookMove.from, 1ULL << kingSideRookMove.to);
+                castlingRights = 0;
+                return true;
+            }
+
+            // Move wasn't castling - remove castling rights if the king or a rook moved.
+            if (fromSquare & king) {
+                castlingRights = 0;
+            } else {
+                castlingRights &= ~fromSquare;
+            }
+
+            return false;
+        };
+
+        if (m_player == Player::White && m_whiteCastlingRights) {
+            return performSingleCastleMove(m_whiteKing, m_whiteRooks, m_whiteCastlingRights,
+                gen::s_whiteQueenSideCastleMove, gen::s_whiteKingSideCastleMove,
+                gen::s_whiteQueenSideCastleMoveRook, gen::s_whiteKingSideCastleMoveRook);
+        }
+
+        if (m_player == Player::Black && m_blackCastlingRights) {
+            return performSingleCastleMove(m_blackKing, m_blackRooks, m_blackCastlingRights,
+                gen::s_blackQueenSideCastleMove, gen::s_blackKingSideCastleMove,
+                gen::s_blackQueenSideCastleMoveRook, gen::s_blackKingSideCastleMoveRook);
+        }
+
+        return false;
+    }
+
     constexpr void bitToggleMove(uint64_t& piece, uint64_t fromSquare, uint64_t toSquare)
     {
         if (toSquare & piece) {
@@ -306,6 +360,10 @@ private:
     uint64_t m_blackKnights;
     uint64_t m_blackQueens;
     uint64_t m_blackKing;
+
+    // castling
+    uint64_t m_whiteCastlingRights;
+    uint64_t m_blackCastlingRights;
 
     // which player to perform next move
     Player m_player;
