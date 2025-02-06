@@ -41,6 +41,21 @@ public:
         return validMoves;
     }
 
+    movement::ValidMoves getAllCaptures() const
+    {
+        movement::ValidMoves captures;
+        const auto allMoves = getAllMoves();
+        const auto enemyOccupation = m_player == Player::White ? getBlackOccupation() : getWhiteOccupation();
+
+        for (const auto& move : allMoves.getMoves()) {
+            const auto toSquare = 1ULL << move.to;
+            if (toSquare & enemyOccupation)
+                captures.addMove(move);
+        }
+
+        return captures;
+    }
+
     /*
      * Score in favour of current player
      */

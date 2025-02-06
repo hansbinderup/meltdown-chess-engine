@@ -50,10 +50,10 @@ private:
         std::exit(1);
     }
 
-    constexpr int16_t negamax(uint8_t depth, BitBoard board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
+    constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
         if (depth == 0) {
-            return board.getScore();
+            return quiesence(board, alpha, beta);
         }
 
         m_nodes++;
@@ -105,6 +105,45 @@ private:
 
         if (prevAlpha != alpha) {
             m_bestMove = currentBestMove;
+        }
+
+        return alpha;
+    }
+
+    constexpr int16_t quiesence(const BitBoard& board, int16_t alpha, int16_t beta)
+    {
+        m_nodes++;
+
+        const Player currentPlayer = board.getCurrentPlayer();
+        const int16_t evaluation = board.getScore();
+
+        // Hard cutoff
+        if (evaluation >= beta) {
+            return beta;
+        }
+
+        if (evaluation > alpha) {
+            alpha = evaluation;
+        }
+
+        auto allMoves = board.getAllCaptures();
+        for (const auto& move : allMoves.getMoves()) {
+            BitBoard newBoard = board;
+            newBoard.performMove(move);
+
+            if (newBoard.isKingAttacked(currentPlayer)) {
+                // invalid move
+                continue;
+            }
+
+            const int16_t score = -quiesence(newBoard, -beta, -alpha);
+            if (score >= beta)
+                // change to beta for hard cutoff
+                return beta;
+
+            if (score > alpha) {
+                alpha = score;
+            }
         }
 
         return alpha;
