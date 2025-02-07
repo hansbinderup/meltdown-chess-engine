@@ -23,7 +23,7 @@ public:
     {
         m_logger.log("Get best move for {}", magic_enum::enum_name(board.getCurrentPlayer()));
 
-        const uint8_t depth = std::clamp(board.getRoundsCount(), static_cast<uint16_t>(3), static_cast<uint16_t>(7));
+        const uint8_t depth = std::clamp(board.getRoundsCount(), s_minDepth, s_maxDepth);
         return scanForBestMove(depthInput.value_or(depth), board);
     }
 
@@ -75,6 +75,10 @@ private:
 
         auto allMoves = board.getAllMovesSorted();
         for (const auto& move : allMoves.getMoves()) {
+            if (currentDepth == 0) {
+                std::cout << "info currmove " << move.toString() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
+            }
+
             BitBoard newBoard = board;
             newBoard.performMove(move);
 
@@ -161,5 +165,8 @@ private:
     std::optional<movement::Move> m_bestMove;
     uint64_t m_nodes {};
     uint8_t m_depth;
+
+    constexpr static inline uint16_t s_minDepth { 5 };
+    constexpr static inline uint16_t s_maxDepth { 7 };
 };
 }
