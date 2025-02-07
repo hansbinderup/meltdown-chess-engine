@@ -8,13 +8,13 @@ namespace movement {
 
 namespace {
 
-constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt)
+constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, MoveFlags flags = MoveFlags::None)
 {
     while (moves) {
         int to = std::countr_zero(moves); // Find first set bit
         moves &= moves - 1; // Clear bit
         int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
     }
 }
 
@@ -38,8 +38,8 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
 
     backtrackPawnMoves(validMoves, moveStraight, 8);
     backtrackPawnMoves(validMoves, moveStraightDouble, 16);
-    backtrackPawnMoves(validMoves, attackLeft, 7);
-    backtrackPawnMoves(validMoves, attackRight, 9);
+    backtrackPawnMoves(validMoves, attackLeft, 7, MoveFlags::Capture);
+    backtrackPawnMoves(validMoves, attackRight, 9, MoveFlags::Capture);
 }
 
 constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
@@ -53,8 +53,8 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
 
     backtrackPawnMoves(validMoves, moveStraight, -8);
     backtrackPawnMoves(validMoves, moveStraightDouble, -16);
-    backtrackPawnMoves(validMoves, attackLeft, -9);
-    backtrackPawnMoves(validMoves, attackRight, -7);
+    backtrackPawnMoves(validMoves, attackLeft, -9, MoveFlags::Capture);
+    backtrackPawnMoves(validMoves, attackRight, -7, MoveFlags::Capture);
 }
 
 }

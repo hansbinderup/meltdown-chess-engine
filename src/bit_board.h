@@ -25,18 +25,18 @@ public:
 
         if (m_player == Player::White) {
             uint64_t attacks = getAllAttacks(Player::Black);
-            gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), attacks);
+            gen::getKingMoves(validMoves, m_whiteKing, getWhiteOccupation(), getBlackOccupation(), attacks);
             gen::getPawnMoves(validMoves, m_player, m_whitePawns, getWhiteOccupation(), getBlackOccupation());
-            gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation());
+            gen::getKnightMoves(validMoves, m_whiteKnights, getWhiteOccupation(), getBlackOccupation());
             gen::getRookMoves(validMoves, m_whiteRooks, getWhiteOccupation(), getBlackOccupation());
             gen::getBishopMoves(validMoves, m_whiteBishops, getWhiteOccupation(), getBlackOccupation());
             gen::getQueenMoves(validMoves, m_whiteQueens, getWhiteOccupation(), getBlackOccupation());
             gen::getCastlingMoves(validMoves, Player::White, m_whiteKing, m_whiteRooks, m_whiteCastlingRights, getWhiteOccupation() | getBlackOccupation(), attacks);
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
-            gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), attacks);
+            gen::getKingMoves(validMoves, m_blackKing, getBlackOccupation(), getWhiteOccupation(), attacks);
             gen::getPawnMoves(validMoves, m_player, m_blackPawns, getWhiteOccupation(), getBlackOccupation());
-            gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation());
+            gen::getKnightMoves(validMoves, m_blackKnights, getBlackOccupation(), getWhiteOccupation());
             gen::getRookMoves(validMoves, m_blackRooks, getBlackOccupation(), getWhiteOccupation());
             gen::getBishopMoves(validMoves, m_blackBishops, getBlackOccupation(), getWhiteOccupation());
             gen::getQueenMoves(validMoves, m_blackQueens, getBlackOccupation(), getWhiteOccupation());
@@ -46,17 +46,35 @@ public:
         return validMoves;
     }
 
+    movement::ValidMoves getAllMovesSorted() const
+    {
+        auto allMoves = getAllMoves();
+        std::sort(allMoves.getMoves().begin(), allMoves.getMoves().end(), [this](const auto& a, const auto& b) {
+            return scoreMove(a) > scoreMove(b);
+        });
+
+        return allMoves;
+    }
+
     movement::ValidMoves getAllCaptures() const
     {
         movement::ValidMoves captures;
         const auto allMoves = getAllMoves();
-        const auto enemyOccupation = m_player == Player::White ? getBlackOccupation() : getWhiteOccupation();
 
         for (const auto& move : allMoves.getMoves()) {
-            const auto toSquare = 1ULL << move.to;
-            if (toSquare & enemyOccupation)
+            if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture))
                 captures.addMove(move);
         }
+
+        return captures;
+    }
+
+    movement::ValidMoves getAllCapturesSorted() const
+    {
+        auto captures = getAllCaptures();
+        std::sort(captures.getMoves().begin(), captures.getMoves().end(), [this](const auto& a, const auto& b) {
+            return scoreMove(a) > scoreMove(b);
+        });
 
         return captures;
     }
@@ -219,10 +237,10 @@ public:
             m_logger << " " << movement::moveToString(move);
         }
 
-        const auto captures = getAllCaptures();
-        m_logger << std::format("\nCaptures[{}]:", captures.count());
+        const auto captures = getAllCapturesSorted();
+        m_logger << std::format("\nCaptures[{}]:\n", captures.count());
         for (const auto& move : captures.getMoves()) {
-            m_logger << " " << movement::moveToString(move);
+            m_logger << std::format("{} [{}]\n", movement::moveToString(move), scoreMove(move));
         }
 
         m_logger << "\n\n";
@@ -358,6 +376,45 @@ public:
     constexpr uint16_t getRoundsCount() const
     {
         return m_roundsCount;
+    }
+
+    constexpr std::optional<Piece> getPieceAtSquare(uint64_t square) const
+    {
+        if (square & (m_whitePawns | m_blackPawns)) {
+            return Piece::Pawn;
+        } else if (square & (m_whiteKnights | m_blackKnights)) {
+            return Piece::Knight;
+        } else if (square & (m_whiteBishops | m_blackBishops)) {
+            return Piece::Bishop;
+        } else if (square & (m_whiteRooks | m_blackRooks)) {
+            return Piece::Rook;
+        } else if (square & (m_whiteQueens | m_blackQueens)) {
+            return Piece::Queen;
+        } else if (square & (m_whiteKing | m_blackKing)) {
+            return Piece::King;
+        }
+
+        return std::nullopt;
+    }
+
+    constexpr int16_t scoreMove(const movement::Move& move) const
+    {
+        if (!magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
+            return 0;
+        }
+
+        const uint64_t toSquare = 1ULL << move.to;
+        const uint64_t fromSquare = 1ULL << move.from;
+
+        const auto attacker = getPieceAtSquare(fromSquare);
+        const auto victim = getPieceAtSquare(toSquare);
+
+        if (attacker.has_value() && victim.has_value()) {
+            return gen::getMvvLvaScore(attacker.value(), victim.value());
+        }
+
+        // shouldn't happen
+        return 0;
     }
 
 private:

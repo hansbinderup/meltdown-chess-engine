@@ -23,7 +23,7 @@ public:
     {
         m_logger.log("Get best move for {}", magic_enum::enum_name(board.getCurrentPlayer()));
 
-        const uint8_t depth = depthInput.value_or(5);
+        const uint8_t depth = depthInput.value_or(7);
         return scanForBestMove(depth, board);
     }
 
@@ -67,7 +67,7 @@ private:
         const Player currentPlayer = board.getCurrentPlayer();
         const uint8_t currentDepth = m_depth - depth;
 
-        auto allMoves = board.getAllMoves();
+        auto allMoves = board.getAllMovesSorted();
         for (const auto& move : allMoves.getMoves()) {
             BitBoard newBoard = board;
             newBoard.performMove(move);
@@ -128,7 +128,7 @@ private:
             alpha = evaluation;
         }
 
-        auto allMoves = board.getAllCaptures();
+        auto allMoves = board.getAllCapturesSorted();
         for (const auto& move : allMoves.getMoves()) {
             BitBoard newBoard = board;
             newBoard.performMove(move);

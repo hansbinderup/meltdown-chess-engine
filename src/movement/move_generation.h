@@ -29,7 +29,7 @@ constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, Play
     }
 }
 
-constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation)
+constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     while (knights) {
         const int from = std::countr_zero(knights);
@@ -38,9 +38,11 @@ constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, ui
         uint64_t moves = movement::s_knightsTable.at(from) & ~ownOccupation;
 
         while (moves) {
-            int to = std::countr_zero(moves);
+            const int to = std::countr_zero(moves);
+            const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
             moves &= moves - 1;
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+
+            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
         }
     }
 }
@@ -54,9 +56,11 @@ constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, uint
         uint64_t moves = movement::getRookAttacks(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
         while (moves) {
-            int to = std::countr_zero(moves);
+            const int to = std::countr_zero(moves);
+            const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
             moves &= moves - 1;
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+
+            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
         }
     }
 }
@@ -70,9 +74,11 @@ constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, ui
         uint64_t moves = movement::getBishopAttacks(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
         while (moves) {
-            int to = std::countr_zero(moves);
+            const int to = std::countr_zero(moves);
+            const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
             moves &= moves - 1;
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+
+            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
         }
     }
 }
@@ -83,7 +89,7 @@ constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, uin
     getBishopMoves(validMoves, queens, ownOccupation, theirOccupation);
 }
 
-constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t attacks)
+constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, uint64_t attacks)
 {
     if (king == 0)
         return;
@@ -94,9 +100,11 @@ constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, uint
     uint64_t moves = movement::s_kingsTable.at(from) & ~ownOccupation & ~attacks;
 
     while (moves) {
-        int to = std::countr_zero(moves);
+        const int to = std::countr_zero(moves);
+        const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
         moves &= moves - 1;
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to) });
+
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
     }
 }
 

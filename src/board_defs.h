@@ -16,6 +16,15 @@ constexpr Player nextPlayer(Player p)
         return Player::White;
 }
 
+enum Piece : uint8_t {
+    Pawn = 0,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King,
+};
+
 constexpr static inline uint8_t s_firstRow { 0 };
 constexpr static inline uint8_t s_secondRow { 8 };
 constexpr static inline uint8_t s_seventhRow { 48 };
