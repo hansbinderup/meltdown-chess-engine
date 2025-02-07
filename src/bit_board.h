@@ -5,9 +5,11 @@
 #include "file_logger.h"
 
 #include "magic_enum/magic_enum.hpp"
+#include "magic_enum/magic_enum_flags.hpp"
 #include "movement/move_types.h"
 #include "src/movement/move_generation.h"
 #include "src/positioning.h"
+#include <numeric>
 
 class BitBoard {
 public:
@@ -127,8 +129,14 @@ public:
     {
         const auto fromSquare = 1ULL << move.from;
         const auto toSquare = 1ULL << move.to;
+        const auto moveFlags = move.flags;
 
-        if (!performCastleMove(move)) {
+        if (magic_enum::enum_flags_test(moveFlags, movement::MoveFlags::Castle)) {
+            performCastleMove(move);
+        } else {
+            // should be done before moving pieces
+            updateCastlingRights(fromSquare);
+
             bitToggleMove(m_whitePawns, fromSquare, toSquare);
             bitToggleMove(m_whiteRooks, fromSquare, toSquare);
             bitToggleMove(m_whiteBishops, fromSquare, toSquare);
@@ -196,12 +204,14 @@ public:
         const auto allMoves = getAllMoves();
         m_logger << "Player: " << magic_enum::enum_name(m_player);
         m_logger << "\nRound: " << std::to_string(m_roundsCount);
-        m_logger << "\nCastle: " << std::count_if(allMoves.getMoves().begin(), allMoves.getMoves().end(), [this](const auto& move) {
-            if (m_player == Player::White) {
-                return move == gen::s_whiteKingSideCastleMove || move == gen::s_whiteQueenSideCastleMove;
-            } else {
-                return move == gen::s_blackKingSideCastleMove || move == gen::s_blackQueenSideCastleMove;
+        /* m_logger << "\nCastle: " << std::count_if(allMoves.getMoves().begin(), allMoves.getMoves().end(), [](const auto& move) { */
+        /*     return magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle); */
+        /* }); */
+        m_logger << "\nCastle: " << std::accumulate(allMoves.getMoves().begin(), allMoves.getMoves().end(), std::string {}, [](std::string result, const movement::Move& move) {
+            if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle)) {
+                result += movement::moveToString(move) + " ";
             }
+            return result;
         });
 
         m_logger << std::format("\nMoves[{}]:", allMoves.count());
@@ -268,50 +278,54 @@ public:
     /*
      * Could be made better I guess, but for now this should do
      */
-    constexpr bool performCastleMove(const movement::Move& move)
+    constexpr void performCastleMove(const movement::Move& move)
     {
         const auto fromSquare = 1ULL << move.from;
         const auto toSquare = 1ULL << move.to;
 
         auto performSingleCastleMove = [&](uint64_t& king, uint64_t& rooks, uint64_t& castlingRights,
                                            const movement::Move& queenSideMove, const movement::Move& kingSideMove,
-                                           const movement::Move& queenSideRookMove, const movement::Move& kingSideRookMove) -> bool {
+                                           const movement::Move& queenSideRookMove, const movement::Move& kingSideRookMove) {
             if (move == queenSideMove) {
                 bitToggleMove(king, fromSquare, toSquare);
                 bitToggleMove(rooks, 1ULL << queenSideRookMove.from, 1ULL << queenSideRookMove.to);
                 castlingRights = 0;
-                return true;
             }
             if (move == kingSideMove) {
                 bitToggleMove(king, fromSquare, toSquare);
                 bitToggleMove(rooks, 1ULL << kingSideRookMove.from, 1ULL << kingSideRookMove.to);
                 castlingRights = 0;
-                return true;
             }
-
-            // Move wasn't castling - remove castling rights if the king or a rook moved.
-            if (fromSquare & king) {
-                castlingRights = 0;
-            } else {
-                castlingRights &= ~fromSquare;
-            }
-
-            return false;
         };
 
         if (m_player == Player::White && m_whiteCastlingRights) {
-            return performSingleCastleMove(m_whiteKing, m_whiteRooks, m_whiteCastlingRights,
+            performSingleCastleMove(m_whiteKing, m_whiteRooks, m_whiteCastlingRights,
                 gen::s_whiteQueenSideCastleMove, gen::s_whiteKingSideCastleMove,
                 gen::s_whiteQueenSideCastleMoveRook, gen::s_whiteKingSideCastleMoveRook);
         }
 
         if (m_player == Player::Black && m_blackCastlingRights) {
-            return performSingleCastleMove(m_blackKing, m_blackRooks, m_blackCastlingRights,
+            performSingleCastleMove(m_blackKing, m_blackRooks, m_blackCastlingRights,
                 gen::s_blackQueenSideCastleMove, gen::s_blackKingSideCastleMove,
                 gen::s_blackQueenSideCastleMoveRook, gen::s_blackKingSideCastleMoveRook);
         }
+    }
 
-        return false;
+    constexpr void updateCastlingRights(uint64_t fromSquare)
+    {
+        if (m_player == Player::White && m_whiteCastlingRights) {
+            if (fromSquare & m_whiteKing) {
+                m_whiteCastlingRights = 0;
+            } else {
+                m_whiteCastlingRights &= ~fromSquare;
+            }
+        } else if (m_player == Player::Black && m_blackCastlingRights) {
+            if (fromSquare & m_blackKing) {
+                m_blackCastlingRights = 0;
+            } else {
+                m_blackCastlingRights &= ~fromSquare;
+            }
+        }
     }
 
     constexpr void bitToggleMove(uint64_t& piece, uint64_t fromSquare, uint64_t toSquare)

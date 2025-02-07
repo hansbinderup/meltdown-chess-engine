@@ -1,5 +1,6 @@
 #pragma once
 
+#include "magic_enum/magic_enum.hpp"
 #include "src/board_defs.h"
 
 #include <cstdint>
@@ -9,9 +10,17 @@
 
 namespace movement {
 
+enum MoveFlags : uint8_t {
+    None = 0,
+    Capture = 1 << 0,
+    Castle = 1 << 1,
+    EnPassant = 1 << 2,
+};
+
 struct Move {
     uint8_t from {};
     uint8_t to {};
+    MoveFlags flags {};
 
     friend bool operator<=>(const Move&, const Move&) = default;
 };
@@ -116,3 +125,8 @@ struct MoveDirection {
 
 }
 
+// Has to be in neutral namespace
+template<>
+struct magic_enum::customize::enum_range<movement::MoveFlags> {
+    static constexpr bool is_flags = true;
+};

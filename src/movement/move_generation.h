@@ -10,13 +10,13 @@
 
 namespace gen {
 
-constexpr movement::Move s_whiteKingSideCastleMove { 4, 6 };
-constexpr movement::Move s_whiteQueenSideCastleMove { 4, 2 };
+constexpr movement::Move s_whiteKingSideCastleMove { 4, 6, movement::MoveFlags::Castle };
+constexpr movement::Move s_whiteQueenSideCastleMove { 4, 2, movement::MoveFlags::Castle };
 constexpr movement::Move s_whiteKingSideCastleMoveRook { 7, 5 };
 constexpr movement::Move s_whiteQueenSideCastleMoveRook { 0, 3 };
 
-constexpr movement::Move s_blackKingSideCastleMove { 4 + s_eightRow, 6 + s_eightRow };
-constexpr movement::Move s_blackQueenSideCastleMove { 4 + s_eightRow, 2 + s_eightRow };
+constexpr movement::Move s_blackKingSideCastleMove { 4 + s_eightRow, 6 + s_eightRow, movement::MoveFlags::Castle };
+constexpr movement::Move s_blackQueenSideCastleMove { 4 + s_eightRow, 2 + s_eightRow, movement::MoveFlags::Castle };
 constexpr movement::Move s_blackKingSideCastleMoveRook { 7 + s_eightRow, 5 + s_eightRow };
 constexpr movement::Move s_blackQueenSideCastleMoveRook { 0 + s_eightRow, 3 + s_eightRow };
 
