@@ -23,8 +23,8 @@ public:
     {
         m_logger.log("Get best move for {}", magic_enum::enum_name(board.getCurrentPlayer()));
 
-        const uint8_t depth = depthInput.value_or(7);
-        return scanForBestMove(depth, board);
+        const uint8_t depth = std::clamp(board.getRoundsCount(), static_cast<uint16_t>(3), static_cast<uint16_t>(7));
+        return scanForBestMove(depthInput.value_or(depth), board);
     }
 
 private:
@@ -43,7 +43,7 @@ private:
         std::cout << std::format("info score cp {} depth {} nodes {}\n", score, depth, m_nodes);
 
         if (m_bestMove.has_value()) {
-            m_logger.log("Found best move: {}, score={}, nodes: {}", movement::moveToString(m_bestMove.value()), score, m_nodes);
+            m_logger.log("Found best move: {}, score={}, nodes: {}", m_bestMove.value().toString(), score, m_nodes);
             return m_bestMove.value();
         }
 

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "bit_board.h"
-#include "file_logger.h"
+#include "src/bit_board.h"
 #include "src/evaluation/evaluator.h"
+#include "src/file_logger.h"
+#include "src/input_parsing.h"
 
 #include <iostream>
 #include <string_view>
@@ -100,7 +101,7 @@ private:
             const auto subCommand = sv_next_split(args);
 
             if (subCommand == "moves") {
-                while (const auto move = movement::moveFromString(args.substr(0, 4))) {
+                while (const auto move = parsing::moveFromString(s_bitBoard, args.substr(0, 4))) {
                     s_bitBoard.performMove(move.value());
 
                     auto spaceSep = args.find(' ');
@@ -123,7 +124,7 @@ private:
         static evaluation::Evaluator evaluator(s_fileLogger);
         const auto bestMove = evaluator.getBestMove(s_bitBoard);
 
-        std::cout << "bestmove " << movement::moveToString(bestMove) << "\n";
+        std::cout << "bestmove " << bestMove.toString() << "\n";
         return true;
     }
 

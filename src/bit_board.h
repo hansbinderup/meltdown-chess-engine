@@ -222,25 +222,22 @@ public:
         const auto allMoves = getAllMoves();
         m_logger << "Player: " << magic_enum::enum_name(m_player);
         m_logger << "\nRound: " << std::to_string(m_roundsCount);
-        /* m_logger << "\nCastle: " << std::count_if(allMoves.getMoves().begin(), allMoves.getMoves().end(), [](const auto& move) { */
-        /*     return magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle); */
-        /* }); */
         m_logger << "\nCastle: " << std::accumulate(allMoves.getMoves().begin(), allMoves.getMoves().end(), std::string {}, [](std::string result, const movement::Move& move) {
             if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle)) {
-                result += movement::moveToString(move) + " ";
+                result += move.toString() + " ";
             }
             return result;
         });
 
         m_logger << std::format("\nMoves[{}]:", allMoves.count());
         for (const auto& move : allMoves.getMoves()) {
-            m_logger << " " << movement::moveToString(move);
+            m_logger << " " << move.toString();
         }
 
         const auto captures = getAllCapturesSorted();
         m_logger << std::format("\nCaptures[{}]:\n", captures.count());
         for (const auto& move : captures.getMoves()) {
-            m_logger << std::format("{} [{}]\n", movement::moveToString(move), scoreMove(move));
+            m_logger << std::format("{} [{}]\n", move.toString(), scoreMove(move));
         }
 
         m_logger << "\n\n";

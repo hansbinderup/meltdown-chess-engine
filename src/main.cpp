@@ -1,5 +1,5 @@
 
-#include "uci_handler.h"
+#include "src/uci_handler.h"
 
 int main(int argc, char** argv)
 {
