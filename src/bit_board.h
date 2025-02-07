@@ -4,6 +4,7 @@
 #include "board_defs.h"
 #include "file_logger.h"
 
+#include "magic_enum/magic_enum.hpp"
 #include "movement/move_types.h"
 #include "src/movement/move_generation.h"
 #include "src/positioning.h"
@@ -193,7 +194,7 @@ public:
         m_logger << "\n\n";
 
         const auto allMoves = getAllMoves();
-        m_logger << "Player: " << (m_player == Player::White ? "white" : "black");
+        m_logger << "Player: " << magic_enum::enum_name(m_player);
         m_logger << "\nRound: " << std::to_string(m_roundsCount);
         m_logger << "\nCastle: " << std::count_if(allMoves.getMoves().begin(), allMoves.getMoves().end(), [this](const auto& move) {
             if (m_player == Player::White) {

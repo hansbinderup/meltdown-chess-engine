@@ -1,5 +1,6 @@
 #pragma once
 
+#include "magic_enum/magic_enum.hpp"
 #include "src/bit_board.h"
 #include "src/movement/move_types.h"
 #include <iostream>
@@ -20,7 +21,7 @@ public:
 
     constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_logger.log("Get best move for {}", board.getCurrentPlayer() == Player::White ? "White" : "Black");
+        m_logger.log("Get best move for {}", magic_enum::enum_name(board.getCurrentPlayer()));
 
         const uint8_t depth = depthInput.value_or(5);
         return scanForBestMove(depth, board);
