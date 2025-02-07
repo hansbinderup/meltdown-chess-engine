@@ -66,6 +66,12 @@ private:
 
         const Player currentPlayer = board.getCurrentPlayer();
         const uint8_t currentDepth = m_depth - depth;
+        const bool isChecked = board.isKingAttacked();
+
+        // Dangerous position - increase search depth
+        if (isChecked) {
+            depth++;
+        }
 
         auto allMoves = board.getAllMovesSorted();
         for (const auto& move : allMoves.getMoves()) {
@@ -95,7 +101,7 @@ private:
         }
 
         if (legalMoves == 0) {
-            if (board.isKingAttacked()) {
+            if (isChecked) {
                 // We want absolute negative score - but with amount of moves to the given checkmate
                 // we add the ply to make checkmate in less moves a better move
                 return s_minScore + currentDepth;
