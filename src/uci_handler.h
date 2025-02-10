@@ -19,9 +19,9 @@ public:
         s_fileLogger.log("\n\n*** Running UciHandler! ***\n");
         s_isRunning = true;
 
-        std::string input;
-        while (s_isRunning && std::getline(std::cin, input)) {
-            processInput(input);
+        std::array<char, s_inputBufferSize> buffer;
+        while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
+            processInput(std::string_view(buffer.data()));
         }
     }
 
@@ -143,4 +143,6 @@ private:
     static inline bool s_isRunning = false;
     static inline FileLogger s_fileLogger { "/tmp/uci.log" };
     static inline BitBoard s_bitBoard { s_fileLogger };
+
+    constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };
