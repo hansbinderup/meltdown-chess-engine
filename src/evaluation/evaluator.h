@@ -1,7 +1,7 @@
 #pragma once
 
 #include "magic_enum/magic_enum.hpp"
-#include "src/bit_board.h"
+#include "src/engine.h"
 #include "src/movement/move_types.h"
 #include <iostream>
 
@@ -19,7 +19,7 @@ public:
     {
     }
 
-    constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr movement::Move getBestMove(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         m_logger.log("Get best move for {}", magic_enum::enum_name(board.getCurrentPlayer()));
 
@@ -27,7 +27,7 @@ public:
         return scanForBestMove(depthInput.value_or(depth), board);
     }
 
-    constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr void printEvaluation(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         uint8_t depth = depthInput.value_or(s_maxDepth);
         reset(depth);
@@ -36,7 +36,7 @@ public:
 
         m_logger << std::format(" Move evaluations [{}]:\n", depth);
         for (const auto& move : allMoves.getMoves()) {
-            BitBoard newBoard = board;
+            Engine newBoard = board;
             newBoard.performMove(move);
 
             int16_t score = -negamax(depth - 1, newBoard);
@@ -56,7 +56,7 @@ private:
         m_depth = depth;
     }
 
-    constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
+    constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
     {
         reset(depth);
 
@@ -73,7 +73,7 @@ private:
         std::exit(1);
     }
 
-    constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
+    constexpr int16_t negamax(uint8_t depth, const Engine& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
         if (depth == 0) {
             return quiesence(board, alpha, beta);
@@ -100,7 +100,7 @@ private:
                 std::cout << "info currmove " << move.toString() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
             }
 
-            BitBoard newBoard = board;
+            Engine newBoard = board;
             newBoard.performMove(move);
 
             if (newBoard.isKingAttacked(currentPlayer)) {
@@ -143,7 +143,7 @@ private:
         return alpha;
     }
 
-    constexpr int16_t quiesence(const BitBoard& board, int16_t alpha, int16_t beta)
+    constexpr int16_t quiesence(const Engine& board, int16_t alpha, int16_t beta)
     {
         m_nodes++;
 
@@ -161,7 +161,7 @@ private:
 
         auto allMoves = board.getAllCapturesSorted();
         for (const auto& move : allMoves.getMoves()) {
-            BitBoard newBoard = board;
+            Engine newBoard = board;
             newBoard.performMove(move);
 
             if (newBoard.isKingAttacked(currentPlayer)) {

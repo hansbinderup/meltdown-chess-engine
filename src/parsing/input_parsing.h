@@ -1,11 +1,36 @@
 #pragma once
 
-#include "src/bit_board.h"
+#include "src/engine.h"
 #include "src/movement/move_types.h"
 
 namespace parsing {
 
 namespace {
+
+static std::pair<std::string_view, std::string_view> split_sv_by_space(std::string_view sv)
+{
+    const auto firstSep = sv.find_first_of(' ');
+    const auto first = sv.substr(0, firstSep);
+    const auto second = firstSep == std::string_view::npos
+        ? ""
+        : sv.substr(firstSep + 1);
+
+    return std::make_pair(first, second);
+}
+
+static std::optional<std::string_view> sv_next_split(std::string_view& sv)
+{
+    const auto firstSep = sv.find_first_of(' ');
+
+    if (firstSep == std::string_view::npos) {
+        return std::nullopt;
+    }
+
+    const auto ret = sv.substr(0, firstSep);
+    sv = sv.substr(firstSep + 1);
+
+    return ret;
+}
 
 /*
  * Compare moves by only looking at positioning
@@ -18,7 +43,7 @@ constexpr static inline bool compareMove(const movement::Move& move, uint8_t fro
 
 }
 
-static inline std::optional<movement::Move> moveFromString(const BitBoard& board, std::string_view sv)
+static inline std::optional<movement::Move> moveFromString(const Engine& board, std::string_view sv)
 {
     if (sv.size() < 4) {
         return std::nullopt;

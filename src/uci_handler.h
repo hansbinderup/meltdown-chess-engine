@@ -1,9 +1,9 @@
 #pragma once
 
-#include "src/bit_board.h"
+#include "src/engine.h"
 #include "src/evaluation/evaluator.h"
 #include "src/file_logger.h"
-#include "src/input_parsing.h"
+#include "src/parsing/input_parsing.h"
 
 #include <iostream>
 #include <string_view>
@@ -26,34 +26,9 @@ public:
     }
 
 private:
-    static std::pair<std::string_view, std::string_view> split_sv_by_space(std::string_view sv)
-    {
-        const auto firstSep = sv.find_first_of(' ');
-        const auto first = sv.substr(0, firstSep);
-        const auto second = firstSep == std::string_view::npos
-            ? ""
-            : sv.substr(firstSep + 1);
-
-        return std::make_pair(first, second);
-    }
-
-    static std::optional<std::string_view> sv_next_split(std::string_view& sv)
-    {
-        const auto firstSep = sv.find_first_of(' ');
-
-        if (firstSep == std::string_view::npos) {
-            return std::nullopt;
-        }
-
-        const auto ret = sv.substr(0, firstSep);
-        sv = sv.substr(firstSep + 1);
-
-        return ret;
-    }
-
     static bool processInput(std::string_view input)
     {
-        const auto [command, args] = split_sv_by_space(input);
+        const auto [command, args] = parsing::split_sv_by_space(input);
         /* s_fileLogger.log("processInput, command: {}, args: {}", command, args); */
 
         if (command == "uci") {
@@ -95,14 +70,14 @@ private:
 
     static bool handlePosition(std::string_view input)
     {
-        auto [command, args] = split_sv_by_space(input);
+        auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "startpos") {
-            s_bitBoard.reset();
-            const auto subCommand = sv_next_split(args);
+            s_engine.reset();
+            const auto subCommand = parsing::sv_next_split(args);
 
             if (subCommand == "moves") {
-                while (const auto move = parsing::moveFromString(s_bitBoard, args.substr(0, 4))) {
-                    s_bitBoard.performMove(move.value());
+                while (const auto move = parsing::moveFromString(s_engine, args.substr(0, 4))) {
+                    s_engine.performMove(move.value());
 
                     auto spaceSep = args.find(' ');
                     if (spaceSep == std::string_view::npos) {
@@ -122,7 +97,7 @@ private:
         std::ignore = args;
 
         static evaluation::Evaluator evaluator(s_fileLogger);
-        const auto bestMove = evaluator.getBestMove(s_bitBoard);
+        const auto bestMove = evaluator.getBestMove(s_engine);
 
         std::cout << "bestmove " << bestMove.toString() << "\n";
         return true;
@@ -130,11 +105,11 @@ private:
 
     static bool handleDebug(std::string_view input)
     {
-        auto [command, args] = split_sv_by_space(input);
+        auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "position") {
-            s_bitBoard.printBoardDebug();
+            s_engine.printBoardDebug();
             static evaluation::Evaluator evaluator(s_fileLogger);
-            evaluator.printEvaluation(s_bitBoard);
+            evaluator.printEvaluation(s_engine);
         }
 
         return true;
@@ -142,7 +117,7 @@ private:
 
     static inline bool s_isRunning = false;
     static inline FileLogger s_fileLogger { "/tmp/uci.log" };
-    static inline BitBoard s_bitBoard { s_fileLogger };
+    static inline Engine s_engine { s_fileLogger };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };
