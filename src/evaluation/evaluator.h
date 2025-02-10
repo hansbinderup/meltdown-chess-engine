@@ -27,6 +27,27 @@ public:
         return scanForBestMove(depthInput.value_or(depth), board);
     }
 
+    constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    {
+        uint8_t depth = depthInput.value_or(s_maxDepth);
+        reset(depth);
+
+        const auto allMoves = board.getAllMovesSorted();
+
+        m_logger << std::format(" Move evaluations [{}]:\n", depth);
+        for (const auto& move : allMoves.getMoves()) {
+            BitBoard newBoard = board;
+            newBoard.performMove(move);
+
+            int16_t score = -negamax(depth - 1, newBoard);
+
+            m_logger << std::format("  move: {}\tscore: {}\tnodes: {}\n", move.toString(), score, m_nodes);
+
+            // flush so we can follow each line appear - can take some time
+            m_logger.flush();
+        }
+    }
+
 private:
     constexpr void reset(uint8_t depth)
     {

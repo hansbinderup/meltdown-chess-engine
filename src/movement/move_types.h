@@ -8,7 +8,7 @@
 
 namespace movement {
 
-enum MoveFlags : uint8_t {
+enum class MoveFlags : uint8_t {
     None = 0,
     Capture = 1 << 0,
     Castle = 1 << 1,
@@ -18,11 +18,21 @@ enum MoveFlags : uint8_t {
 struct Move {
     uint8_t from {};
     uint8_t to {};
-    MoveFlags flags {};
+    MoveFlags flags { MoveFlags::None };
 
     friend bool operator<=>(const Move&, const Move&) = default;
 
-    std::string toString() const
+    constexpr inline uint64_t fromSquare() const
+    {
+        return 1ULL << from;
+    }
+
+    constexpr inline uint64_t toSquare() const
+    {
+        return 1ULL << to;
+    }
+
+    constexpr inline std::string toString() const
     {
         std::string result;
         result.resize(4); // Preallocate space

@@ -145,8 +145,8 @@ public:
 
     void performMove(const movement::Move& move)
     {
-        const auto fromSquare = 1ULL << move.from;
-        const auto toSquare = 1ULL << move.to;
+        const auto fromSquare = move.fromSquare();
+        const auto toSquare = move.toSquare();
         const auto moveFlags = move.flags;
 
         if (magic_enum::enum_flags_test(moveFlags, movement::MoveFlags::Castle)) {
@@ -229,15 +229,15 @@ public:
             return result;
         });
 
-        m_logger << std::format("\nMoves[{}]:", allMoves.count());
+        m_logger << std::format("\n\nMoves[{}]:\n", allMoves.count());
         for (const auto& move : allMoves.getMoves()) {
-            m_logger << " " << move.toString();
+            m_logger << std::format("{} [{}]  ", move.toString(), scoreMove(move));
         }
 
         const auto captures = getAllCapturesSorted();
-        m_logger << std::format("\nCaptures[{}]:\n", captures.count());
+        m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
         for (const auto& move : captures.getMoves()) {
-            m_logger << std::format("{} [{}]\n", move.toString(), scoreMove(move));
+            m_logger << std::format("{} [{}]  ", move.toString(), scoreMove(move));
         }
 
         m_logger << "\n\n";
@@ -295,8 +295,8 @@ public:
      */
     constexpr void performCastleMove(const movement::Move& move)
     {
-        const auto fromSquare = 1ULL << move.from;
-        const auto toSquare = 1ULL << move.to;
+        const auto fromSquare = move.fromSquare();
+        const auto toSquare = move.toSquare();
 
         auto performSingleCastleMove = [&](uint64_t& king, uint64_t& rooks, uint64_t& castlingRights,
                                            const movement::Move& queenSideMove, const movement::Move& kingSideMove,
@@ -400,11 +400,8 @@ public:
             return 0;
         }
 
-        const uint64_t toSquare = 1ULL << move.to;
-        const uint64_t fromSquare = 1ULL << move.from;
-
-        const auto attacker = getPieceAtSquare(fromSquare);
-        const auto victim = getPieceAtSquare(toSquare);
+        const auto attacker = getPieceAtSquare(move.fromSquare());
+        const auto victim = getPieceAtSquare(move.toSquare());
 
         if (attacker.has_value() && victim.has_value()) {
             return gen::getMvvLvaScore(attacker.value(), victim.value());
@@ -442,4 +439,3 @@ private:
 
     FileLogger& m_logger;
 };
-

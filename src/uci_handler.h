@@ -133,6 +133,8 @@ private:
         auto [command, args] = split_sv_by_space(input);
         if (command == "position") {
             s_bitBoard.printBoardDebug();
+            static evaluation::Evaluator evaluator(s_fileLogger);
+            evaluator.printEvaluation(s_bitBoard);
         }
 
         return true;
