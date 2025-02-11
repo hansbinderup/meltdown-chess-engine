@@ -2,6 +2,7 @@
 
 #include "magic_enum/magic_enum.hpp"
 #include "src/engine.h"
+#include "src/evaluation/pv_table.h"
 #include "src/movement/move_types.h"
 #include <iostream>
 
@@ -30,8 +31,6 @@ public:
     constexpr void printEvaluation(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         uint8_t depth = depthInput.value_or(s_maxDepth);
-        reset(depth);
-
         const auto allMoves = board.getAllMovesSorted();
 
         m_logger << std::format(" Move evaluations [{}]:\n", depth);
@@ -41,7 +40,11 @@ public:
 
             int16_t score = -negamax(depth - 1, newBoard);
 
-            m_logger << std::format("  move: {}\tscore: {}\tnodes: {}\n", move.toString(), score, m_nodes);
+            m_logger << std::format("  move: {}\tscore: {}\tnodes: {} \t pv: ", move.toString(), score, m_nodes);
+            for (const auto& move : m_pvTable.getMoves()) {
+                m_logger << move.toString() << " ";
+            }
+            m_logger << "\n";
 
             // flush so we can follow each line appear - can take some time
             m_logger.flush();
@@ -49,44 +52,33 @@ public:
     }
 
 private:
-    constexpr void reset(uint8_t depth)
-    {
-        m_bestMove = std::nullopt;
-        m_nodes = 0;
-        m_depth = depth;
-    }
-
     constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
     {
-        reset(depth);
+        m_nodes = 0;
 
         int16_t score = negamax(depth, board, s_minScore, s_maxScore);
-        std::cout << std::format("info score cp {} depth {} nodes {}\n", score, depth, m_nodes);
 
-        if (m_bestMove.has_value()) {
-            m_logger.log("Found best move: {}, score={}, nodes: {}", m_bestMove.value().toString(), score, m_nodes);
-            return m_bestMove.value();
+        std::cout << std::format("info score cp {} depth {} nodes {} pv ", score, depth, m_nodes);
+        for (const auto& move : m_pvTable.getMoves()) {
+            std::cout << move.toString() << " ";
         }
+        std::cout << std::endl;
 
-        m_logger.log("No move was found, aborting");
-        std::cerr << "No move was found, aborting" << std::endl;
-        std::exit(1);
+        return m_pvTable.bestMove();
     }
 
     constexpr int16_t negamax(uint8_t depth, const Engine& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
+        m_pvTable.updateLength(m_ply);
+
         if (depth == 0) {
             return quiesence(board, alpha, beta);
         }
 
         m_nodes++;
 
-        std::optional<movement::Move> currentBestMove;
-        int16_t prevAlpha = alpha;
         uint16_t legalMoves = 0;
-
         const Player currentPlayer = board.getCurrentPlayer();
-        const uint8_t currentDepth = m_depth - depth;
         const bool isChecked = board.isKingAttacked();
 
         // Dangerous position - increase search depth
@@ -96,7 +88,7 @@ private:
 
         auto allMoves = board.getAllMovesSorted();
         for (const auto& move : allMoves.getMoves()) {
-            if (currentDepth == 0) {
+            if (m_ply == 0) {
                 std::cout << "info currmove " << move.toString() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
             }
 
@@ -108,8 +100,10 @@ private:
                 continue;
             }
 
+            m_ply++;
             legalMoves++;
             const int16_t score = -negamax(depth - 1, newBoard, -beta, -alpha);
+            m_ply--;
 
             if (score >= beta)
                 // change to beta for hard cutoff
@@ -118,10 +112,7 @@ private:
             if (score > alpha) {
                 alpha = score;
 
-                // root move -> we can add it as a current best move
-                if (currentDepth == 0) {
-                    currentBestMove = move;
-                }
+                m_pvTable.updateTable(move, m_ply);
             }
         }
 
@@ -129,15 +120,11 @@ private:
             if (isChecked) {
                 // We want absolute negative score - but with amount of moves to the given checkmate
                 // we add the ply to make checkmate in less moves a better move
-                return s_minScore + currentDepth;
+                return s_minScore + m_ply;
             } else {
                 // Stalemate - absolute neutral score
                 return 0;
             }
-        }
-
-        if (prevAlpha != alpha) {
-            m_bestMove = currentBestMove;
         }
 
         return alpha;
@@ -146,6 +133,11 @@ private:
     constexpr int16_t quiesence(const Engine& board, int16_t alpha, int16_t beta)
     {
         m_nodes++;
+
+        // Engine is not designed to search deeper than this! Make sure to stop before it's too late
+        if (m_ply >= s_maxSearchDepth) {
+            return beta;
+        }
 
         const Player currentPlayer = board.getCurrentPlayer();
         const int16_t evaluation = board.getScore();
@@ -169,7 +161,10 @@ private:
                 continue;
             }
 
+            m_ply++;
             const int16_t score = -quiesence(newBoard, -beta, -alpha);
+            m_ply--;
+
             if (score >= beta)
                 // change to beta for hard cutoff
                 return beta;
@@ -183,9 +178,10 @@ private:
     }
 
     FileLogger& m_logger;
-    std::optional<movement::Move> m_bestMove;
+    heuristic::PVTable m_pvTable;
+
     uint64_t m_nodes {};
-    uint8_t m_depth;
+    uint8_t m_ply;
 
     constexpr static inline uint16_t s_minDepth { 5 };
     constexpr static inline uint16_t s_maxDepth { 7 };

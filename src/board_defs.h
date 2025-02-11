@@ -25,6 +25,8 @@ enum Piece : uint8_t {
     King,
 };
 
+constexpr static inline uint8_t s_maxSearchDepth { 64 };
+
 constexpr static inline uint8_t s_firstRow { 0 };
 constexpr static inline uint8_t s_secondRow { 8 };
 constexpr static inline uint8_t s_seventhRow { 48 };
