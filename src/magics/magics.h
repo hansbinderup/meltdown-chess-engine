@@ -5,6 +5,8 @@
 
 namespace magic {
 
+using SliderAttackTable = std::array<uint64_t, 4096>;
+
 constexpr bool getBit(uint64_t bitboard, int square)
 {
     return (bitboard & (1ULL << square)) != 0;

@@ -28,7 +28,7 @@ constexpr uint64_t rookMask(int square)
     return attacks;
 }
 
-// Generate a table with all knight moves
+// Generate a table with all rook moves
 constexpr std::array<uint64_t, 64> generateRookMasksTable()
 {
     std::array<uint64_t, 64> table = {};
@@ -81,29 +81,18 @@ constexpr uint64_t rookAttacksWithBlock(int square, uint64_t block)
 
 constexpr auto generateRookAttackTable()
 {
-    std::array<std::array<uint64_t, 4096>, 64> attacks;
+    std::array<magic::SliderAttackTable, 64> attacks;
 
-    // loop over 64 board squares
     for (int square = 0; square < 64; square++) {
 
-        // init current mask
-        uint64_t attackMask = s_rookMasksTable[square];
+        const uint64_t attackMask = s_rookMasksTable[square];
+        const int relevantBitsCount = std::popcount(attackMask);
+        const int occupancyIndicies = (1 << relevantBitsCount);
 
-        // init relevant occupancy bit count
-        int relevantBitsCount = std::popcount(attackMask);
-
-        // init occupancy indicies
-        int occupancyIndicies = (1 << relevantBitsCount);
-
-        // loop over occupancy indicies
         for (int index = 0; index < occupancyIndicies; index++) {
-            // init current occupancy variation
-            uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
+            const uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
+            const int magicIndex = (occupancy * magic::s_rooksMagic[square]) >> (64 - magic::s_rookRelevantBits[square]);
 
-            // init magic index
-            int magicIndex = (occupancy * magic::s_rooksMagic[square]) >> (64 - magic::s_rookRelevantBits[square]);
-
-            // init bishop attacks
             attacks[square][magicIndex] = rookAttacksWithBlock(square, occupancy);
         }
     }
@@ -117,12 +106,11 @@ constexpr auto s_rookAttackTable = generateRookAttackTable();
 
 static inline uint64_t getRookAttacks(int square, uint64_t occupancy)
 {
-    // get bishop attacks assuming current board occupancy
+    // https://www.chessprogramming.org/Magic_Bitboards
     occupancy &= s_rookMasksTable[square];
     occupancy *= magic::s_rooksMagic[square];
     occupancy >>= 64 - magic::s_rookRelevantBits[square];
 
-    // return rook attacks
     return s_rookAttackTable[square][occupancy];
 }
 

@@ -34,7 +34,7 @@ constexpr uint64_t bishopMask(int square)
     return attacks;
 }
 
-// Generate a table with all knight moves
+// Generate a table with all bishop moves
 constexpr std::array<uint64_t, 64> generateBishopMasksTable()
 {
     std::array<uint64_t, 64> table = {};
@@ -89,29 +89,17 @@ constexpr uint64_t bishopAttacksWithBlock(int square, uint64_t block)
 
 constexpr auto generateBishopAttackTable()
 {
-    std::array<std::array<uint64_t, 4096>, 64> attacks;
+    std::array<magic::SliderAttackTable, 64> attacks;
 
-    // loop over 64 board squares
     for (int square = 0; square < 64; square++) {
+        const uint64_t attackMask = s_bishopMasksTable[square];
+        const int relevantBitsCount = std::popcount(attackMask);
+        const int occupancyIndicies = (1 << relevantBitsCount);
 
-        // init current mask
-        uint64_t attackMask = s_bishopMasksTable[square];
-
-        // init relevant occupancy bit count
-        int relevantBitsCount = std::popcount(attackMask);
-
-        // init occupancy indicies
-        int occupancyIndicies = (1 << relevantBitsCount);
-
-        // loop over occupancy indicies
         for (int index = 0; index < occupancyIndicies; index++) {
-            // init current occupancy variation
-            uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
+            const uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
+            const int magicIndex = (occupancy * magic::s_bishopsMagic[square]) >> (64 - magic::s_bishopRelevantBits[square]);
 
-            // init magic index
-            int magicIndex = (occupancy * magic::s_bishopsMagic[square]) >> (64 - magic::s_bishopRelevantBits[square]);
-
-            // init bishop attacks
             attacks[square][magicIndex] = bishopAttacksWithBlock(square, occupancy);
         }
     }
@@ -125,12 +113,10 @@ constexpr auto s_bishopAttackTable = generateBishopAttackTable();
 
 static inline uint64_t getBishopAttacks(int square, uint64_t occupancy)
 {
-    // get bishop attacks assuming current board occupancy
     occupancy &= s_bishopMasksTable[square];
     occupancy *= magic::s_bishopsMagic[square];
     occupancy >>= 64 - magic::s_bishopRelevantBits[square];
 
-    // return bishop attacks
     return s_bishopAttackTable[square][occupancy];
 }
 
