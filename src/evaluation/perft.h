@@ -25,6 +25,7 @@ public:
 
         std::cout << "\nnodes: " << s_nodes;
         std::cout << "\ncaptures: " << s_captures;
+        std::cout << "\ncastles: " << s_castles;
         std::cout << "\nchecks: " << s_checks;
         std::cout << "\ntime: " << timeDiff << "ms";
 
@@ -37,8 +38,30 @@ private:
         const auto allMoves = engine.getAllMoves();
 
         if (depth == 0) {
-            s_nodes += allMoves.count();
-            s_captures += engine.getAllCaptures().count();
+            for (const auto& move : allMoves.getMoves()) {
+                Engine newEngine = engine;
+                newEngine.performMove(move);
+
+                if (newEngine.isKingAttacked(engine.getCurrentPlayer())) {
+                    // invalid move
+                    continue;
+                }
+
+                if (newEngine.isKingAttacked()) {
+                    s_checks++;
+                }
+
+                if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
+                    s_captures++;
+                }
+
+                if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle)) {
+                    s_castles++;
+                }
+
+                s_nodes++;
+            }
+
             return;
         }
 
@@ -47,8 +70,7 @@ private:
             newEngine.performMove(move);
 
             if (newEngine.isKingAttacked()) {
-                s_checks++;
-                // invalid move - continue
+                // invalid move
                 continue;
             }
 
@@ -65,12 +87,14 @@ private:
     {
         s_nodes = 0;
         s_captures = 0;
+        s_castles = 0;
         s_checks = 0;
         s_prevNodes = 0;
     }
 
     static inline uint64_t s_nodes {};
     static inline uint64_t s_captures {};
+    static inline uint64_t s_castles {};
     static inline uint64_t s_checks {};
     static inline uint64_t s_prevNodes {};
 };
