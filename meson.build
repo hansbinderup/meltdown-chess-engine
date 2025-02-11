@@ -2,11 +2,6 @@ project('meltdown-chess-engine', 'cpp',
   version : '0.1',
   default_options : ['warning_level=3', 'cpp_std=c++26'])
 
-# for release testin
-# project('meltdown-chess-engine', 'cpp',
-#   version : '0.1',
-#   default_options : ['warning_level=3', 'cpp_std=c++26', 'buildtype=release', 'optimization=3'])
-
 # set these values as high as possible - required to compile the magic tables
 add_project_arguments('-fconstexpr-loop-limit=2147483647', language: 'cpp')
 add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
