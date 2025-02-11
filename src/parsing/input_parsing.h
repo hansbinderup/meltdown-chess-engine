@@ -7,6 +7,18 @@ namespace parsing {
 
 namespace {
 
+std::optional<uint64_t> to_number(std::string_view str)
+{
+    int result {};
+    auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
+
+    // Check for conversion errors or extra characters
+    if (ec == std::errc() && ptr == str.data() + str.size()) {
+        return result;
+    }
+    return std::nullopt;
+}
+
 static std::pair<std::string_view, std::string_view> split_sv_by_space(std::string_view sv)
 {
     const auto firstSep = sv.find_first_of(' ');

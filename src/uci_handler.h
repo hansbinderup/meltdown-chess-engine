@@ -2,6 +2,7 @@
 
 #include "src/engine.h"
 #include "src/evaluation/evaluator.h"
+#include "src/evaluation/perft.h"
 #include "src/file_logger.h"
 #include "src/parsing/input_parsing.h"
 
@@ -41,11 +42,12 @@ private:
             return handleGo(args);
         } else if (command == "debug") {
             return handleDebug(args);
+        } else if (command == "perft") {
+            return handlePerft(args);
         } else if (command == "quit") {
             s_isRunning = false;
         } else {
             // invalid input
-            s_fileLogger.log("processing input failed!");
             return false;
         }
 
@@ -110,6 +112,18 @@ private:
             s_engine.printBoardDebug();
             static evaluation::Evaluator evaluator(s_fileLogger);
             evaluator.printEvaluation(s_engine);
+        }
+
+        return true;
+    }
+
+    static bool handlePerft(std::string_view args)
+    {
+        const auto depth = parsing::to_number(args);
+        if (depth.has_value()) {
+            Perft::run(s_engine, depth.value());
+        } else {
+            std::cout << "invalid input: " << args << std::endl;
         }
 
         return true;
