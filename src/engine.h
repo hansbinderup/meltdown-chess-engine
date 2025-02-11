@@ -33,27 +33,25 @@ public:
     movement::ValidMoves getAllMoves() const
     {
         movement::ValidMoves validMoves;
-        const uint64_t whiteOccupation = m_bitBoard.getWhiteOccupation();
-        const uint64_t blackOccupation = m_bitBoard.getBlackOccupation();
 
         if (m_bitBoard.player == Player::White) {
             uint64_t attacks = getAllAttacks(Player::Black);
-            gen::getKingMoves(validMoves, m_bitBoard.whiteKing, whiteOccupation, blackOccupation, attacks);
-            gen::getPawnMoves(validMoves, m_bitBoard.player, m_bitBoard.whitePawns, whiteOccupation, blackOccupation);
-            gen::getKnightMoves(validMoves, m_bitBoard.whiteKnights, whiteOccupation, blackOccupation);
-            gen::getRookMoves(validMoves, m_bitBoard.whiteRooks, whiteOccupation, blackOccupation);
-            gen::getBishopMoves(validMoves, m_bitBoard.whiteBishops, whiteOccupation, blackOccupation);
-            gen::getQueenMoves(validMoves, m_bitBoard.whiteQueens, whiteOccupation, blackOccupation);
-            gen::getCastlingMoves(validMoves, Player::White, m_bitBoard.whiteKing, m_bitBoard.whiteRooks, m_bitBoard.whiteCastlingRights, whiteOccupation | blackOccupation, attacks);
+            gen::getKingMoves(validMoves, m_bitBoard, attacks);
+            gen::getPawnMoves(validMoves, m_bitBoard);
+            gen::getKnightMoves(validMoves, m_bitBoard);
+            gen::getRookMoves(validMoves, m_bitBoard);
+            gen::getBishopMoves(validMoves, m_bitBoard);
+            gen::getQueenMoves(validMoves, m_bitBoard);
+            gen::getCastlingMoves(validMoves, m_bitBoard, attacks);
         } else {
             uint64_t attacks = getAllAttacks(Player::White);
-            gen::getKingMoves(validMoves, m_bitBoard.blackKing, blackOccupation, whiteOccupation, attacks);
-            gen::getPawnMoves(validMoves, m_bitBoard.player, m_bitBoard.blackPawns, whiteOccupation, blackOccupation);
-            gen::getKnightMoves(validMoves, m_bitBoard.blackKnights, blackOccupation, whiteOccupation);
-            gen::getRookMoves(validMoves, m_bitBoard.blackRooks, blackOccupation, whiteOccupation);
-            gen::getBishopMoves(validMoves, m_bitBoard.blackBishops, blackOccupation, whiteOccupation);
-            gen::getQueenMoves(validMoves, m_bitBoard.blackQueens, blackOccupation, whiteOccupation);
-            gen::getCastlingMoves(validMoves, Player::Black, m_bitBoard.blackKing, m_bitBoard.blackRooks, m_bitBoard.blackCastlingRights, whiteOccupation | blackOccupation, attacks);
+            gen::getKingMoves(validMoves, m_bitBoard, attacks);
+            gen::getPawnMoves(validMoves, m_bitBoard);
+            gen::getKnightMoves(validMoves, m_bitBoard);
+            gen::getRookMoves(validMoves, m_bitBoard);
+            gen::getBishopMoves(validMoves, m_bitBoard);
+            gen::getQueenMoves(validMoves, m_bitBoard);
+            gen::getCastlingMoves(validMoves, m_bitBoard, attacks);
         }
 
         return validMoves;
@@ -240,28 +238,17 @@ public:
 
     constexpr uint64_t getAllAttacks(Player player) const
     {
-        const uint64_t whiteOccupation = m_bitBoard.getWhiteOccupation();
-        const uint64_t blackOccupation = m_bitBoard.getBlackOccupation();
+        uint64_t attacks = player == Player::White
+            ? gen::getWhitePawnAttacks(m_bitBoard)
+            : gen::getBlackPawnAttacks(m_bitBoard);
 
-        if (player == Player::White) {
-            uint64_t attacks = gen::getWhitePawnAttacks(m_bitBoard.whitePawns);
-            attacks |= gen::getKnightAttacks(m_bitBoard.whiteKnights);
-            attacks |= gen::getRookAttacks(m_bitBoard.whiteRooks, whiteOccupation | blackOccupation);
-            attacks |= gen::getBishopAttacks(m_bitBoard.whiteBishops, whiteOccupation | blackOccupation);
-            attacks |= gen::getQueenAttacks(m_bitBoard.whiteQueens, whiteOccupation | blackOccupation);
-            attacks |= gen::getKingAttacks(m_bitBoard.whiteKing);
+        attacks |= gen::getKnightAttacks(m_bitBoard, player);
+        attacks |= gen::getRookAttacks(m_bitBoard, player);
+        attacks |= gen::getBishopAttacks(m_bitBoard, player);
+        attacks |= gen::getQueenAttacks(m_bitBoard, player);
+        attacks |= gen::getKingAttacks(m_bitBoard, player);
 
-            return attacks;
-        } else {
-            uint64_t attacks = gen::getBlackPawnAttacks(m_bitBoard.blackPawns);
-            attacks |= gen::getKnightAttacks(m_bitBoard.blackKnights);
-            attacks |= gen::getRookAttacks(m_bitBoard.blackRooks, whiteOccupation | blackOccupation);
-            attacks |= gen::getBishopAttacks(m_bitBoard.blackBishops, whiteOccupation | blackOccupation);
-            attacks |= gen::getQueenAttacks(m_bitBoard.blackQueens, whiteOccupation | blackOccupation);
-            attacks |= gen::getKingAttacks(m_bitBoard.blackKing);
-
-            return attacks;
-        }
+        return attacks;
     }
 
     constexpr bool isKingAttacked(Player player) const

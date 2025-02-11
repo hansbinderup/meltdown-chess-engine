@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <src/board_defs.h>
 
 struct BitBoard {

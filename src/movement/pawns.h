@@ -20,9 +20,9 @@ constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t
 
 }
 
-constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
+constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    const uint64_t allOccupation = whiteOccupation | blackOccupation;
+    const uint64_t allOccupation = ownOccupation | theirOccupation;
 
     /*
      * straight -> full row bit shift where there no other pieces
@@ -33,8 +33,8 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
      */
     uint64_t moveStraight = ((pawns & ~s_row7Mask) << 8) & ~allOccupation;
     uint64_t moveStraightDouble = ((pawns & s_row2Mask) << 16) & ~(allOccupation | (allOccupation << 8));
-    uint64_t attackLeft = ((pawns & ~s_row7Mask & ~s_aFileMask) << 7) & blackOccupation;
-    uint64_t attackRight = ((pawns & ~s_row7Mask & ~s_hFileMask) << 9) & blackOccupation;
+    uint64_t attackLeft = ((pawns & ~s_row7Mask & ~s_aFileMask) << 7) & theirOccupation;
+    uint64_t attackRight = ((pawns & ~s_row7Mask & ~s_hFileMask) << 9) & theirOccupation;
 
     backtrackPawnMoves(validMoves, moveStraight, 8);
     backtrackPawnMoves(validMoves, moveStraightDouble, 16);
@@ -42,14 +42,14 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnMoves(validMoves, attackRight, 9, MoveFlags::Capture);
 }
 
-constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t whiteOccupation, uint64_t blackOccupation)
+constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    const uint64_t allOccupation = whiteOccupation | blackOccupation;
+    const uint64_t allOccupation = theirOccupation | ownOccupation;
 
     uint64_t moveStraight = ((pawns & ~s_row2Mask) >> 8) & ~allOccupation;
     uint64_t moveStraightDouble = ((pawns & s_row7Mask) >> 16) & ~(allOccupation | (allOccupation >> 8));
-    uint64_t attackLeft = ((pawns & ~s_row2Mask & ~s_aFileMask) >> 9) & whiteOccupation;
-    uint64_t attackRight = ((pawns & ~s_row2Mask & ~s_hFileMask) >> 7) & whiteOccupation;
+    uint64_t attackLeft = ((pawns & ~s_row2Mask & ~s_aFileMask) >> 9) & theirOccupation;
+    uint64_t attackRight = ((pawns & ~s_row2Mask & ~s_hFileMask) >> 7) & theirOccupation;
 
     backtrackPawnMoves(validMoves, moveStraight, -8);
     backtrackPawnMoves(validMoves, moveStraightDouble, -16);
