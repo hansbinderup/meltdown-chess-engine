@@ -78,14 +78,20 @@ private:
             const auto subCommand = parsing::sv_next_split(args);
 
             if (subCommand == "moves") {
-                while (const auto move = parsing::moveFromString(s_engine, args.substr(0, 4))) {
-                    s_engine.performMove(move.value());
-
+                while (true) {
                     auto spaceSep = args.find(' ');
                     if (spaceSep == std::string_view::npos) {
+                        // ensure that we also parse move even if it's the last one
+                        const auto move = parsing::moveFromString(s_engine, args);
+                        if (move.has_value()) {
+                            s_engine.performMove(move.value());
+                        }
+
                         break;
                     }
 
+                    const auto move = parsing::moveFromString(s_engine, args.substr(0, spaceSep));
+                    s_engine.performMove(move.value());
                     args = args.substr(spaceSep + 1);
                 }
             }

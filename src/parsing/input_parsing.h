@@ -48,9 +48,12 @@ static std::optional<std::string_view> sv_next_split(std::string_view& sv)
  * Compare moves by only looking at positioning
  * We need to apply the same masks as the bitboard uses to emulate their moves
  */
-constexpr static inline bool compareMove(const movement::Move& move, uint8_t from, uint8_t to)
+constexpr static inline bool compareMove(const movement::Move& move, uint8_t from, uint8_t to, movement::MoveFlags flags)
 {
-    return (move.from == from) && (move.to == to);
+    if (flags == movement::MoveFlags::None)
+        return (move.from == from) && (move.to == to);
+    else
+        return (move.from == from) && (move.to == to) && magic_enum::enum_flags_test_any(move.flags, flags);
 }
 
 }
@@ -65,15 +68,28 @@ static inline std::optional<movement::Move> moveFromString(const Engine& board, 
     const uint8_t fromIndex = (sv.at(0) - 'a') + (sv.at(1) - '1') * 8;
     const uint8_t toIndex = (sv.at(2) - 'a') + (sv.at(3) - '1') * 8;
 
+    movement::MoveFlags flags = movement::MoveFlags::None;
+    if (sv.size() > 4) {
+        const char promotion = sv.at(4);
+        if (promotion == 'n')
+            flags = movement::MoveFlags::PromoteKnight;
+        else if (promotion == 'b')
+            flags = movement::MoveFlags::PromoteBishop;
+        else if (promotion == 'r')
+            flags = movement::MoveFlags::PromoteRook;
+        else if (promotion == 'q')
+            flags = movement::MoveFlags::PromoteQueen;
+    }
+
     const auto allMoves = board.getAllMoves().getMoves();
     for (const auto& move : allMoves) {
-        if (compareMove(move, fromIndex, toIndex)) {
+        if (compareMove(move, fromIndex, toIndex, flags)) {
             return move;
         }
     }
 
     // move is not a valid move.. return a move with no flags is better than nothing - good for testing and debugging
-    return movement::Move { fromIndex, toIndex };
+    return movement::Move { fromIndex, toIndex, flags };
 }
 
 }

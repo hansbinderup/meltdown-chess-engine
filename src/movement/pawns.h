@@ -18,6 +18,21 @@ constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t
     }
 }
 
+constexpr static inline void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, MoveFlags flags = MoveFlags::None)
+{
+    while (moves) {
+        int to = std::countr_zero(moves); // Find first set bit
+        moves &= moves - 1; // Clear bit
+        int from = to - bitCnt; // Backtrack the pawn's original position
+
+        /* add queen first - is usually the preferred piece */
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags | MoveFlags::PromoteQueen });
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags | MoveFlags::PromoteKnight });
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags | MoveFlags::PromoteBishop });
+        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags | MoveFlags::PromoteRook });
+    }
+}
+
 }
 
 constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t ownOccupation, uint64_t theirOccupation)
@@ -40,6 +55,14 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnMoves(validMoves, moveStraightDouble, 16);
     backtrackPawnMoves(validMoves, attackLeft, 7, MoveFlags::Capture);
     backtrackPawnMoves(validMoves, attackRight, 9, MoveFlags::Capture);
+
+    uint64_t promoteStraight = ((pawns & s_row7Mask) << 8) & ~allOccupation;
+    uint64_t promoteAttackLeft = ((pawns & s_row7Mask & ~s_aFileMask) << 7) & theirOccupation;
+    uint64_t promoteAttackRight = ((pawns & s_row7Mask & ~s_hFileMask) << 9) & theirOccupation;
+
+    backtrackPawnPromotions(validMoves, promoteStraight, 8);
+    backtrackPawnPromotions(validMoves, promoteAttackLeft, 7, MoveFlags::Capture);
+    backtrackPawnPromotions(validMoves, promoteAttackRight, 9, MoveFlags::Capture);
 }
 
 constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t ownOccupation, uint64_t theirOccupation)
@@ -55,6 +78,14 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnMoves(validMoves, moveStraightDouble, -16);
     backtrackPawnMoves(validMoves, attackLeft, -9, MoveFlags::Capture);
     backtrackPawnMoves(validMoves, attackRight, -7, MoveFlags::Capture);
+
+    uint64_t promoteStraight = ((pawns & s_row2Mask) >> 8) & ~allOccupation;
+    uint64_t promoteAttackLeft = ((pawns & s_row2Mask & ~s_aFileMask) >> 9) & theirOccupation;
+    uint64_t promoteAttackRight = ((pawns & s_row2Mask & ~s_hFileMask) >> 7) & theirOccupation;
+
+    backtrackPawnPromotions(validMoves, promoteStraight, -8);
+    backtrackPawnPromotions(validMoves, promoteAttackLeft, -9, MoveFlags::Capture);
+    backtrackPawnPromotions(validMoves, promoteAttackRight, -7, MoveFlags::Capture);
 }
 
 }

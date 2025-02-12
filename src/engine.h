@@ -139,8 +139,12 @@ public:
         if (magic_enum::enum_flags_test(moveFlags, movement::MoveFlags::Castle)) {
             performCastleMove(move);
         } else {
-            // should be done before moving pieces
-            updateCastlingRights(fromSquare);
+            if (magic_enum::enum_flags_test_any(moveFlags, movement::s_moveFlagPromoteMask))
+                performPromotionMove(move);
+            else {
+                // should be done before moving pieces
+                updateCastlingRights(fromSquare);
+            }
 
             bitToggleMove(m_bitBoard.whitePawns, fromSquare, toSquare);
             bitToggleMove(m_bitBoard.whiteRooks, fromSquare, toSquare);
@@ -267,6 +271,34 @@ public:
         } else {
             return m_bitBoard.blackKing & getAllAttacks(Player::White);
         }
+    }
+
+    constexpr void performPromotionMove(const movement::Move& move)
+    {
+        const bool isWhite = m_bitBoard.player == Player::White;
+
+        // first clear to be promoted pawn
+        uint64_t& pawns = isWhite ? m_bitBoard.whitePawns : m_bitBoard.blackPawns;
+        pawns &= ~move.fromSquare();
+
+        const auto findPromotionPiece = [&] -> uint64_t& {
+            // check queen first as this is the most common
+            if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteQueen))
+                return isWhite ? m_bitBoard.whiteQueens : m_bitBoard.blackQueens;
+            else if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteKnight))
+                return isWhite ? m_bitBoard.whiteKnights : m_bitBoard.blackKnights;
+            else if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteBishop))
+                return isWhite ? m_bitBoard.whiteBishops : m_bitBoard.blackBishops;
+            else if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteRook))
+                return isWhite ? m_bitBoard.whiteRooks : m_bitBoard.blackRooks;
+
+            // Default to queen to satisfy compiler
+            return isWhite ? m_bitBoard.whiteQueens : m_bitBoard.blackQueens;
+        };
+
+        // replace pawn with given promotion type
+        uint64_t& promotionPiece = findPromotionPiece();
+        promotionPiece |= move.fromSquare();
     }
 
     /*
