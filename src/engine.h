@@ -8,8 +8,10 @@
 #include "magic_enum/magic_enum_flags.hpp"
 #include "movement/move_types.h"
 #include "src/bit_board.h"
+#include "src/evaluation/move_scoring.h"
 #include "src/movement/move_generation.h"
 #include "src/positioning.h"
+
 #include <numeric>
 
 class Engine {
@@ -57,11 +59,11 @@ public:
         return validMoves;
     }
 
-    movement::ValidMoves getAllMovesSorted() const
+    movement::ValidMoves getAllMovesSorted(uint8_t ply) const
     {
         auto allMoves = getAllMoves();
-        std::sort(allMoves.getMoves().begin(), allMoves.getMoves().end(), [this](const auto& a, const auto& b) {
-            return scoreMove(a) > scoreMove(b);
+        std::sort(allMoves.getMoves().begin(), allMoves.getMoves().end(), [this, ply](const auto& a, const auto& b) {
+            return evaluation::MoveScoring::score(m_bitBoard, a, ply) > evaluation::MoveScoring::score(m_bitBoard, b, ply);
         });
 
         return allMoves;
@@ -80,11 +82,11 @@ public:
         return captures;
     }
 
-    movement::ValidMoves getAllCapturesSorted() const
+    movement::ValidMoves getAllCapturesSorted(uint8_t ply) const
     {
         auto captures = getAllCaptures();
-        std::sort(captures.getMoves().begin(), captures.getMoves().end(), [this](const auto& a, const auto& b) {
-            return scoreMove(a) > scoreMove(b);
+        std::sort(captures.getMoves().begin(), captures.getMoves().end(), [this, ply](const auto& a, const auto& b) {
+            return evaluation::MoveScoring::score(m_bitBoard, a, ply) > evaluation::MoveScoring::score(m_bitBoard, b, ply);
         });
 
         return captures;
@@ -222,13 +224,13 @@ public:
 
         m_logger << std::format("\n\nMoves[{}]:\n", allMoves.count());
         for (const auto& move : allMoves.getMoves()) {
-            m_logger << std::format("{} [{}]  ", move.toString(), scoreMove(move));
+            m_logger << std::format("{} [{}]  ", move.toString(), evaluation::MoveScoring::score(m_bitBoard, move, 0));
         }
 
-        const auto captures = getAllCapturesSorted();
+        const auto captures = getAllCapturesSorted(0);
         m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
         for (const auto& move : captures.getMoves()) {
-            m_logger << std::format("{} [{}]  ", move.toString(), scoreMove(move));
+            m_logger << std::format("{} [{}]  ", move.toString(), evaluation::MoveScoring::score(m_bitBoard, move, 0));
         }
 
         m_logger << "\n\n";
@@ -364,23 +366,6 @@ public:
             piece &= ~fromSquare;
             piece |= toSquare;
         }
-    }
-
-    constexpr int16_t scoreMove(const movement::Move& move) const
-    {
-        if (!magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
-            return 0;
-        }
-
-        const auto attacker = m_bitBoard.getPieceAtSquare(move.fromSquare());
-        const auto victim = m_bitBoard.getPieceAtSquare(move.toSquare());
-
-        if (attacker.has_value() && victim.has_value()) {
-            return gen::getMvvLvaScore(attacker.value(), victim.value());
-        }
-
-        // shouldn't happen
-        return 0;
     }
 
 private:

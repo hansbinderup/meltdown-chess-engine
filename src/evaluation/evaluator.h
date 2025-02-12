@@ -32,7 +32,7 @@ public:
     constexpr void printEvaluation(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         uint8_t depth = depthInput.value_or(3);
-        const auto allMoves = board.getAllMovesSorted();
+        const auto allMoves = board.getAllMovesSorted(0);
 
         m_logger << std::format(" Move evaluations [{}]:\n", depth);
         for (const auto& move : allMoves.getMoves()) {
@@ -57,6 +57,7 @@ private:
     {
         m_nodes = 0;
         m_pvTable.reset();
+        evaluation::MoveScoring::resetHeuristics();
     }
 
     constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
@@ -65,12 +66,10 @@ private:
 
         reset();
 
+        const auto startTime = system_clock::now();
+
         /* iterative deeping - should be faster and better? */
         for (uint8_t d = 1; d <= depth; d++) {
-            /* TODO: should nodes be reset between each iteration?? */
-            m_nodes = 0;
-
-            const auto startTime = system_clock::now();
             int16_t score = negamax(d, board, s_minScore, s_maxScore);
 
             const auto endTime = system_clock::now();
@@ -105,7 +104,7 @@ private:
             depth++;
         }
 
-        auto allMoves = board.getAllMovesSorted();
+        auto allMoves = board.getAllMovesSorted(m_ply);
         for (const auto& move : allMoves.getMoves()) {
             if (m_ply == 0) {
                 std::cout << "info currmove " << move.toString() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
@@ -124,9 +123,10 @@ private:
             const int16_t score = -negamax(depth - 1, newBoard, -beta, -alpha);
             m_ply--;
 
-            if (score >= beta)
-                // change to beta for hard cutoff
+            if (score >= beta) {
+                evaluation::MoveScoring::updateKillerMove(move, m_ply);
                 return beta;
+            }
 
             if (score > alpha) {
                 alpha = score;
@@ -170,7 +170,7 @@ private:
             alpha = evaluation;
         }
 
-        auto allMoves = board.getAllCapturesSorted();
+        auto allMoves = board.getAllCapturesSorted(m_ply);
         for (const auto& move : allMoves.getMoves()) {
             Engine newBoard = board;
             newBoard.performMove(move);
