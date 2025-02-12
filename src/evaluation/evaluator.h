@@ -4,6 +4,7 @@
 #include "src/engine.h"
 #include "src/evaluation/pv_table.h"
 #include "src/movement/move_types.h"
+#include <chrono>
 #include <iostream>
 
 namespace evaluation {
@@ -60,15 +61,27 @@ private:
 
     constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
     {
+        using namespace std::chrono;
+
         reset();
 
-        int16_t score = negamax(depth, board, s_minScore, s_maxScore);
+        /* iterative deeping - should be faster and better? */
+        for (uint8_t d = 1; d <= depth; d++) {
+            /* TODO: should nodes be reset between each iteration?? */
+            m_nodes = 0;
 
-        std::cout << std::format("info score cp {} depth {} nodes {} pv ", score, depth, m_nodes);
-        for (const auto& move : m_pvTable.getMoves()) {
-            std::cout << move.toString() << " ";
+            const auto startTime = system_clock::now();
+            int16_t score = negamax(d, board, s_minScore, s_maxScore);
+
+            const auto endTime = system_clock::now();
+            const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
+
+            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, d, depth, m_nodes);
+            for (const auto& move : m_pvTable.getMoves()) {
+                std::cout << move.toString() << " ";
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
 
         return m_pvTable.bestMove();
     }
@@ -189,7 +202,7 @@ private:
     uint64_t m_nodes {};
     uint8_t m_ply;
 
-    constexpr static inline uint16_t s_minDepth { 5 };
-    constexpr static inline uint16_t s_maxDepth { 7 };
+    constexpr static inline uint16_t s_minDepth { 7 };
+    constexpr static inline uint16_t s_maxDepth { 8 };
 };
 }
