@@ -20,6 +20,12 @@ namespace heuristic {
 
 class PVTable {
 public:
+    void reset()
+    {
+        std::ranges::fill(m_pvTable, PVNode {});
+        std::ranges::fill(m_pvLength, 0);
+    }
+
     movement::Move bestMove() const
     {
         return m_pvTable.at(0).at(0);
@@ -51,26 +57,9 @@ public:
         return true;
     }
 
-    /* bool updatePvTable(const movement::Move& move, uint8_t currentDepth) */
-    /* { */
-    /*     if (currentDepth >= s_maxSearchDepth) { */
-    /*         return false; */
-    /*     } */
-
-    /*     m_pvTable.at(currentDepth).at(currentDepth) = move; */
-
-    /*     for (uint8_t nextDepth = currentDepth + 1; nextDepth < m_pvLength.at(currentDepth + 1); nextDepth++) { */
-    /*         m_pvTable.at(currentDepth).at(nextDepth) = m_pvTable.at(currentDepth + 1).at(nextDepth); */
-    /*     } */
-
-    /*     m_pvLength.at(currentDepth) = m_pvLength.at(currentDepth + 1); */
-    /*     return true; */
-    /* } */
-
 private:
     using PVNode = std::array<movement::Move, s_maxSearchDepth>;
     std::array<PVNode, s_maxSearchDepth> m_pvTable;
     std::array<uint8_t, s_maxSearchDepth> m_pvLength;
 };
-
 }

@@ -30,7 +30,7 @@ public:
 
     constexpr void printEvaluation(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        uint8_t depth = depthInput.value_or(s_maxDepth);
+        uint8_t depth = depthInput.value_or(3);
         const auto allMoves = board.getAllMovesSorted();
 
         m_logger << std::format(" Move evaluations [{}]:\n", depth);
@@ -52,9 +52,15 @@ public:
     }
 
 private:
-    constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
+    void reset()
     {
         m_nodes = 0;
+        m_pvTable.reset();
+    }
+
+    constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
+    {
+        reset();
 
         int16_t score = negamax(depth, board, s_minScore, s_maxScore);
 
