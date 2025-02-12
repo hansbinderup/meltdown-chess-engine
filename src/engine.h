@@ -27,6 +27,11 @@ public:
         m_bitBoard.reset();
     }
 
+    BitBoard board() const
+    {
+        return m_bitBoard;
+    }
+
     uint16_t getRoundsCount() const
     {
         return m_bitBoard.roundsCount;

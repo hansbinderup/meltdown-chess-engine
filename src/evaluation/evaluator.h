@@ -85,32 +85,32 @@ private:
         return m_pvTable.bestMove();
     }
 
-    constexpr int16_t negamax(uint8_t depth, const Engine& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
+    constexpr int16_t negamax(uint8_t depth, const Engine& engine, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
         m_pvTable.updateLength(m_ply);
 
         if (depth == 0) {
-            return quiesence(board, alpha, beta);
+            return quiesence(engine, alpha, beta);
         }
 
         m_nodes++;
 
         uint16_t legalMoves = 0;
-        const Player currentPlayer = board.getCurrentPlayer();
-        const bool isChecked = board.isKingAttacked();
+        const Player currentPlayer = engine.getCurrentPlayer();
+        const bool isChecked = engine.isKingAttacked();
 
         // Dangerous position - increase search depth
         if (isChecked) {
             depth++;
         }
 
-        auto allMoves = board.getAllMovesSorted(m_ply);
+        auto allMoves = engine.getAllMovesSorted(m_ply);
         for (const auto& move : allMoves.getMoves()) {
             if (m_ply == 0) {
                 std::cout << "info currmove " << move.toString() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
             }
 
-            Engine newBoard = board;
+            Engine newBoard = engine;
             newBoard.performMove(move);
 
             if (newBoard.isKingAttacked(currentPlayer)) {
@@ -131,6 +131,7 @@ private:
             if (score > alpha) {
                 alpha = score;
 
+                evaluation::MoveScoring::updateHistoryMove(engine.board(), move, m_ply);
                 m_pvTable.updateTable(move, m_ply);
             }
         }
@@ -203,6 +204,6 @@ private:
     uint8_t m_ply;
 
     constexpr static inline uint16_t s_minDepth { 7 };
-    constexpr static inline uint16_t s_maxDepth { 8 };
+    constexpr static inline uint16_t s_maxDepth { 7 };
 };
 }
