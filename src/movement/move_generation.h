@@ -133,8 +133,11 @@ constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, co
 
 constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    getRookMoves(validMoves, board);
-    getBishopMoves(validMoves, board);
+    generateQueenMoves(
+        validMoves,
+        board.player == Player::White ? board.whiteQueens : board.blackQueens,
+        board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
+        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation());
 }
 
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
