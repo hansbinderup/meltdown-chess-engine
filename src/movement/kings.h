@@ -18,7 +18,7 @@ constexpr uint64_t kingsMove(int square)
 
     constexpr int kingsOffset[8][2] = {
         { 0, 1 }, { 0, -1 }, { -1, -1 }, { -1, 0 },
-        { -1, -1 }, { 1, -1 }, { 1, 0 }, { 1, 1 }
+        { -1, 1 }, { 1, -1 }, { 1, 0 }, { 1, 1 }
     };
 
     for (auto [dr, dc] : kingsOffset) {
