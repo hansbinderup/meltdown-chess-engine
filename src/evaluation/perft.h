@@ -38,7 +38,7 @@ private:
     constexpr static inline void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {
         const auto allMoves = engine::getAllMoves(board);
-        uint16_t legalMoves = 0;
+        uint64_t legalMoves = 0;
 
         if (depth == 0) {
             for (const auto& move : allMoves.getMoves()) {

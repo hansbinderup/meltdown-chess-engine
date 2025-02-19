@@ -3,6 +3,7 @@
 #include "magic_enum/magic_enum.hpp"
 #include "src/attack_generation.h"
 #include "src/bit_board.h"
+#include "src/evaluation/material_scoring.h"
 #include "src/evaluation/move_scoring.h"
 #include "src/file_logger.h"
 #include "src/movement/move_generation.h"
@@ -131,16 +132,6 @@ constexpr static inline movement::ValidMoves getAllMoves(const BitBoard& board)
     return validMoves;
 }
 
-constexpr static inline movement::ValidMoves getAllMovesSorted(const BitBoard& board, uint8_t ply)
-{
-    auto allMoves = getAllMoves(board);
-    std::sort(allMoves.getMoves().begin(), allMoves.getMoves().end(), [&](const auto& a, const auto& b) {
-        return evaluation::MoveScoring::score(board, a, ply) > evaluation::MoveScoring::score(board, b, ply);
-    });
-
-    return allMoves;
-}
-
 constexpr static inline movement::ValidMoves getAllCaptures(const BitBoard& board)
 {
     movement::ValidMoves captures;
@@ -150,16 +141,6 @@ constexpr static inline movement::ValidMoves getAllCaptures(const BitBoard& boar
         if (move.isCapture())
             captures.addMove(move);
     }
-
-    return captures;
-}
-
-constexpr static inline movement::ValidMoves getAllCapturesSorted(const BitBoard& board, uint8_t ply)
-{
-    auto captures = getAllCaptures(board);
-    std::sort(captures.getMoves().begin(), captures.getMoves().end(), [&](const auto& a, const auto& b) {
-        return evaluation::MoveScoring::score(board, a, ply) > evaluation::MoveScoring::score(board, b, ply);
-    });
 
     return captures;
 }
@@ -275,18 +256,12 @@ constexpr static inline void printBoardDebug(FileLogger& logger, const BitBoard&
         }
     }
 
-    logger << std::format("\n\nMoves[{}]:\n", allMoves.count());
+    logger << "\n\nMoves[" << allMoves.count() << "]:\n";
     for (const auto& move : allMoves.getMoves()) {
-        logger << std::format("{} [{}]  ", move.toString().data(), evaluation::MoveScoring::score(board, move, 0));
+        logger << move.toString().data() << " ";
     }
 
-    const auto captures = getAllCapturesSorted(board, 0);
-    logger << std::format("\n\nCaptures[{}]:\n", captures.count());
-    for (const auto& move : captures.getMoves()) {
-        logger << std::format("{} [{}]  ", move.toString().data(), evaluation::MoveScoring::score(board, move, 0));
-    }
-
-    logger << "\n\n";
+    logger << "\n";
     logger.flush();
 }
 

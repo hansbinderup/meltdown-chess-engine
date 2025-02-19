@@ -24,6 +24,9 @@ public:
     {
         std::ranges::fill(m_pvTable, PVNode {});
         std::ranges::fill(m_pvLength, 0);
+
+        m_isFollowing = false;
+        m_isScoring = false;
     }
 
     movement::Move bestMove() const
@@ -57,9 +60,49 @@ public:
         return true;
     }
 
+    void setIsFollowing(bool val)
+    {
+        m_isFollowing = val;
+    }
+
+    void setIsScoring(bool val)
+    {
+        m_isFollowing = val;
+    }
+
+    bool isFollowing() const
+    {
+        return m_isFollowing;
+    }
+
+    bool isScoring() const
+    {
+        return m_isScoring;
+    }
+
+    constexpr bool isPvMove(const movement::Move& move, uint8_t ply) const
+    {
+        return m_pvTable.at(0).at(ply) == move;
+    }
+
+    void updatePvScoring(const movement::ValidMoves& moves, uint8_t ply)
+    {
+        m_isFollowing = false;
+
+        for (const auto& move : moves.getMoves()) {
+            if (isPvMove(move, ply)) {
+                m_isScoring = true;
+                m_isFollowing = true;
+            }
+        }
+    }
+
 private:
     using PVNode = std::array<movement::Move, s_maxSearchDepth>;
     std::array<PVNode, s_maxSearchDepth> m_pvTable {};
     std::array<uint8_t, s_maxSearchDepth> m_pvLength {};
+
+    bool m_isScoring;
+    bool m_isFollowing;
 };
 }

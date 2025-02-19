@@ -4,6 +4,7 @@
 #include "src/bit_board.h"
 #include "src/evaluation/history_moves.h"
 #include "src/evaluation/killer_moves.h"
+#include "src/evaluation/pv_table.h"
 #include "src/movement/move_types.h"
 
 #include <cstdint>
@@ -12,24 +13,37 @@ namespace evaluation {
 
 class MoveScoring {
 public:
-    constexpr static inline void resetHeuristics()
+    constexpr void reset()
     {
         m_killerMoves.reset();
         m_historyMoves.reset();
+        m_pvTable.reset();
     }
 
-    constexpr static inline void updateKillerMove(const movement::Move& move, uint8_t ply)
+    constexpr heuristic::PVTable& pvTable()
     {
-        m_killerMoves.update(move, ply);
+        return m_pvTable;
     }
 
-    constexpr static inline void updateHistoryMove(const BitBoard& board, const movement::Move& move, uint8_t ply)
+    constexpr heuristic::KillerMoves& killerMoves()
     {
-        m_historyMoves.update(board, move, ply);
+        return m_killerMoves;
     }
 
-    constexpr static inline int16_t score(const BitBoard& board, const movement::Move& move, uint8_t ply)
+    constexpr heuristic::HistoryMoves& historyMoves()
     {
+        return m_historyMoves;
+    }
+
+    constexpr int16_t score(const BitBoard& board, const movement::Move& move, uint8_t ply)
+    {
+        if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
+            m_pvTable.setIsScoring(false);
+
+            // return highest value if move is PV
+            return 20000;
+        }
+
         const auto attacker = board.getPieceAtSquare(move.fromSquare());
         const auto victim = board.getPieceAtSquare(move.toSquare());
 
@@ -52,8 +66,9 @@ public:
     }
 
 private:
-    static inline heuristic::KillerMoves m_killerMoves;
-    static inline heuristic::HistoryMoves m_historyMoves;
+    heuristic::KillerMoves m_killerMoves {};
+    heuristic::HistoryMoves m_historyMoves {};
+    heuristic::PVTable m_pvTable {};
 };
 
 }
