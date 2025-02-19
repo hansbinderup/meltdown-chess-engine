@@ -10,19 +10,14 @@ namespace heuristic {
 
 class HistoryMoves {
 public:
-    int16_t get(Piece movePiece, uint8_t targetPosition, Player player)
+    int16_t get(Piece movePiece, uint8_t targetPosition)
     {
-        if (player == Player::White) {
-            return m_historyMoves.at(targetPosition).at(movePiece);
-
-        } else {
-            return m_historyMoves.at(targetPosition).at(movePiece + magic_enum::enum_count<Piece>());
-        }
+        return m_historyMoves.at(targetPosition).at(static_cast<uint8_t>(movePiece));
     }
 
     void update(const BitBoard& board, const movement::Move& move, uint8_t ply)
     {
-        if (!magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
+        if (!move.isCapture()) {
             return; // nothing to do
         }
 
@@ -31,11 +26,7 @@ public:
         if (!movePiece.has_value())
             return; // nothing to do
 
-        if (board.player == Player::White) {
-            m_historyMoves.at(move.to).at(movePiece.value()) += ply;
-        } else {
-            m_historyMoves.at(move.to).at(movePiece.value() + magic_enum::enum_count<Piece>()) += ply;
-        }
+        m_historyMoves.at(move.toValue()).at(static_cast<uint8_t>(movePiece.value())) += ply;
     }
 
     void reset()
@@ -44,8 +35,8 @@ public:
     }
 
 private:
-    using HistoryMove = std::array<int16_t, magic_enum::enum_count<Piece>() * 2>;
-    std::array<HistoryMove, 64> m_historyMoves; // history move for each square
+    using HistoryMove = std::array<int16_t, magic_enum::enum_count<Piece>()>;
+    std::array<HistoryMove, 64> m_historyMoves {}; // history move for each square
 };
 
 }

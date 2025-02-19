@@ -91,7 +91,13 @@ private:
                     }
 
                     const auto move = parsing::moveFromString(s_engine, args.substr(0, spaceSep));
-                    s_engine.performMove(move.value());
+
+                    if (move.has_value()) {
+                        s_engine.performMove(move.value());
+                    } else {
+                        std::cerr << "No move found! args: " << args << std::endl;
+                    }
+
                     args = args.substr(spaceSep + 1);
                 }
             }
@@ -107,7 +113,7 @@ private:
         static evaluation::Evaluator evaluator(s_fileLogger);
         const auto bestMove = evaluator.getBestMove(s_engine);
 
-        std::cout << "bestmove " << bestMove.toString() << "\n";
+        std::cout << "bestmove " << bestMove.toString().data() << "\n";
         return true;
     }
 

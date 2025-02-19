@@ -1,72 +1,145 @@
 #pragma once
 
-#include "magic_enum/magic_enum.hpp"
-#include "magic_enum/magic_enum_flags.hpp"
 #include "src/board_defs.h"
 
 #include <cstdint>
 #include <span>
 
-/* required for enum flags to work */
-using namespace magic_enum::bitwise_operators;
-
 namespace movement {
 
-enum class MoveFlags : std::uint8_t {
-    None = 0,
-    Capture = 1 << 0,
-    Castle = 1 << 1,
-    EnPassant = 1 << 2,
-    PromoteKnight = 1 << 3,
-    PromoteBishop = 1 << 4,
-    PromoteRook = 1 << 5,
-    PromoteQueen = 1 << 6,
-};
+/*
+ * Moves are encoded as:
+ * 0000 0000 0000 0000 0000 0000 0011 1111 -> from value
+ * 0000 0000 0000 0000 0000 1111 1100 0000 -> to value
+ * 0000 0000 0000 0000 1111 0000 0000 0000 -> piece type
+ * 0000 0000 0000 0111 0000 0000 0000 0000 -> promotion type
+ * 0000 0000 0011 1000 0000 0000 0000 0000 -> castle type
+ * 0000 0000 0100 0000 0000 0000 0000 0000 -> is capture
+ * */
+class Move {
+public:
+    // allow default construction for resetting / initializing arrays
+    Move() = default;
 
-constexpr static inline auto s_moveFlagPromoteMask = MoveFlags::PromoteKnight | MoveFlags::PromoteBishop | MoveFlags::PromoteRook | MoveFlags::PromoteQueen;
+    explicit Move(uint64_t from, uint64_t to, Piece piece, PromotionType promotion, CastleType castle, uint64_t capture)
+        : data(
+              from
+              | to << s_toShift
+              | (uint64_t)piece << s_pieceShift
+              | (uint64_t)promotion << s_promotionShift
+              | (uint64_t)castle << s_castlingShift
+              | (uint64_t)capture << s_captureShift)
+    {
+    }
 
-struct Move {
-    uint8_t from {};
-    uint8_t to {};
-    MoveFlags flags { MoveFlags::None };
+    /* helper to create a simple move */
+    constexpr static inline Move create(uint8_t from, uint8_t to, Piece piece, bool capture)
+    {
+        return Move(from, to, piece, PromotionType::None, CastleType::None, capture);
+    }
 
-    friend bool operator<=>(const Move&, const Move&) = default;
+    /* helper to create a promotion move */
+    constexpr static inline Move createPromotion(uint8_t from, uint8_t to, Piece piece, PromotionType promotion, bool capture)
+    {
+        return Move(from, to, piece, promotion, CastleType::None, capture);
+    }
+
+    /* helper to create a castle move */
+    constexpr static inline Move createCastle(uint8_t from, uint8_t to, Piece piece, CastleType castle)
+    {
+        return Move(from, to, piece, PromotionType::None, castle, false);
+    }
+
+    friend bool operator<=>(const Move& a, const Move& b) = default;
+
+    constexpr inline uint8_t fromValue() const
+    {
+        return data & s_toFromMask;
+    }
+
+    constexpr inline uint8_t toValue() const
+    {
+        return (data >> s_toShift) & s_toFromMask;
+    }
 
     constexpr inline uint64_t fromSquare() const
     {
-        return 1ULL << from;
+        return 1ULL << fromValue();
     }
 
     constexpr inline uint64_t toSquare() const
     {
-        return 1ULL << to;
+        return 1ULL << toValue();
     }
 
-    constexpr inline std::string toString() const
+    constexpr inline Piece piece() const
     {
-        std::string result;
-        result.resize(5); // Preallocate space
+        return static_cast<Piece>((data >> s_pieceShift) & s_pieceMask);
+    }
 
-        result[0] = 'a' + (from % 8); // Column
-        result[1] = '1' + (from / 8); // Row
-        result[2] = 'a' + (to % 8); // Column
-        result[3] = '1' + (to / 8); // Row
+    constexpr inline PromotionType promotionType() const
+    {
+        return static_cast<PromotionType>((data >> s_promotionShift) & s_promotionMask);
+    }
 
-        if (magic_enum::enum_flags_test_any(flags, s_moveFlagPromoteMask)) {
-            if (magic_enum::enum_flags_test_any(flags, MoveFlags::PromoteKnight))
-                result[4] = 'n';
-            else if (magic_enum::enum_flags_test_any(flags, MoveFlags::PromoteBishop))
-                result[4] = 'b';
-            else if (magic_enum::enum_flags_test_any(flags, MoveFlags::PromoteRook))
-                result[4] = 'r';
-            else if (magic_enum::enum_flags_test_any(flags, MoveFlags::PromoteQueen))
-                result[4] = 'q';
+    constexpr inline bool isPromotionMove() const
+    {
+        return promotionType() != PromotionType::None;
+    }
+
+    constexpr inline CastleType castleType() const
+    {
+        return static_cast<CastleType>((data >> s_castlingShift) & s_castlingMask);
+    }
+
+    constexpr inline bool isCastleMove() const
+    {
+        return castleType() != CastleType::None;
+    }
+
+    constexpr inline bool isCapture() const
+    {
+        constexpr uint64_t captureMask = 1ULL << s_captureShift;
+        return data & captureMask;
+    }
+
+    constexpr inline std::array<char, 6> toString() const
+    {
+        std::array<char, 6> buffer {};
+
+        buffer[0] = 'a' + (fromValue() % 8); // Column
+        buffer[1] = '1' + (fromValue() / 8); // Row
+        buffer[2] = 'a' + (toValue() % 8); // Column
+        buffer[3] = '1' + (toValue() / 8); // Row
+
+        const auto p = promotionType();
+        if (p != PromotionType::None) {
+            buffer[4] = promotionToString(p);
+            buffer[5] = '\0';
         } else {
-            result.resize(4);
+            buffer[4] = '\0';
         }
 
-        return result;
+        return buffer;
     }
+
+private:
+    uint64_t data;
+
+    constexpr static inline uint64_t s_toFromMask { 0b111111 }; /* 64 values */
+    constexpr static inline uint64_t s_toShift { 6 };
+
+    constexpr static inline uint64_t s_pieceMask { 0b1111 }; /* 16 values (only 12 used) */
+    constexpr static inline uint64_t s_pieceShift { 12 };
+
+    constexpr static inline uint64_t s_promotionMask { 0b111 }; /* 8 values (only 5 used) */
+    constexpr static inline uint64_t s_promotionShift { 16 };
+
+    constexpr static inline uint64_t s_castlingMask { 0b111 }; /* 8 values (only 5 used) */
+    constexpr static inline uint64_t s_castlingShift { 19 };
+
+    // Bool so no need for mask
+    constexpr static inline uint64_t s_captureShift { 22 };
 };
 
 class ValidMoves {
@@ -97,9 +170,3 @@ private:
 };
 
 }
-
-// Has to be in neutral namespace
-template<>
-struct magic_enum::customize::enum_range<movement::MoveFlags> {
-    static constexpr bool is_flags = true;
-};

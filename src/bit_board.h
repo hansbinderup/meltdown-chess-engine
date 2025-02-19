@@ -51,18 +51,30 @@ struct BitBoard {
 
     constexpr std::optional<Piece> getPieceAtSquare(uint64_t square) const
     {
-        if (square & (whitePawns | blackPawns)) {
-            return Piece::Pawn;
-        } else if (square & (whiteKnights | blackKnights)) {
-            return Piece::Knight;
-        } else if (square & (whiteBishops | blackBishops)) {
-            return Piece::Bishop;
-        } else if (square & (whiteRooks | blackRooks)) {
-            return Piece::Rook;
-        } else if (square & (whiteQueens | blackQueens)) {
-            return Piece::Queen;
-        } else if (square & (whiteKing | blackKing)) {
-            return Piece::King;
+        if (square & whitePawns) {
+            return Piece::WhitePawn;
+        } else if (square & whiteKnights) {
+            return Piece::WhiteKnight;
+        } else if (square & whiteBishops) {
+            return Piece::WhiteBishop;
+        } else if (square & whiteRooks) {
+            return Piece::WhiteRook;
+        } else if (square & whiteQueens) {
+            return Piece::WhiteQueen;
+        } else if (square & whiteKing) {
+            return Piece::WhiteKing;
+        } else if (square & blackPawns) {
+            return Piece::BlackPawn;
+        } else if (square & blackKnights) {
+            return Piece::BlackKnight;
+        } else if (square & blackBishops) {
+            return Piece::BlackBishop;
+        } else if (square & blackRooks) {
+            return Piece::BlackRook;
+        } else if (square & blackQueens) {
+            return Piece::BlackQueen;
+        } else if (square & blackKing) {
+            return Piece::BlackKing;
         }
 
         return std::nullopt;

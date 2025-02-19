@@ -16,14 +16,54 @@ constexpr Player nextPlayer(Player p)
         return Player::White;
 }
 
-enum Piece : uint8_t {
-    Pawn = 0,
+enum class Piece : uint8_t {
+    WhitePawn = 0,
+    WhiteKnight,
+    WhiteBishop,
+    WhiteRook,
+    WhiteQueen,
+    WhiteKing,
+    BlackPawn,
+    BlackKnight,
+    BlackBishop,
+    BlackRook,
+    BlackQueen,
+    BlackKing,
+};
+
+enum class PromotionType : uint8_t {
+    None = 0,
+    Queen,
     Knight,
     Bishop,
     Rook,
-    Queen,
-    King,
 };
+
+enum class CastleType : uint8_t {
+    None = 0,
+    WhiteKingSide,
+    WhiteQueenSide,
+    BlackKingSide,
+    BlackQueenSide,
+};
+
+constexpr inline char promotionToString(PromotionType p)
+{
+    switch (p) {
+    case PromotionType::None:
+        return ' ';
+    case PromotionType::Queen:
+        return 'q';
+    case PromotionType::Knight:
+        return 'n';
+    case PromotionType::Bishop:
+        return 'b';
+    case PromotionType::Rook:
+        return 'r';
+    }
+
+    return ' ';
+}
 
 constexpr static inline uint8_t s_maxSearchDepth { 64 };
 

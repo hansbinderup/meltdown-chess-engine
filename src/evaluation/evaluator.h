@@ -41,9 +41,9 @@ public:
 
             int16_t score = -negamax(depth - 1, newBoard);
 
-            m_logger << std::format("  move: {}\tscore: {}\tnodes: {} \t pv: ", move.toString(), score, m_nodes);
+            m_logger << std::format("  move: {}\tscore: {}\tnodes: {} \t pv: ", move.toString().data(), score, m_nodes);
             for (const auto& move : m_pvTable.getMoves()) {
-                m_logger << move.toString() << " ";
+                m_logger << move.toString().data() << " ";
             }
             m_logger << "\n";
 
@@ -77,7 +77,7 @@ private:
 
             std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, d, depth, m_nodes);
             for (const auto& move : m_pvTable.getMoves()) {
-                std::cout << move.toString() << " ";
+                std::cout << move.toString().data() << " ";
             }
             std::cout << std::endl;
         }
@@ -107,7 +107,7 @@ private:
         auto allMoves = engine.getAllMovesSorted(m_ply);
         for (const auto& move : allMoves.getMoves()) {
             if (m_ply == 0) {
-                std::cout << "info currmove " << move.toString() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
+                std::cout << "info currmove " << move.toString().data() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
             }
 
             Engine newBoard = engine;

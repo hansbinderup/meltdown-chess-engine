@@ -59,7 +59,7 @@ public:
 
 private:
     using PVNode = std::array<movement::Move, s_maxSearchDepth>;
-    std::array<PVNode, s_maxSearchDepth> m_pvTable;
-    std::array<uint8_t, s_maxSearchDepth> m_pvLength;
+    std::array<PVNode, s_maxSearchDepth> m_pvTable {};
+    std::array<uint8_t, s_maxSearchDepth> m_pvLength {};
 };
 }

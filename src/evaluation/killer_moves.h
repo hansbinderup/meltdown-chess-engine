@@ -11,7 +11,7 @@ public:
     using KillerMove = std::pair<movement::Move, movement::Move>;
     void update(const movement::Move& move, uint8_t ply)
     {
-        if (!magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
+        if (!move.isCapture()) {
             return; // nothing to do
         }
 

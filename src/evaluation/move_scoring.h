@@ -33,7 +33,7 @@ public:
         const auto attacker = board.getPieceAtSquare(move.fromSquare());
         const auto victim = board.getPieceAtSquare(move.toSquare());
 
-        if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
+        if (move.isCapture()) {
             if (attacker.has_value() && victim.has_value()) {
                 return gen::getMvvLvaScore(attacker.value(), victim.value()) + 10000;
             }
@@ -44,7 +44,7 @@ public:
             else if (move == killerMoves.second)
                 return 8000;
             else if (attacker.has_value()) {
-                return m_historyMoves.get(attacker.value(), move.to, board.player);
+                return m_historyMoves.get(attacker.value(), move.toValue());
             }
         }
 

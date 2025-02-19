@@ -27,6 +27,7 @@ public:
         std::cout << "\ncaptures: " << s_captures;
         std::cout << "\ncastles: " << s_castles;
         std::cout << "\nchecks: " << s_checks;
+        std::cout << "\ncheckMates: " << s_checkMates;
         std::cout << "\ntime: " << timeDiff << "ms";
 
         std::cout << std::endl;
@@ -36,6 +37,7 @@ private:
     constexpr static inline void search(const Engine& engine, uint8_t depth, bool printMove = false)
     {
         const auto allMoves = engine.getAllMoves();
+        uint16_t legalMoves = 0;
 
         if (depth == 0) {
             for (const auto& move : allMoves.getMoves()) {
@@ -47,19 +49,25 @@ private:
                     continue;
                 }
 
+                legalMoves++;
+
                 if (newEngine.isKingAttacked()) {
                     s_checks++;
                 }
 
-                if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture)) {
+                if (move.isCapture()) {
                     s_captures++;
                 }
 
-                if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle)) {
+                if (move.isCastleMove()) {
                     s_castles++;
                 }
 
                 s_nodes++;
+            }
+
+            if (legalMoves == 0) {
+                s_checkMates++;
             }
 
             return;
@@ -74,12 +82,18 @@ private:
                 continue;
             }
 
+            legalMoves++;
+
             search(newEngine, depth - 1);
 
             if (printMove) {
-                std::cout << move.toString() << " " << s_nodes - s_prevNodes << std::endl;
+                std::cout << move.toString().data() << " " << s_nodes - s_prevNodes << std::endl;
                 s_prevNodes = s_nodes;
             }
+        }
+
+        if (legalMoves == 0) {
+            s_checkMates++;
         }
     }
 
@@ -89,6 +103,7 @@ private:
         s_captures = 0;
         s_castles = 0;
         s_checks = 0;
+        s_checkMates = 0;
         s_prevNodes = 0;
     }
 
@@ -96,5 +111,6 @@ private:
     static inline uint64_t s_captures {};
     static inline uint64_t s_castles {};
     static inline uint64_t s_checks {};
+    static inline uint64_t s_checkMates {};
     static inline uint64_t s_prevNodes {};
 };

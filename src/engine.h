@@ -5,7 +5,6 @@
 #include "file_logger.h"
 
 #include "magic_enum/magic_enum.hpp"
-#include "magic_enum/magic_enum_flags.hpp"
 #include "movement/move_types.h"
 #include "src/bit_board.h"
 #include "src/evaluation/move_scoring.h"
@@ -80,7 +79,7 @@ public:
         const auto allMoves = getAllMoves();
 
         for (const auto& move : allMoves.getMoves()) {
-            if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Capture))
+            if (move.isCapture())
                 captures.addMove(move);
         }
 
@@ -141,12 +140,11 @@ public:
     {
         const auto fromSquare = move.fromSquare();
         const auto toSquare = move.toSquare();
-        const auto moveFlags = move.flags;
 
-        if (magic_enum::enum_flags_test(moveFlags, movement::MoveFlags::Castle)) {
+        if (move.isCastleMove()) {
             performCastleMove(move);
         } else {
-            if (magic_enum::enum_flags_test_any(moveFlags, movement::s_moveFlagPromoteMask))
+            if (move.isPromotionMove())
                 performPromotionMove(move);
             else {
                 // should be done before moving pieces
@@ -221,21 +219,21 @@ public:
         m_logger << "Player: " << magic_enum::enum_name(m_bitBoard.player);
         m_logger << "\nRound: " << std::to_string(m_bitBoard.roundsCount);
         m_logger << "\nCastle: " << std::accumulate(allMoves.getMoves().begin(), allMoves.getMoves().end(), std::string {}, [](std::string result, const movement::Move& move) {
-            if (magic_enum::enum_flags_test(move.flags, movement::MoveFlags::Castle)) {
-                result += move.toString() + " ";
+            if (move.isCastleMove()) {
+                /* result += move.toString() + " "; */
             }
             return result;
         });
 
         m_logger << std::format("\n\nMoves[{}]:\n", allMoves.count());
         for (const auto& move : allMoves.getMoves()) {
-            m_logger << std::format("{} [{}]  ", move.toString(), evaluation::MoveScoring::score(m_bitBoard, move, 0));
+            m_logger << std::format("{} [{}]  ", move.toString().data(), evaluation::MoveScoring::score(m_bitBoard, move, 0));
         }
 
         const auto captures = getAllCapturesSorted(0);
         m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
         for (const auto& move : captures.getMoves()) {
-            m_logger << std::format("{} [{}]  ", move.toString(), evaluation::MoveScoring::score(m_bitBoard, move, 0));
+            m_logger << std::format("{} [{}]  ", move.toString().data(), evaluation::MoveScoring::score(m_bitBoard, move, 0));
         }
 
         m_logger << "\n\n";
@@ -289,17 +287,18 @@ public:
         pawns &= ~move.fromSquare();
 
         const auto findPromotionPiece = [&] -> uint64_t& {
-            // check queen first as this is the most common
-            if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteQueen))
+            switch (move.promotionType()) {
+            case PromotionType::Queen:
+            case PromotionType::None:
                 return isWhite ? m_bitBoard.whiteQueens : m_bitBoard.blackQueens;
-            else if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteKnight))
+            case PromotionType::Knight:
                 return isWhite ? m_bitBoard.whiteKnights : m_bitBoard.blackKnights;
-            else if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteBishop))
+            case PromotionType::Bishop:
                 return isWhite ? m_bitBoard.whiteBishops : m_bitBoard.blackBishops;
-            else if (magic_enum::enum_flags_test_any(move.flags, movement::MoveFlags::PromoteRook))
+            case PromotionType::Rook:
                 return isWhite ? m_bitBoard.whiteRooks : m_bitBoard.blackRooks;
+            }
 
-            // Default to queen to satisfy compiler
             return isWhite ? m_bitBoard.whiteQueens : m_bitBoard.blackQueens;
         };
 
@@ -308,39 +307,35 @@ public:
         promotionPiece |= move.fromSquare();
     }
 
-    /*
-     * Could be made better I guess, but for now this should do
-     */
     constexpr void performCastleMove(const movement::Move& move)
     {
         const auto fromSquare = move.fromSquare();
         const auto toSquare = move.toSquare();
 
-        auto performSingleCastleMove = [&](uint64_t& king, uint64_t& rooks, uint64_t& castlingRights,
-                                           const movement::Move& queenSideMove, const movement::Move& kingSideMove,
-                                           const movement::Move& queenSideRookMove, const movement::Move& kingSideRookMove) {
-            if (move == queenSideMove) {
-                bitToggleMove(king, fromSquare, toSquare);
-                bitToggleMove(rooks, 1ULL << queenSideRookMove.from, 1ULL << queenSideRookMove.to);
-                castlingRights = 0;
-            }
-            if (move == kingSideMove) {
-                bitToggleMove(king, fromSquare, toSquare);
-                bitToggleMove(rooks, 1ULL << kingSideRookMove.from, 1ULL << kingSideRookMove.to);
-                castlingRights = 0;
-            }
-        };
+        switch (move.castleType()) {
+        case CastleType::WhiteKingSide: {
+            bitToggleMove(m_bitBoard.whiteKing, fromSquare, toSquare);
+            bitToggleMove(m_bitBoard.whiteRooks, 1ULL << gen::s_whiteKingSideCastleMoveRook.first, 1ULL << gen::s_whiteKingSideCastleMoveRook.second);
+            m_bitBoard.whiteCastlingRights = 0;
+        } break;
 
-        if (m_bitBoard.player == Player::White && m_bitBoard.whiteCastlingRights) {
-            performSingleCastleMove(m_bitBoard.whiteKing, m_bitBoard.whiteRooks, m_bitBoard.whiteCastlingRights,
-                gen::s_whiteQueenSideCastleMove, gen::s_whiteKingSideCastleMove,
-                gen::s_whiteQueenSideCastleMoveRook, gen::s_whiteKingSideCastleMoveRook);
-        }
-
-        if (m_bitBoard.player == Player::Black && m_bitBoard.blackCastlingRights) {
-            performSingleCastleMove(m_bitBoard.blackKing, m_bitBoard.blackRooks, m_bitBoard.blackCastlingRights,
-                gen::s_blackQueenSideCastleMove, gen::s_blackKingSideCastleMove,
-                gen::s_blackQueenSideCastleMoveRook, gen::s_blackKingSideCastleMoveRook);
+        case CastleType::WhiteQueenSide: {
+            bitToggleMove(m_bitBoard.whiteKing, fromSquare, toSquare);
+            bitToggleMove(m_bitBoard.whiteRooks, 1ULL << gen::s_whiteQueenSideCastleMoveRook.first, 1ULL << gen::s_whiteQueenSideCastleMoveRook.second);
+            m_bitBoard.whiteCastlingRights = 0;
+        } break;
+        case CastleType::BlackKingSide: {
+            bitToggleMove(m_bitBoard.blackKing, fromSquare, toSquare);
+            bitToggleMove(m_bitBoard.blackRooks, 1ULL << gen::s_blackKingSideCastleMoveRook.first, 1ULL << gen::s_blackKingSideCastleMoveRook.second);
+            m_bitBoard.blackCastlingRights = 0;
+        } break;
+        case CastleType::BlackQueenSide: {
+            bitToggleMove(m_bitBoard.blackKing, fromSquare, toSquare);
+            bitToggleMove(m_bitBoard.blackRooks, 1ULL << gen::s_blackQueenSideCastleMoveRook.first, 1ULL << gen::s_blackQueenSideCastleMoveRook.second);
+            m_bitBoard.blackCastlingRights = 0;
+        } break;
+        case CastleType::None:
+            break;
         }
     }
 

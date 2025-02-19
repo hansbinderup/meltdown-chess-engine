@@ -11,19 +11,23 @@
 
 namespace gen {
 
-constexpr movement::Move s_whiteKingSideCastleMove { 4, 6, movement::MoveFlags::Castle };
-constexpr movement::Move s_whiteQueenSideCastleMove { 4, 2, movement::MoveFlags::Castle };
-constexpr movement::Move s_whiteKingSideCastleMoveRook { 7, 5 };
-constexpr movement::Move s_whiteQueenSideCastleMoveRook { 0, 3 };
+using CastleMove = std::pair<uint8_t, uint8_t>;
 
-constexpr movement::Move s_blackKingSideCastleMove { 4 + s_eightRow, 6 + s_eightRow, movement::MoveFlags::Castle };
-constexpr movement::Move s_blackQueenSideCastleMove { 4 + s_eightRow, 2 + s_eightRow, movement::MoveFlags::Castle };
-constexpr movement::Move s_blackKingSideCastleMoveRook { 7 + s_eightRow, 5 + s_eightRow };
-constexpr movement::Move s_blackQueenSideCastleMoveRook { 0 + s_eightRow, 3 + s_eightRow };
+constexpr CastleMove s_whiteKingSideCastleMove { 4, 6 };
+constexpr CastleMove s_whiteQueenSideCastleMove { 4, 2 };
+
+constexpr CastleMove s_whiteKingSideCastleMoveRook { 7, 5 };
+constexpr CastleMove s_whiteQueenSideCastleMoveRook { 0, 3 };
+
+constexpr CastleMove s_blackKingSideCastleMove { 4 + s_eightRow, 6 + s_eightRow };
+constexpr CastleMove s_blackQueenSideCastleMove { 4 + s_eightRow, 2 + s_eightRow };
+
+constexpr CastleMove s_blackKingSideCastleMoveRook { 7 + s_eightRow, 5 + s_eightRow };
+constexpr CastleMove s_blackQueenSideCastleMoveRook { 0 + s_eightRow, 3 + s_eightRow };
 
 namespace {
 
-constexpr static inline void generateKnightMoves(movement::ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation)
+constexpr static inline void generateKnightMoves(movement::ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
     while (knights) {
         const int from = std::countr_zero(knights);
@@ -33,15 +37,15 @@ constexpr static inline void generateKnightMoves(movement::ValidMoves& validMove
 
         while (moves) {
             const int to = std::countr_zero(moves);
-            const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
+            const bool isCapture = (1ULL << to) & theirOccupation;
             moves &= moves - 1;
 
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
+            validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
         }
     }
 }
 
-constexpr static inline void generateRookMoves(movement::ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation)
+constexpr static inline void generateRookMoves(movement::ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
     while (rooks) {
         const int from = std::countr_zero(rooks);
@@ -51,15 +55,15 @@ constexpr static inline void generateRookMoves(movement::ValidMoves& validMoves,
 
         while (moves) {
             const int to = std::countr_zero(moves);
-            const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
+            const bool isCapture = (1ULL << to) & theirOccupation;
             moves &= moves - 1;
 
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
+            validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
         }
     }
 }
 
-constexpr static inline void generateBishopMoves(movement::ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation)
+constexpr static inline void generateBishopMoves(movement::ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
     while (bishops) {
         const int from = std::countr_zero(bishops);
@@ -69,21 +73,21 @@ constexpr static inline void generateBishopMoves(movement::ValidMoves& validMove
 
         while (moves) {
             const int to = std::countr_zero(moves);
-            const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
+            const bool isCapture = (1ULL << to) & theirOccupation;
             moves &= moves - 1;
 
-            validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
+            validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
         }
     }
 }
 
-constexpr static inline void generateQueenMoves(movement::ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation, uint64_t theirOccupation)
+constexpr static inline void generateQueenMoves(movement::ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
-    generateRookMoves(validMoves, queens, ownOccupation, theirOccupation);
-    generateBishopMoves(validMoves, queens, ownOccupation, theirOccupation);
+    generateRookMoves(validMoves, queens, ownOccupation, theirOccupation, piece);
+    generateBishopMoves(validMoves, queens, ownOccupation, theirOccupation, piece);
 }
 
-constexpr static inline void generateKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, uint64_t attacks)
+constexpr static inline void generateKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece, uint64_t attacks)
 {
     if (king == 0)
         return;
@@ -95,10 +99,10 @@ constexpr static inline void generateKingMoves(movement::ValidMoves& validMoves,
 
     while (moves) {
         const int to = std::countr_zero(moves);
-        const movement::MoveFlags flags = (1ULL << to) & theirOccupation ? movement::MoveFlags::Capture : movement::MoveFlags::None;
+        const bool isCapture = (1ULL << to) & theirOccupation;
         moves &= moves - 1;
 
-        validMoves.addMove({ static_cast<uint8_t>(from), static_cast<uint8_t>(to), flags });
+        validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
     }
 }
 
@@ -110,7 +114,8 @@ constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, co
         validMoves,
         board.player == Player::White ? board.whiteKnights : board.blackKnights,
         board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation());
+        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? Piece::WhiteKnight : Piece::BlackKnight);
 }
 
 constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, const BitBoard& board)
@@ -119,7 +124,8 @@ constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, cons
         validMoves,
         board.player == Player::White ? board.whiteRooks : board.blackRooks,
         board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation());
+        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? Piece::WhiteRook : Piece::BlackRook);
 }
 
 constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, const BitBoard& board)
@@ -128,7 +134,8 @@ constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, co
         validMoves,
         board.player == Player::White ? board.whiteBishops : board.blackBishops,
         board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation());
+        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? Piece::WhiteBishop : Piece::BlackBishop);
 }
 
 constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, const BitBoard& board)
@@ -137,7 +144,8 @@ constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, con
         validMoves,
         board.player == Player::White ? board.whiteQueens : board.blackQueens,
         board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation());
+        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? Piece::WhiteQueen : Piece::BlackQueen);
 }
 
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
@@ -147,6 +155,7 @@ constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, cons
         board.player == Player::White ? board.whiteKing : board.blackKing,
         board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
         board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? Piece::WhiteKing : Piece::BlackKing,
         attacks);
 }
 
@@ -159,11 +168,13 @@ constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, cons
     }
 }
 
+// TODO: separate in player - this is not super pretty
 constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    const uint64_t castlingMask = board.player == Player::White ? board.whiteCastlingRights : board.blackCastlingRights;
-    const uint64_t king = board.player == Player::White ? board.whiteKing : board.blackKing;
-    const uint64_t rook = board.player == Player::White ? board.whiteRooks : board.blackRooks;
+    const bool isWhite = board.player == Player::White;
+    const uint64_t castlingMask = isWhite ? board.whiteCastlingRights : board.blackCastlingRights;
+    const uint64_t king = isWhite ? board.whiteKing : board.blackKing;
+    const uint64_t rook = isWhite ? board.whiteRooks : board.blackRooks;
     const uint64_t occupation = board.getAllOccupation();
 
     if (castlingMask == 0 || king == 0 || rook == 0) {
@@ -174,21 +185,22 @@ constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, 
         return;
     }
 
+    Piece piece = isWhite ? Piece::WhiteKing : Piece::BlackKing;
     const uint64_t kingRookMask = king | rook;
-    const uint64_t queenSideCastleMask = board.player == Player::White ? s_whiteQueenSideCastleMask : s_blackQueenSideCastleMask;
-    const uint64_t kingSideCastleMask = board.player == Player::White ? s_whiteKingSideCastleMask : s_blackKingSideCastleMask;
-    const uint64_t queenSideCastleOccupationMask = board.player == Player::White ? s_whiteQueenSideCastleOccupationMask : s_blackQueenSideCastleOccupationMask;
-    const uint64_t kingSideCastleOccupationMask = board.player == Player::White ? s_whiteKingSideCastleOccupationMask : s_blackKingSideCastleOccupationMask;
-    const uint64_t queenSideCastleAttackMask = board.player == Player::White ? s_whiteQueenSideCastleAttackMask : s_blackQueenSideCastleAttackMask;
-    const uint64_t kingSideCastleAttackMask = board.player == Player::White ? s_whiteKingSideCastleAttackMask : s_blackKingSideCastleAttackMask;
-    const movement::Move queenSideCastleMove = board.player == Player::White ? s_whiteQueenSideCastleMove : s_blackQueenSideCastleMove;
-    const movement::Move kingSideCastleMove = board.player == Player::White ? s_whiteKingSideCastleMove : s_blackKingSideCastleMove;
+    const uint64_t queenSideCastleMask = isWhite ? s_whiteQueenSideCastleMask : s_blackQueenSideCastleMask;
+    const uint64_t kingSideCastleMask = isWhite ? s_whiteKingSideCastleMask : s_blackKingSideCastleMask;
+    const uint64_t queenSideCastleOccupationMask = isWhite ? s_whiteQueenSideCastleOccupationMask : s_blackQueenSideCastleOccupationMask;
+    const uint64_t kingSideCastleOccupationMask = isWhite ? s_whiteKingSideCastleOccupationMask : s_blackKingSideCastleOccupationMask;
+    const uint64_t queenSideCastleAttackMask = isWhite ? s_whiteQueenSideCastleAttackMask : s_blackQueenSideCastleAttackMask;
+    const uint64_t kingSideCastleAttackMask = isWhite ? s_whiteKingSideCastleAttackMask : s_blackKingSideCastleAttackMask;
+    const auto queenSideCastleMove = isWhite ? s_whiteQueenSideCastleMove : s_blackQueenSideCastleMove;
+    const auto kingSideCastleMove = isWhite ? s_whiteKingSideCastleMove : s_blackKingSideCastleMove;
 
     // Queen side castling
     if ((castlingMask & queenSideCastleMask & kingRookMask) == queenSideCastleMask) {
         // Pieces in the way - castling not allowed
         if (!(occupation & queenSideCastleOccupationMask) && !(attacks & queenSideCastleAttackMask)) {
-            validMoves.addMove(queenSideCastleMove);
+            validMoves.addMove(movement::Move::createCastle(queenSideCastleMove.first, queenSideCastleMove.second, piece, isWhite ? CastleType::WhiteQueenSide : CastleType::BlackQueenSide));
         }
     }
 
@@ -196,7 +208,8 @@ constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, 
     if ((castlingMask & kingSideCastleMask & kingRookMask) == kingSideCastleMask) {
         // Pieces in the way - castling not allowed
         if (!(occupation & kingSideCastleOccupationMask) && !(attacks & kingSideCastleAttackMask)) {
-            validMoves.addMove(kingSideCastleMove);
+            validMoves.addMove(
+                movement::Move::createCastle(kingSideCastleMove.first, kingSideCastleMove.second, piece, isWhite ? CastleType::WhiteKingSide : CastleType::BlackKingSide));
         }
     }
 }
