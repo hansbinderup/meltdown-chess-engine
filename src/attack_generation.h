@@ -28,20 +28,27 @@ namespace {
         King   100    200    300    400    500    600
 */
 
-static int s_mvvLvaTable[6][6] = {
-    { 105, 205, 305, 405, 505, 605 },
-    { 104, 204, 304, 404, 504, 604 },
-    { 103, 203, 303, 403, 503, 603 },
-    { 102, 202, 302, 402, 502, 602 },
-    { 101, 201, 301, 401, 501, 601 },
-    { 100, 200, 300, 400, 500, 600 },
-};
-
+using MvvTableEntry = std::array<int16_t, 12>;
+constexpr auto s_mvvLvaTable = std::to_array<MvvTableEntry>(
+    {
+        { 105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605 },
+        { 104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604 },
+        { 103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603 },
+        { 102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602 },
+        { 101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601 },
+        { 100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600 },
+        { 105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605 },
+        { 104, 204, 304, 404, 504, 604, 104, 204, 304, 404, 504, 604 },
+        { 103, 203, 303, 403, 503, 603, 103, 203, 303, 403, 503, 603 },
+        { 102, 202, 302, 402, 502, 602, 102, 202, 302, 402, 502, 602 },
+        { 101, 201, 301, 401, 501, 601, 101, 201, 301, 401, 501, 601 },
+        { 100, 200, 300, 400, 500, 600, 100, 200, 300, 400, 500, 600 },
+    });
 }
 
 constexpr static inline int16_t getMvvLvaScore(Piece attacker, Piece victim)
 {
-    return s_mvvLvaTable[static_cast<int>(attacker)][static_cast<int>(victim)];
+    return s_mvvLvaTable.at(static_cast<uint8_t>(attacker)).at(static_cast<uint8_t>(victim));
 }
 
 constexpr static inline uint64_t getKnightAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)
@@ -134,6 +141,21 @@ constexpr static inline uint64_t getBlackPawnAttacks(const BitBoard& board)
     const uint64_t pawns = board.blackPawns;
     uint64_t attacks = ((pawns & ~s_aFileMask) >> 7);
     attacks |= ((pawns & ~s_hFileMask) >> 9);
+
+    return attacks;
+}
+
+constexpr uint64_t getAllAttacks(const BitBoard& board, Player player)
+{
+    uint64_t attacks = player == Player::White
+        ? gen::getWhitePawnAttacks(board)
+        : gen::getBlackPawnAttacks(board);
+
+    attacks |= gen::getKnightAttacks(board, player);
+    attacks |= gen::getRookAttacks(board, player);
+    attacks |= gen::getBishopAttacks(board, player);
+    attacks |= gen::getQueenAttacks(board, player);
+    attacks |= gen::getKingAttacks(board, player);
 
     return attacks;
 }

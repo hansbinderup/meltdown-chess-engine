@@ -1,8 +1,10 @@
 #pragma once
 
 #include "magic_enum/magic_enum.hpp"
-#include "src/engine.h"
+#include "src/engine/move_handling.h"
+#include "src/evaluation/material_scoring.h"
 #include "src/evaluation/pv_table.h"
+#include "src/file_logger.h"
 #include "src/movement/move_types.h"
 #include <chrono>
 #include <iostream>
@@ -21,23 +23,22 @@ public:
     {
     }
 
-    constexpr movement::Move getBestMove(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_logger.log("Get best move for {}", magic_enum::enum_name(board.getCurrentPlayer()));
+        m_logger.log("Get best move for {}", magic_enum::enum_name(board.player));
 
         const uint8_t depth = std::clamp(board.getRoundsCount(), s_minDepth, s_maxDepth);
         return scanForBestMove(depthInput.value_or(depth), board);
     }
 
-    constexpr void printEvaluation(const Engine& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         uint8_t depth = depthInput.value_or(3);
-        const auto allMoves = board.getAllMovesSorted(0);
+        const auto allMoves = engine::getAllMovesSorted(board, 0);
 
         m_logger << std::format(" Move evaluations [{}]:\n", depth);
         for (const auto& move : allMoves.getMoves()) {
-            Engine newBoard = board;
-            newBoard.performMove(move);
+            const auto newBoard = engine::performMove(board, move);
 
             int16_t score = -negamax(depth - 1, newBoard);
 
@@ -60,7 +61,7 @@ private:
         evaluation::MoveScoring::resetHeuristics();
     }
 
-    constexpr movement::Move scanForBestMove(uint8_t depth, const Engine& board)
+    constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
         using namespace std::chrono;
 
@@ -85,35 +86,33 @@ private:
         return m_pvTable.bestMove();
     }
 
-    constexpr int16_t negamax(uint8_t depth, const Engine& engine, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
+    constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
         m_pvTable.updateLength(m_ply);
 
         if (depth == 0) {
-            return quiesence(engine, alpha, beta);
+            return quiesence(board, alpha, beta);
         }
 
         m_nodes++;
 
         uint16_t legalMoves = 0;
-        const Player currentPlayer = engine.getCurrentPlayer();
-        const bool isChecked = engine.isKingAttacked();
+        const Player currentPlayer = board.player;
+        const bool isChecked = engine::isKingAttacked(board);
 
         // Dangerous position - increase search depth
         if (isChecked) {
             depth++;
         }
 
-        auto allMoves = engine.getAllMovesSorted(m_ply);
+        auto allMoves = engine::getAllMovesSorted(board, m_ply);
         for (const auto& move : allMoves.getMoves()) {
             if (m_ply == 0) {
                 std::cout << "info currmove " << move.toString().data() << " currmovenumber 1" << " nodes " << m_nodes << std::endl;
             }
 
-            Engine newBoard = engine;
-            newBoard.performMove(move);
-
-            if (newBoard.isKingAttacked(currentPlayer)) {
+            const auto newBoard = engine::performMove(board, move);
+            if (engine::isKingAttacked(newBoard, currentPlayer)) {
                 // invalid move
                 continue;
             }
@@ -131,7 +130,7 @@ private:
             if (score > alpha) {
                 alpha = score;
 
-                evaluation::MoveScoring::updateHistoryMove(engine.board(), move, m_ply);
+                evaluation::MoveScoring::updateHistoryMove(board, move, m_ply);
                 m_pvTable.updateTable(move, m_ply);
             }
         }
@@ -150,7 +149,7 @@ private:
         return alpha;
     }
 
-    constexpr int16_t quiesence(const Engine& board, int16_t alpha, int16_t beta)
+    constexpr int16_t quiesence(const BitBoard& board, int16_t alpha, int16_t beta)
     {
         m_nodes++;
 
@@ -159,8 +158,7 @@ private:
             return beta;
         }
 
-        const Player currentPlayer = board.getCurrentPlayer();
-        const int16_t evaluation = board.getScore();
+        const int16_t evaluation = evaluation::materialScore(board);
 
         // Hard cutoff
         if (evaluation >= beta) {
@@ -171,12 +169,11 @@ private:
             alpha = evaluation;
         }
 
-        auto allMoves = board.getAllCapturesSorted(m_ply);
+        auto allMoves = engine::getAllCapturesSorted(board, m_ply);
         for (const auto& move : allMoves.getMoves()) {
-            Engine newBoard = board;
-            newBoard.performMove(move);
+            const auto newBoard = engine::performMove(board, move);
 
-            if (newBoard.isKingAttacked(currentPlayer)) {
+            if (engine::isKingAttacked(newBoard, board.player)) {
                 // invalid move
                 continue;
             }

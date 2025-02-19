@@ -1,6 +1,5 @@
 #pragma once
 
-#include "src/engine.h"
 #include "src/evaluation/evaluator.h"
 #include "src/evaluation/perft.h"
 #include "src/file_logger.h"
@@ -19,6 +18,7 @@ public:
     {
         s_fileLogger.log("\n\n*** Running UciHandler! ***\n");
         s_isRunning = true;
+        s_board.reset();
 
         std::array<char, s_inputBufferSize> buffer;
         while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
@@ -74,7 +74,7 @@ private:
     {
         auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "startpos") {
-            s_engine.reset();
+            s_board.reset();
             const auto subCommand = parsing::sv_next_split(args);
 
             if (subCommand == "moves") {
@@ -82,18 +82,18 @@ private:
                     auto spaceSep = args.find(' ');
                     if (spaceSep == std::string_view::npos) {
                         // ensure that we also parse move even if it's the last one
-                        const auto move = parsing::moveFromString(s_engine, args);
+                        const auto move = parsing::moveFromString(s_board, args);
                         if (move.has_value()) {
-                            s_engine.performMove(move.value());
+                            s_board = engine::performMove(s_board, move.value());
                         }
 
                         break;
                     }
 
-                    const auto move = parsing::moveFromString(s_engine, args.substr(0, spaceSep));
+                    const auto move = parsing::moveFromString(s_board, args.substr(0, spaceSep));
 
                     if (move.has_value()) {
-                        s_engine.performMove(move.value());
+                        s_board = engine::performMove(s_board, move.value());
                     } else {
                         std::cerr << "No move found! args: " << args << std::endl;
                     }
@@ -111,7 +111,7 @@ private:
         std::ignore = args;
 
         static evaluation::Evaluator evaluator(s_fileLogger);
-        const auto bestMove = evaluator.getBestMove(s_engine);
+        const auto bestMove = evaluator.getBestMove(s_board);
 
         std::cout << "bestmove " << bestMove.toString().data() << "\n";
         return true;
@@ -121,9 +121,9 @@ private:
     {
         auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "position") {
-            s_engine.printBoardDebug();
+            engine::printBoardDebug(s_fileLogger, s_board);
             static evaluation::Evaluator evaluator(s_fileLogger);
-            evaluator.printEvaluation(s_engine);
+            evaluator.printEvaluation(s_board);
         }
 
         return true;
@@ -133,7 +133,7 @@ private:
     {
         const auto depth = parsing::to_number(args);
         if (depth.has_value()) {
-            Perft::run(s_engine, depth.value());
+            Perft::run(s_board, depth.value());
         } else {
             std::cout << "invalid input: " << args << std::endl;
         }
@@ -143,7 +143,7 @@ private:
 
     static inline bool s_isRunning = false;
     static inline FileLogger s_fileLogger { "/tmp/uci.log" };
-    static inline Engine s_engine { s_fileLogger };
+    static inline BitBoard s_board {};
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };

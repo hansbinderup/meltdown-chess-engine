@@ -1,7 +1,10 @@
 #pragma once
 
-#include "src/engine.h"
+#include "src/bit_board.h"
 #include "src/movement/move_types.h"
+#include <charconv>
+#include <optional>
+#include <string_view>
 
 namespace parsing {
 
@@ -58,7 +61,7 @@ constexpr static inline bool compareMove(const movement::Move& a, uint8_t from, 
 
 }
 
-static inline std::optional<movement::Move> moveFromString(const Engine& board, std::string_view sv)
+static inline std::optional<movement::Move> moveFromString(const BitBoard& board, std::string_view sv)
 {
     if (sv.size() < 4) {
         return std::nullopt;
@@ -81,7 +84,7 @@ static inline std::optional<movement::Move> moveFromString(const Engine& board, 
             promotion = PromotionType::Queen;
     }
 
-    const auto allMoves = board.getAllMoves().getMoves();
+    const auto allMoves = engine::getAllMoves(board).getMoves();
     for (const auto& move : allMoves) {
         if (compareMove(move, fromIndex, toIndex, promotion)) {
             return move;

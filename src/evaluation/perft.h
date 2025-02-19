@@ -1,12 +1,13 @@
 #pragma once
 
-#include "src/engine.h"
+#include "src/bit_board.h"
+#include "src/engine/move_handling.h"
 #include <chrono>
 #include <iostream>
 
 class Perft {
 public:
-    constexpr static inline void run(const Engine& engine, uint8_t depth)
+    constexpr static inline void run(const BitBoard& board, uint8_t depth)
     {
         reset();
         std::cout << std::format("*** Starting perft - depth {} ***\n", depth);
@@ -17,7 +18,7 @@ public:
         if (depth == 0) {
             s_nodes = 1;
         } else {
-            search(engine, depth - 1, true);
+            search(board, depth - 1, true);
         }
 
         const auto endTime = system_clock::now();
@@ -34,24 +35,22 @@ public:
     }
 
 private:
-    constexpr static inline void search(const Engine& engine, uint8_t depth, bool printMove = false)
+    constexpr static inline void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {
-        const auto allMoves = engine.getAllMoves();
+        const auto allMoves = engine::getAllMoves(board);
         uint16_t legalMoves = 0;
 
         if (depth == 0) {
             for (const auto& move : allMoves.getMoves()) {
-                Engine newEngine = engine;
-                newEngine.performMove(move);
-
-                if (newEngine.isKingAttacked(engine.getCurrentPlayer())) {
+                auto newBoard = engine::performMove(board, move);
+                if (engine::isKingAttacked(newBoard, board.player)) {
                     // invalid move
                     continue;
                 }
 
                 legalMoves++;
 
-                if (newEngine.isKingAttacked()) {
+                if (engine::isKingAttacked(newBoard)) {
                     s_checks++;
                 }
 
@@ -74,17 +73,16 @@ private:
         }
 
         for (const auto& move : allMoves.getMoves()) {
-            Engine newEngine = engine;
-            newEngine.performMove(move);
+            auto newBoard = engine::performMove(board, move);
 
-            if (newEngine.isKingAttacked()) {
+            if (engine::isKingAttacked(newBoard)) {
                 // invalid move
                 continue;
             }
 
             legalMoves++;
 
-            search(newEngine, depth - 1);
+            search(newBoard, depth - 1);
 
             if (printMove) {
                 std::cout << move.toString().data() << " " << s_nodes - s_prevNodes << std::endl;

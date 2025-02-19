@@ -105,3 +105,4 @@ struct BitBoard {
     // amount of rounds that the game has been played
     uint16_t roundsCount;
 };
+
