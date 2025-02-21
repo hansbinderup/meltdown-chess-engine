@@ -41,6 +41,20 @@ constexpr int16_t materialScore(const BitBoard& board)
     score -= positioning::calculateQueenScore(board.blackQueens, Player::Black);
     score -= positioning::calculateKingScore(board.blackKing, Player::Black);
 
+    // bishop pairs are worth extra
+    if (std::popcount(board.whiteBishops) >= 2)
+        score += 150;
+
+    if (std::popcount(board.blackBishops) >= 2)
+        score -= 150;
+
+    // knights are worth more if there are many pawns
+    if (std::popcount(board.blackPawns) >= 5)
+        score += std::popcount(board.whiteKnights) * 50;
+
+    if (std::popcount(board.whitePawns) >= 5)
+        score -= std::popcount(board.blackKnights) * 50;
+
     return board.player == Player::White ? score : -score;
 }
 
