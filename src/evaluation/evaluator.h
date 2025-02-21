@@ -39,7 +39,7 @@ public:
         sortMoves(board, captures, m_ply);
         m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
         for (const auto& move : captures.getMoves()) {
-            m_logger << std::format("{} [{}]  ", move.toString().data(), m_moveScore.score(board, move, 0));
+            m_logger << std::format("{} [{}]  ", move.toString().data(), m_scoring.score(board, move, 0));
         }
         m_logger << "\n\n";
 
@@ -53,7 +53,7 @@ public:
 
             m_logger << std::format("  move: {}\tscore: {}\tnodes: {} \t pv: ", move.toString().data(), score, m_nodes);
 
-            const auto pvMoves = m_moveScore.pvTable().getMoves();
+            const auto pvMoves = m_scoring.pvTable().getMoves();
             for (const auto& move : pvMoves) {
                 m_logger << move.toString().data() << " ";
             }
@@ -68,7 +68,7 @@ private:
     void reset()
     {
         m_nodes = 0;
-        m_moveScore.reset();
+        m_scoring.reset();
     }
 
     constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
@@ -81,7 +81,7 @@ private:
 
         /* iterative deeping - should be faster and better? */
         for (uint8_t d = 1; d <= depth; d++) {
-            m_moveScore.pvTable().setIsFollowing(true);
+            m_scoring.pvTable().setIsFollowing(true);
 
             int16_t score = negamax(d, board, s_minScore, s_maxScore);
 
@@ -89,19 +89,19 @@ private:
             const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
 
             std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, d, depth, m_nodes);
-            const auto pvMoves = m_moveScore.pvTable().getMoves();
+            const auto pvMoves = m_scoring.pvTable().getMoves();
             for (const auto& move : pvMoves) {
                 std::cout << move.toString().data() << " ";
             }
             std::cout << std::endl;
         }
 
-        return m_moveScore.pvTable().bestMove();
+        return m_scoring.pvTable().bestMove();
     }
 
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
-        m_moveScore.pvTable().updateLength(m_ply);
+        m_scoring.pvTable().updateLength(m_ply);
 
         if (depth == 0) {
             return quiesence(board, alpha, beta);
@@ -117,6 +117,7 @@ private:
         uint16_t legalMoves = 0;
         const Player currentPlayer = board.player;
         const bool isChecked = engine::isKingAttacked(board);
+        bool isPvMove = false;
 
         // Dangerous position - increase search depth
         if (isChecked) {
@@ -126,8 +127,8 @@ private:
         /* auto allMoves = engine::getAllMovesSorted(board, m_ply); */
         auto allMoves = engine::getAllMoves(board);
 
-        if (m_moveScore.pvTable().isFollowing()) {
-            m_moveScore.pvTable().updatePvScoring(allMoves, m_ply);
+        if (m_scoring.pvTable().isFollowing()) {
+            m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
         }
 
         sortMoves(board, allMoves, m_ply);
@@ -144,7 +145,24 @@ private:
 
             using namespace std::chrono;
             const auto startTime = system_clock::now();
-            const int16_t score = -negamax(depth - 1, newBoard, -beta, -alpha);
+            int16_t score = 0;
+
+            if (isPvMove) {
+                /*
+                 * https://en.wikipedia.org/wiki/Principal_variation_search
+                 * search with a null window
+                 */
+                score = -negamax(depth - 1, newBoard, -alpha - 1, -alpha);
+
+                /* if it failed high, do a full re-search */
+                if ((score > alpha) && (score < beta)) {
+                    score = -negamax(depth - 1, newBoard, -beta, -alpha);
+                }
+
+            } else {
+                score = -negamax(depth - 1, newBoard, -beta, -alpha);
+            }
+
             const auto endTime = system_clock::now();
             const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
 
@@ -155,15 +173,16 @@ private:
             m_ply--;
 
             if (score >= beta) {
-                m_moveScore.killerMoves().update(move, m_ply);
+                m_scoring.killerMoves().update(move, m_ply);
                 return beta;
             }
 
             if (score > alpha) {
+                isPvMove = true;
                 alpha = score;
 
-                m_moveScore.historyMoves().update(board, move, m_ply);
-                m_moveScore.pvTable().updateTable(move, m_ply);
+                m_scoring.historyMoves().update(board, move, m_ply);
+                m_scoring.pvTable().updateTable(move, m_ply);
             }
         }
 
@@ -236,7 +255,7 @@ private:
     constexpr void sortMoves(const BitBoard& board, movement::ValidMoves& moves, uint8_t ply)
     {
         std::sort(moves.getMoves().begin(), moves.getMoves().end(), [&, this](const auto& a, const auto& b) {
-            return m_moveScore.score(board, a, ply) > m_moveScore.score(board, b, ply);
+            return m_scoring.score(board, a, ply) > m_scoring.score(board, b, ply);
         });
     }
 
@@ -245,9 +264,9 @@ private:
     uint64_t m_nodes {};
     uint8_t m_ply;
 
-    MoveScoring m_moveScore {};
+    MoveScoring m_scoring {};
 
     constexpr static inline uint16_t s_minDepth { 7 };
-    constexpr static inline uint16_t s_maxDepth { 7 };
+    constexpr static inline uint16_t s_maxDepth { 8 };
 };
 }
