@@ -113,11 +113,28 @@ private:
         using namespace std::chrono;
         const auto startTime = system_clock::now();
 
-        /* iterative deeping - should be faster and better? */
+        int16_t alpha = s_minScore;
+        int16_t beta = s_maxScore;
+
+        /*
+         * iterative deeping - with aspiration window
+         * https://web.archive.org/web/20070705134903/www.seanet.com/%7Ebrucemo/topics/aspiration.htm
+         */
         for (uint8_t d = 1; d <= depth; d++) {
             m_scoring.pvTable().setIsFollowing(true);
 
-            int16_t score = negamax(d, board, s_minScore, s_maxScore);
+            int16_t score = negamax(d, board, alpha, beta);
+
+            /* the search fell outside the window - we need to retry a full search */
+            if ((score <= alpha) || (score >= beta)) {
+                alpha = s_minScore;
+                beta = s_maxScore;
+                continue;
+            }
+
+            /* prepare window for next iteration */
+            alpha = score - s_aspirationWindow;
+            beta = score + s_aspirationWindow;
 
             const auto endTime = system_clock::now();
             const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
@@ -354,6 +371,7 @@ private:
     constexpr static inline uint16_t s_fullDepthMove { 4 };
     constexpr static inline uint16_t s_reductionLimit { 3 };
 
+    constexpr static inline uint8_t s_aspirationWindow { 50 };
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 }
