@@ -158,6 +158,26 @@ private:
             depth++;
         }
 
+        /*
+         * null move pruning
+         * https://www.chessprogramming.org/Null_Move_Pruning
+         * */
+        if (depth >= 3 && !isChecked && m_ply) {
+            auto boardCopy = board;
+
+            /* TODO: add en pessant handling when implemented */
+
+            /* give opponent an extra move */
+            boardCopy.player = nextPlayer(boardCopy.player);
+
+            /* perform search with reduced depth (based on reduction limit) */
+            int16_t score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
+
+            if (score >= beta) {
+                return beta;
+            }
+        }
+
         auto allMoves = engine::getAllMoves(board);
         if (m_scoring.pvTable().isFollowing()) {
             m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
@@ -333,5 +353,7 @@ private:
 
     constexpr static inline uint16_t s_fullDepthMove { 4 };
     constexpr static inline uint16_t s_reductionLimit { 3 };
+
+    constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 }
