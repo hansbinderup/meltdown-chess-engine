@@ -108,10 +108,32 @@ private:
 
     static bool handleGo(std::string_view args)
     {
-        std::ignore = args;
-
         static evaluation::Evaluator evaluator(s_fileLogger);
-        const auto bestMove = evaluator.getBestMove(s_board);
+        std::optional<uint8_t> depth;
+
+        evaluator.reset();
+        while (const auto setting = parsing::sv_next_split(args)) {
+            const auto value = parsing::sv_next_split(args);
+            const auto valNum = parsing::to_number(value.value_or(args));
+
+            if (setting == "wtime") {
+                evaluator.setWhiteTime(valNum.value_or(0));
+            } else if (setting == "btime") {
+                evaluator.setBlackTime(valNum.value_or(0));
+            } else if (setting == "movestogo") {
+                evaluator.setMovesToGo(valNum.value_or(0));
+            } else if (setting == "movetime") {
+                evaluator.setMoveTime(valNum.value_or(0));
+            } else if (setting == "winc") {
+                evaluator.setWhiteMoveInc(valNum.value_or(0));
+            } else if (setting == "binc") {
+                evaluator.setBlackMoveInc(valNum.value_or(0));
+            } else if (setting == "depth") {
+                depth = valNum;
+            }
+        }
+
+        const auto bestMove = evaluator.getBestMove(s_board, depth);
 
         std::cout << "bestmove " << bestMove.toString().data() << "\n";
         return true;

@@ -64,19 +64,53 @@ public:
         }
     }
 
-private:
+    void setWhiteTime(uint64_t time)
+    {
+        m_whiteTime = time;
+    }
+
+    void setBlackTime(uint64_t time)
+    {
+        m_blackTime = time;
+    }
+
+    void setMovesToGo(uint64_t moves)
+    {
+        m_movesToGo = moves;
+    }
+
+    void setMoveTime(uint64_t time)
+    {
+        m_moveTime = time;
+    }
+
+    void setWhiteMoveInc(uint64_t inc)
+    {
+        m_whiteMoveInc = inc;
+    }
+
+    void setBlackMoveInc(uint64_t inc)
+    {
+        m_blackMoveInc = inc;
+    }
+
     void reset()
     {
         m_nodes = 0;
         m_scoring.reset();
+
+        m_whiteTime = 0;
+        m_blackTime = 0;
+        m_movesToGo = 0;
+        m_moveTime = 0;
+        m_whiteMoveInc = 0;
+        m_blackMoveInc = 0;
     }
 
+private:
     constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
         using namespace std::chrono;
-
-        reset();
-
         const auto startTime = system_clock::now();
 
         /* iterative deeping - should be faster and better? */
@@ -265,6 +299,15 @@ private:
     uint8_t m_ply;
 
     MoveScoring m_scoring {};
+
+    uint64_t m_whiteTime {};
+    uint64_t m_blackTime {};
+    uint64_t m_movesToGo {};
+    uint64_t m_moveTime {};
+    uint64_t m_whiteMoveInc {};
+    uint64_t m_blackMoveInc {};
+
+    std::chrono::time_point<std::chrono::system_clock> m_endTime;
 
     constexpr static inline uint16_t s_minDepth { 7 };
     constexpr static inline uint16_t s_maxDepth { 8 };
