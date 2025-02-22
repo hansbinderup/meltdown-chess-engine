@@ -175,8 +175,7 @@ private:
             m_ply++;
             legalMoves++;
 
-            using namespace std::chrono;
-            const auto startTime = system_clock::now();
+            const auto startTime = std::chrono::system_clock::now();
             int16_t score = 0;
 
             /*
@@ -213,12 +212,7 @@ private:
                 }
             }
 
-            const auto endTime = system_clock::now();
-            const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
-
-            if (timeDiff > 500) {
-                std::cout << "info currmove " << move.toString().data() << " currmovenumber " << m_ply + 1 << " nodes " << m_nodes << std::endl;
-            }
+            printMoveInfo(move, startTime);
 
             m_ply--;
             movesSearched++;
@@ -250,6 +244,18 @@ private:
         return alpha;
     }
 
+    void printMoveInfo(const movement::Move& move, const std::chrono::time_point<std::chrono::system_clock>& startTime)
+    {
+        using namespace std::chrono;
+
+        const auto endTime = system_clock::now();
+        const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
+
+        if (timeDiff > 500) {
+            std::cout << "info currmove " << move.toString().data() << " currmovenumber " << m_ply + 1 << " nodes " << m_nodes << std::endl;
+        }
+    }
+
     constexpr int16_t quiesence(const BitBoard& board, int16_t alpha, int16_t beta)
     {
         m_nodes++;
@@ -279,14 +285,10 @@ private:
 
             m_ply++;
 
-            using namespace std::chrono;
-            const auto startTime = system_clock::now();
+            const auto startTime = std::chrono::system_clock::now();
             const int16_t score = -quiesence(newBoard, -beta, -alpha);
-            const auto endTime = system_clock::now();
-            const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
-            if (timeDiff > 500) {
-                std::cout << "info currmove " << move.toString().data() << " currmovenumber " << m_ply + 1 << " nodes " << m_nodes << std::endl;
-            }
+
+            printMoveInfo(move, startTime);
 
             m_ply--;
 
