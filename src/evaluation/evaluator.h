@@ -149,18 +149,16 @@ private:
         m_nodes++;
 
         uint16_t legalMoves = 0;
+        uint64_t movesSearched = 0;
         const Player currentPlayer = board.player;
         const bool isChecked = engine::isKingAttacked(board);
-        bool isPvMove = false;
 
         // Dangerous position - increase search depth
         if (isChecked) {
             depth++;
         }
 
-        /* auto allMoves = engine::getAllMovesSorted(board, m_ply); */
         auto allMoves = engine::getAllMoves(board);
-
         if (m_scoring.pvTable().isFollowing()) {
             m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
         }
@@ -181,20 +179,38 @@ private:
             const auto startTime = system_clock::now();
             int16_t score = 0;
 
-            if (isPvMove) {
+            /*
+             * LMR
+             * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction
+             */
+            if (movesSearched == 0) {
+                score = -negamax(depth - 1, newBoard, -beta, -alpha);
+            } else {
+                if (movesSearched >= s_fullDepthMove
+                    && depth >= s_reductionLimit
+                    && !isChecked
+                    && !move.isCapture()
+                    && !move.isPromotionMove()) {
+                    /* search current move with reduced depth */
+                    score = -negamax(depth - 2, newBoard, -alpha - 1, -alpha);
+                } else {
+                    /* TODO: hack to ensure full depth is reached */
+                    score = alpha + 1;
+                }
+
                 /*
+                 * PVS
                  * https://en.wikipedia.org/wiki/Principal_variation_search
                  * search with a null window
                  */
-                score = -negamax(depth - 1, newBoard, -alpha - 1, -alpha);
+                if (score > alpha) {
+                    score = -negamax(depth - 1, newBoard, -alpha - 1, -alpha);
 
-                /* if it failed high, do a full re-search */
-                if ((score > alpha) && (score < beta)) {
-                    score = -negamax(depth - 1, newBoard, -beta, -alpha);
+                    /* if it failed high, do a full re-search */
+                    if ((score > alpha) && (score < beta)) {
+                        score = -negamax(depth - 1, newBoard, -beta, -alpha);
+                    }
                 }
-
-            } else {
-                score = -negamax(depth - 1, newBoard, -beta, -alpha);
             }
 
             const auto endTime = system_clock::now();
@@ -205,6 +221,7 @@ private:
             }
 
             m_ply--;
+            movesSearched++;
 
             if (score >= beta) {
                 m_scoring.killerMoves().update(move, m_ply);
@@ -212,7 +229,6 @@ private:
             }
 
             if (score > alpha) {
-                isPvMove = true;
                 alpha = score;
 
                 m_scoring.historyMoves().update(board, move, m_ply);
@@ -309,7 +325,11 @@ private:
 
     std::chrono::time_point<std::chrono::system_clock> m_endTime;
 
+    /* search configs */
     constexpr static inline uint16_t s_minDepth { 7 };
-    constexpr static inline uint16_t s_maxDepth { 8 };
+    constexpr static inline uint16_t s_maxDepth { 10 };
+
+    constexpr static inline uint16_t s_fullDepthMove { 4 };
+    constexpr static inline uint16_t s_reductionLimit { 3 };
 };
 }
