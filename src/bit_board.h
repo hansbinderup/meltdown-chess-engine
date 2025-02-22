@@ -27,6 +27,7 @@ struct BitBoard {
 
         player = Player::White;
         roundsCount = 0;
+        enPessant.reset();
     }
 
     constexpr uint64_t getWhiteOccupation() const
@@ -101,6 +102,8 @@ struct BitBoard {
 
     // which player to perform next move
     Player player;
+
+    std::optional<uint64_t> enPessant;
 
     // amount of rounds that the game has been played
     uint16_t roundsCount;

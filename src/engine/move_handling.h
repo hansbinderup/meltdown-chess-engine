@@ -8,10 +8,28 @@
 #include "src/file_logger.h"
 #include "src/movement/move_generation.h"
 #include "src/movement/move_types.h"
+#include <cstring>
 
 namespace engine {
 
 namespace {
+
+std::string enPessantToString(std::optional<uint64_t> val)
+{
+    if (val.has_value() && val.value() != 0) {
+        const int position = std::countr_zero(val.value());
+        /* return std::to_string(position); */
+
+        char column = 'a' + (position % 8);
+        char row = '1' + (position / 8);
+
+        return std::string { column, row };
+
+        /* return std::string(column) + std::string(row); */
+    }
+
+    return "none";
+}
 
 constexpr static inline void bitToggleMove(uint64_t& piece, uint64_t fromSquare, uint64_t toSquare)
 {
@@ -172,6 +190,14 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
 
     if (move.isCastleMove()) {
         performCastleMove(newBoard, move);
+    } else if (move.takeEnPessant()) {
+        if (newBoard.player == Player::White) {
+            bitToggleMove(newBoard.whitePawns, fromSquare, toSquare);
+            newBoard.blackPawns &= ~(toSquare >> 8);
+        } else {
+            bitToggleMove(newBoard.blackPawns, fromSquare, toSquare);
+            newBoard.whitePawns &= ~(toSquare << 8);
+        }
     } else {
         if (move.isPromotionMove())
             performPromotionMove(newBoard, move);
@@ -193,6 +219,12 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
         bitToggleMove(newBoard.blackKnights, fromSquare, toSquare);
         bitToggleMove(newBoard.blackQueens, fromSquare, toSquare);
         bitToggleMove(newBoard.blackKing, fromSquare, toSquare);
+    }
+
+    if (move.hasEnPessant()) {
+        newBoard.enPessant = move.piece() == Piece::WhitePawn ? move.toSquare() >> 8 : move.toSquare() << 8;
+    } else {
+        newBoard.enPessant.reset();
     }
 
     newBoard.player = nextPlayer(newBoard.player);
@@ -249,6 +281,7 @@ constexpr static inline void printBoardDebug(FileLogger& logger, const BitBoard&
     const auto allMoves = getAllMoves(board);
     logger << "Player: " << magic_enum::enum_name(board.player);
     logger << "\nRound: " << std::to_string(board.roundsCount);
+    logger << "\nEnPessant: " << enPessantToString(board.enPessant);
     logger << "\nCastle: ";
     for (const auto& move : allMoves.getMoves()) {
         if (move.isCastleMove()) {

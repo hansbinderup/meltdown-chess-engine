@@ -15,39 +15,48 @@ namespace movement {
  * 0000 0000 0000 0111 0000 0000 0000 0000 -> promotion type
  * 0000 0000 0011 1000 0000 0000 0000 0000 -> castle type
  * 0000 0000 0100 0000 0000 0000 0000 0000 -> is capture
+ * 0000 0000 1000 0000 0000 0000 0000 0000 -> enables en pessant
+ * 0000 0001 0000 0000 0000 0000 0000 0000 -> takes en pessant
  * */
 class Move {
 public:
     // allow default construction for resetting / initializing arrays
     Move() = default;
 
-    explicit Move(uint64_t from, uint64_t to, Piece piece, PromotionType promotion, CastleType castle, uint64_t capture)
+    explicit Move(uint64_t from, uint64_t to, Piece piece, PromotionType promotion, CastleType castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
         : data(
               from
               | to << s_toShift
               | (uint64_t)piece << s_pieceShift
               | (uint64_t)promotion << s_promotionShift
               | (uint64_t)castle << s_castlingShift
-              | (uint64_t)capture << s_captureShift)
+              | capture << s_captureShift
+              | enPessant << s_enPessantShift
+              | takeEnPessant << s_takeEnPessantShift)
     {
     }
 
     /* helper to create a simple move */
     constexpr static inline Move create(uint8_t from, uint8_t to, Piece piece, bool capture)
     {
-        return Move(from, to, piece, PromotionType::None, CastleType::None, capture);
+        return Move(from, to, piece, PromotionType::None, CastleType::None, capture, false, false);
     }
 
     /* helper to create a promotion move */
     constexpr static inline Move createPromotion(uint8_t from, uint8_t to, Piece piece, PromotionType promotion, bool capture)
     {
-        return Move(from, to, piece, promotion, CastleType::None, capture);
+        return Move(from, to, piece, promotion, CastleType::None, capture, false, false);
     }
 
     /* helper to create a castle move */
     constexpr static inline Move createCastle(uint8_t from, uint8_t to, Piece piece, CastleType castle)
     {
-        return Move(from, to, piece, PromotionType::None, castle, false);
+        return Move(from, to, piece, PromotionType::None, castle, false, false, false);
+    }
+
+    constexpr static inline Move createEnPessant(uint8_t from, uint8_t to, Piece piece, bool enPessant, bool takeEnPessant)
+    {
+        return Move(from, to, piece, PromotionType::None, CastleType::None, false, enPessant, takeEnPessant);
     }
 
     friend bool operator<=>(const Move& a, const Move& b) = default;
@@ -103,6 +112,18 @@ public:
         return data & captureMask;
     }
 
+    constexpr inline bool hasEnPessant() const
+    {
+        constexpr uint64_t enPessantMask = 1ULL << s_enPessantShift;
+        return data & enPessantMask;
+    }
+
+    constexpr inline bool takeEnPessant() const
+    {
+        constexpr uint64_t takeEnPessantMask = 1ULL << s_takeEnPessantShift;
+        return data & takeEnPessantMask;
+    }
+
     constexpr inline std::array<char, 6> toString() const
     {
         std::array<char, 6> buffer {};
@@ -140,6 +161,8 @@ private:
 
     // Bool so no need for mask
     constexpr static inline uint64_t s_captureShift { 22 };
+    constexpr static inline uint64_t s_enPessantShift { 23 };
+    constexpr static inline uint64_t s_takeEnPessantShift { 24 };
 };
 
 class ValidMoves {
