@@ -39,7 +39,7 @@ constexpr static inline void generateKnightMoves(movement::ValidMoves& validMove
             const bool isCapture = (1ULL << to) & theirOccupation;
             moves &= moves - 1;
 
-            validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
+            validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
         }
     }
 }
@@ -57,7 +57,7 @@ constexpr static inline void generateRookMoves(movement::ValidMoves& validMoves,
             const bool isCapture = (1ULL << to) & theirOccupation;
             moves &= moves - 1;
 
-            validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
+            validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
         }
     }
 }
@@ -75,7 +75,7 @@ constexpr static inline void generateBishopMoves(movement::ValidMoves& validMove
             const bool isCapture = (1ULL << to) & theirOccupation;
             moves &= moves - 1;
 
-            validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
+            validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
         }
     }
 }
@@ -101,7 +101,7 @@ constexpr static inline void generateKingMoves(movement::ValidMoves& validMoves,
         const bool isCapture = (1ULL << to) & theirOccupation;
         moves &= moves - 1;
 
-        validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, isCapture));
+        validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
     }
 }
 
@@ -205,7 +205,7 @@ constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, 
     if ((castlingMask & queenSideCastleMask & kingRookMask) == queenSideCastleMask) {
         // Pieces in the way - castling not allowed
         if (!(occupation & queenSideCastleOccupationMask) && !(attacks & queenSideCastleAttackMask)) {
-            validMoves.addMove(movement::Move::createCastle(queenSideCastleMove.first, queenSideCastleMove.second, piece, isWhite ? CastleType::WhiteQueenSide : CastleType::BlackQueenSide));
+            validMoves.addMove(movement::Move::createCastle(queenSideCastleMove.first, queenSideCastleMove.second, piece, isWhite ? CastleWhiteQueenSide : CastleBlackQueenSide));
         }
     }
 
@@ -214,7 +214,7 @@ constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, 
         // Pieces in the way - castling not allowed
         if (!(occupation & kingSideCastleOccupationMask) && !(attacks & kingSideCastleAttackMask)) {
             validMoves.addMove(
-                movement::Move::createCastle(kingSideCastleMove.first, kingSideCastleMove.second, piece, isWhite ? CastleType::WhiteKingSide : CastleType::BlackKingSide));
+                movement::Move::createCastle(kingSideCastleMove.first, kingSideCastleMove.second, piece, isWhite ? CastleWhiteKingSide : CastleBlackKingSide));
         }
     }
 }

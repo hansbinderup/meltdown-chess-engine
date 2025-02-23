@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/bit_board.h"
+#include "src/engine/move_handling.h"
 #include "src/movement/move_types.h"
 #include <charconv>
 #include <optional>
@@ -53,7 +54,7 @@ static std::optional<std::string_view> sv_next_split(std::string_view& sv)
  */
 constexpr static inline bool compareMove(const movement::Move& a, uint8_t from, uint8_t to, PromotionType promotion)
 {
-    if (promotion == PromotionType::None)
+    if (promotion == PromotionNone)
         return (a.fromValue() == from) && (a.toValue() == to);
     else
         return (a.fromValue() == from) && (a.toValue() == to) && a.promotionType() == promotion;
@@ -71,17 +72,17 @@ static inline std::optional<movement::Move> moveFromString(const BitBoard& board
     const uint8_t fromIndex = (sv.at(0) - 'a') + (sv.at(1) - '1') * 8;
     const uint8_t toIndex = (sv.at(2) - 'a') + (sv.at(3) - '1') * 8;
 
-    PromotionType promotion { PromotionType::None };
+    PromotionType promotion { PromotionNone };
     if (sv.size() > 4) {
         const char promotionChar = sv.at(4);
         if (promotionChar == 'n')
-            promotion = PromotionType::Knight;
+            promotion = PromotionKnight;
         else if (promotionChar == 'b')
-            promotion = PromotionType::Bishop;
+            promotion = PromotionBishop;
         else if (promotionChar == 'r')
-            promotion = PromotionType::Rook;
+            promotion = PromotionRook;
         else if (promotionChar == 'q')
-            promotion = PromotionType::Queen;
+            promotion = PromotionQueen;
     }
 
     const auto allMoves = engine::getAllMoves(board).getMoves();

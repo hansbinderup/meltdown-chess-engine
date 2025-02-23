@@ -23,13 +23,13 @@ public:
     // allow default construction for resetting / initializing arrays
     Move() = default;
 
-    explicit Move(uint64_t from, uint64_t to, Piece piece, PromotionType promotion, CastleType castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
+    explicit Move(uint64_t from, uint64_t to, uint64_t piece, uint64_t promotion, uint64_t castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
         : data(
               from
               | to << s_toShift
-              | (uint64_t)piece << s_pieceShift
-              | (uint64_t)promotion << s_promotionShift
-              | (uint64_t)castle << s_castlingShift
+              | piece << s_pieceShift
+              | promotion << s_promotionShift
+              | castle << s_castlingShift
               | capture << s_captureShift
               | enPessant << s_enPessantShift
               | takeEnPessant << s_takeEnPessantShift)
@@ -39,24 +39,24 @@ public:
     /* helper to create a simple move */
     constexpr static inline Move create(uint8_t from, uint8_t to, Piece piece, bool capture)
     {
-        return Move(from, to, piece, PromotionType::None, CastleType::None, capture, false, false);
+        return Move(from, to, piece, PromotionNone, CastleNone, capture, false, false);
     }
 
     /* helper to create a promotion move */
     constexpr static inline Move createPromotion(uint8_t from, uint8_t to, Piece piece, PromotionType promotion, bool capture)
     {
-        return Move(from, to, piece, promotion, CastleType::None, capture, false, false);
+        return Move(from, to, piece, promotion, CastleNone, capture, false, false);
     }
 
     /* helper to create a castle move */
     constexpr static inline Move createCastle(uint8_t from, uint8_t to, Piece piece, CastleType castle)
     {
-        return Move(from, to, piece, PromotionType::None, castle, false, false, false);
+        return Move(from, to, piece, PromotionNone, castle, false, false, false);
     }
 
     constexpr static inline Move createEnPessant(uint8_t from, uint8_t to, Piece piece, bool enPessant, bool takeEnPessant)
     {
-        return Move(from, to, piece, PromotionType::None, CastleType::None, false, enPessant, takeEnPessant);
+        return Move(from, to, piece, PromotionNone, CastleNone, false, enPessant, takeEnPessant);
     }
 
     friend bool operator<=>(const Move& a, const Move& b) = default;
@@ -93,7 +93,7 @@ public:
 
     constexpr inline bool isPromotionMove() const
     {
-        return promotionType() != PromotionType::None;
+        return promotionType() != PromotionNone;
     }
 
     constexpr inline CastleType castleType() const
@@ -103,7 +103,7 @@ public:
 
     constexpr inline bool isCastleMove() const
     {
-        return castleType() != CastleType::None;
+        return castleType() != CastleNone;
     }
 
     constexpr inline bool isCapture() const
@@ -134,7 +134,7 @@ public:
         buffer[3] = '1' + (toValue() / 8); // Row
 
         const auto p = promotionType();
-        if (p != PromotionType::None) {
+        if (p != PromotionNone) {
             buffer[4] = promotionToString(p);
             buffer[5] = '\0';
         } else {

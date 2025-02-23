@@ -12,7 +12,7 @@ class HistoryMoves {
 public:
     int16_t get(Piece movePiece, uint8_t targetPosition)
     {
-        return m_historyMoves.at(targetPosition).at(static_cast<uint8_t>(movePiece));
+        return m_historyMoves.at(targetPosition).at(movePiece);
     }
 
     void update(const BitBoard& board, const movement::Move& move, uint8_t ply)
@@ -26,7 +26,7 @@ public:
         if (!movePiece.has_value())
             return; // nothing to do
 
-        m_historyMoves.at(move.toValue()).at(static_cast<uint8_t>(movePiece.value())) += ply;
+        m_historyMoves.at(move.toValue()).at(movePiece.value()) += ply;
     }
 
     void reset()

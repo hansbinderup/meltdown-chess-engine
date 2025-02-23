@@ -31,34 +31,34 @@ enum Piece : uint8_t {
     BlackKing,
 };
 
-enum class PromotionType : uint8_t {
-    None = 0,
-    Queen,
-    Knight,
-    Bishop,
-    Rook,
+enum PromotionType : uint8_t {
+    PromotionNone = 0,
+    PromotionQueen,
+    PromotionKnight,
+    PromotionBishop,
+    PromotionRook,
 };
 
-enum class CastleType : uint8_t {
-    None = 0,
-    WhiteKingSide,
-    WhiteQueenSide,
-    BlackKingSide,
-    BlackQueenSide,
+enum CastleType : uint8_t {
+    CastleNone = 0,
+    CastleWhiteKingSide,
+    CastleWhiteQueenSide,
+    CastleBlackKingSide,
+    CastleBlackQueenSide,
 };
 
 constexpr inline char promotionToString(PromotionType p)
 {
     switch (p) {
-    case PromotionType::None:
+    case PromotionNone:
         return ' ';
-    case PromotionType::Queen:
+    case PromotionQueen:
         return 'q';
-    case PromotionType::Knight:
+    case PromotionKnight:
         return 'n';
-    case PromotionType::Bishop:
+    case PromotionBishop:
         return 'b';
-    case PromotionType::Rook:
+    case PromotionRook:
         return 'r';
     }
 

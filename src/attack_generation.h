@@ -48,7 +48,7 @@ constexpr auto s_mvvLvaTable = std::to_array<MvvTableEntry>(
 
 constexpr static inline int16_t getMvvLvaScore(Piece attacker, Piece victim)
 {
-    return s_mvvLvaTable.at(static_cast<uint8_t>(attacker)).at(static_cast<uint8_t>(victim));
+    return s_mvvLvaTable.at(attacker).at(victim);
 }
 
 constexpr static inline uint64_t getKnightAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)

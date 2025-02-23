@@ -14,7 +14,7 @@ constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t
         int to = std::countr_zero(moves); // Find first set bit
         moves &= moves - 1; // Clear bit
         int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove(movement::Move::create(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, capture));
+        validMoves.addMove(movement::Move::create(from, to, piece, capture));
     }
 }
 
@@ -24,7 +24,7 @@ constexpr static inline void backtrackPawnEnPessantMoves(ValidMoves& validMoves,
         int to = std::countr_zero(moves); // Find first set bit
         moves &= moves - 1; // Clear bit
         int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove(movement::Move::createEnPessant(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, enable, !enable));
+        validMoves.addMove(movement::Move::createEnPessant(from, to, piece, enable, !enable));
     }
 }
 
@@ -36,10 +36,10 @@ constexpr static inline void backtrackPawnPromotions(ValidMoves& validMoves, uin
         int from = to - bitCnt; // Backtrack the pawn's original position
 
         /* add queen first - is usually the preferred piece */
-        validMoves.addMove(movement::Move::createPromotion(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, PromotionType::Queen, capture));
-        validMoves.addMove(movement::Move::createPromotion(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, PromotionType::Knight, capture));
-        validMoves.addMove(movement::Move::createPromotion(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, PromotionType::Bishop, capture));
-        validMoves.addMove(movement::Move::createPromotion(static_cast<uint8_t>(from), static_cast<uint8_t>(to), piece, PromotionType::Rook, capture));
+        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionQueen, capture));
+        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionKnight, capture));
+        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionBishop, capture));
+        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionRook, capture));
     }
 }
 
