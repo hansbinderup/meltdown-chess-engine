@@ -3,6 +3,7 @@
 #include "magic_enum/magic_enum.hpp"
 #include "src/engine/move_handling.h"
 #include "src/evaluation/material_scoring.h"
+#include "src/evaluation/move_scoring.h"
 #include "src/evaluation/pv_table.h"
 #include "src/file_logger.h"
 #include "src/movement/move_types.h"
@@ -27,7 +28,7 @@ public:
     {
         m_logger.log("Get best move for {}", magic_enum::enum_name(board.player));
 
-        const uint8_t depth = std::clamp(board.getRoundsCount(), s_minDepth, s_maxDepth);
+        const uint8_t depth = std::clamp(board.roundsCount, s_minDepth, s_maxDepth);
         return scanForBestMove(depthInput.value_or(depth), board);
     }
 

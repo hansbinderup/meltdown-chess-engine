@@ -26,7 +26,6 @@ constexpr CastleMove s_blackKingSideCastleMoveRook { 7 + s_eightRow, 5 + s_eight
 constexpr CastleMove s_blackQueenSideCastleMoveRook { 0 + s_eightRow, 3 + s_eightRow };
 
 namespace {
-
 constexpr static inline void generateKnightMoves(movement::ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
     while (knights) {
@@ -112,9 +111,9 @@ constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, co
 {
     generateKnightMoves(
         validMoves,
-        board.player == Player::White ? board.whiteKnights : board.blackKnights,
-        board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? board.pieces[WhiteKnight] : board.pieces[BlackKnight],
+        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
+        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
         board.player == Player::White ? Piece::WhiteKnight : Piece::BlackKnight);
 }
 
@@ -122,9 +121,9 @@ constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, cons
 {
     generateRookMoves(
         validMoves,
-        board.player == Player::White ? board.whiteRooks : board.blackRooks,
-        board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? board.pieces[WhiteRook] : board.pieces[BlackRook],
+        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
+        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
         board.player == Player::White ? Piece::WhiteRook : Piece::BlackRook);
 }
 
@@ -132,9 +131,9 @@ constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, co
 {
     generateBishopMoves(
         validMoves,
-        board.player == Player::White ? board.whiteBishops : board.blackBishops,
-        board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? board.pieces[WhiteBishop] : board.pieces[BlackBishop],
+        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
+        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
         board.player == Player::White ? Piece::WhiteBishop : Piece::BlackBishop);
 }
 
@@ -142,9 +141,9 @@ constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, con
 {
     generateQueenMoves(
         validMoves,
-        board.player == Player::White ? board.whiteQueens : board.blackQueens,
-        board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? board.pieces[WhiteQueen] : board.pieces[BlackQueen],
+        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
+        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
         board.player == Player::White ? Piece::WhiteQueen : Piece::BlackQueen);
 }
 
@@ -152,9 +151,9 @@ constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, cons
 {
     generateKingMoves(
         validMoves,
-        board.player == Player::White ? board.whiteKing : board.blackKing,
-        board.player == Player::White ? board.getWhiteOccupation() : board.getBlackOccupation(),
-        board.player == Player::White ? board.getBlackOccupation() : board.getWhiteOccupation(),
+        board.player == Player::White ? board.pieces[WhiteKing] : board.pieces[BlackKing],
+        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
+        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
         board.player == Player::White ? Piece::WhiteKing : Piece::BlackKing,
         attacks);
 }
@@ -162,14 +161,14 @@ constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, cons
 constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
     if (board.player == Player::White) {
-        movement::getWhitePawnMoves(validMoves, board.whitePawns, board.getWhiteOccupation(), board.getBlackOccupation());
+        movement::getWhitePawnMoves(validMoves, board.pieces[WhitePawn], board.occupation[White], board.occupation[Black]);
         if (board.enPessant.has_value()) {
-            movement::getWhiteEnPessantMoves(validMoves, board.whitePawns, board.enPessant.value(), board.getWhiteOccupation(), board.getBlackOccupation());
+            movement::getWhiteEnPessantMoves(validMoves, board.pieces[WhitePawn], board.enPessant.value(), board.occupation[White], board.occupation[Black]);
         }
     } else {
-        movement::getBlackPawnMoves(validMoves, board.blackPawns, board.getBlackOccupation(), board.getWhiteOccupation());
+        movement::getBlackPawnMoves(validMoves, board.pieces[BlackPawn], board.occupation[Black], board.occupation[White]);
         if (board.enPessant.has_value()) {
-            movement::getWhiteEnPessantMoves(validMoves, board.blackPawns, board.enPessant.value(), board.getBlackOccupation(), board.getWhiteOccupation());
+            movement::getWhiteEnPessantMoves(validMoves, board.pieces[BlackPawn], board.enPessant.value(), board.occupation[Black], board.occupation[White]);
         }
     }
 }
@@ -179,9 +178,9 @@ constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, 
 {
     const bool isWhite = board.player == Player::White;
     const uint64_t castlingMask = isWhite ? board.whiteCastlingRights : board.blackCastlingRights;
-    const uint64_t king = isWhite ? board.whiteKing : board.blackKing;
-    const uint64_t rook = isWhite ? board.whiteRooks : board.blackRooks;
-    const uint64_t occupation = board.getAllOccupation();
+    const uint64_t king = isWhite ? board.pieces[WhiteKing] : board.pieces[BlackKing];
+    const uint64_t rook = isWhite ? board.pieces[WhiteRook] : board.pieces[BlackRook];
+    const uint64_t occupation = board.occupation[Both];
 
     if (castlingMask == 0 || king == 0 || rook == 0) {
         return;

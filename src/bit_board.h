@@ -1,100 +1,65 @@
 #pragma once
 
+#include "magic_enum/magic_enum.hpp"
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <src/board_defs.h>
+
+enum Occupation {
+    White,
+    Black,
+    Both,
+};
 
 struct BitBoard {
     constexpr void reset()
     {
         // Binary represensation of each piece at start of game
-        whitePawns = { 0xffULL << s_secondRow };
-        whiteRooks = { 0x81ULL };
-        whiteBishops = { 0x24ULL };
-        whiteKnights = { 0x42ULL };
-        whiteQueens = { 0x08ULL };
-        whiteKing = { 0x10ULL };
+        pieces[Piece::WhitePawn] = { 0xffULL << s_secondRow };
+        pieces[Piece::WhiteRook] = { 0x81ULL };
+        pieces[Piece::WhiteBishop] = { 0x24ULL };
+        pieces[Piece::WhiteKnight] = { 0x42ULL };
+        pieces[Piece::WhiteQueen] = { 0x08ULL };
+        pieces[Piece::WhiteKing] = { 0x10ULL };
 
-        blackPawns = { 0xffULL << s_seventhRow };
-        blackRooks = { 0x81ULL << s_eightRow };
-        blackBishops = { 0x24ULL << s_eightRow };
-        blackKnights = { 0x42ULL << s_eightRow };
-        blackQueens = { 0x08ULL << s_eightRow };
-        blackKing = { 0x10ULL << s_eightRow };
+        pieces[Piece::BlackPawn] = { 0xffULL << s_seventhRow };
+        pieces[Piece::BlackRook] = { 0x81ULL << s_eightRow };
+        pieces[Piece::BlackBishop] = { 0x24ULL << s_eightRow };
+        pieces[Piece::BlackKnight] = { 0x42ULL << s_eightRow };
+        pieces[Piece::BlackQueen] = { 0x08ULL << s_eightRow };
+        pieces[Piece::BlackKing] = { 0x10ULL << s_eightRow };
 
         whiteCastlingRights = { s_whiteQueenSideCastleMask | s_whiteKingSideCastleMask };
         blackCastlingRights = { s_blackQueenSideCastleMask | s_blackKingSideCastleMask };
+
+        updateOccupation();
 
         player = Player::White;
         roundsCount = 0;
         enPessant.reset();
     }
 
-    constexpr uint64_t getWhiteOccupation() const
+    constexpr void updateOccupation()
     {
-        return whitePawns | whiteRooks | whiteBishops | whiteKnights | whiteQueens | whiteKing;
-    }
-
-    constexpr uint64_t getBlackOccupation() const
-    {
-        return blackPawns | blackRooks | blackBishops | blackKnights | blackQueens | blackKing;
-    }
-
-    constexpr uint64_t getAllOccupation() const
-    {
-        return getWhiteOccupation() | getBlackOccupation();
-    }
-
-    constexpr uint16_t getRoundsCount() const
-    {
-        return roundsCount;
+        occupation[White] = pieces[WhitePawn] | pieces[WhiteRook] | pieces[WhiteBishop] | pieces[WhiteKnight] | pieces[WhiteQueen] | pieces[WhiteKing];
+        occupation[Black] = pieces[BlackPawn] | pieces[BlackRook] | pieces[BlackBishop] | pieces[BlackKnight] | pieces[BlackQueen] | pieces[BlackKing];
+        occupation[Both] = occupation[White] | occupation[Black];
     }
 
     constexpr std::optional<Piece> getPieceAtSquare(uint64_t square) const
     {
-        if (square & whitePawns) {
-            return Piece::WhitePawn;
-        } else if (square & whiteKnights) {
-            return Piece::WhiteKnight;
-        } else if (square & whiteBishops) {
-            return Piece::WhiteBishop;
-        } else if (square & whiteRooks) {
-            return Piece::WhiteRook;
-        } else if (square & whiteQueens) {
-            return Piece::WhiteQueen;
-        } else if (square & whiteKing) {
-            return Piece::WhiteKing;
-        } else if (square & blackPawns) {
-            return Piece::BlackPawn;
-        } else if (square & blackKnights) {
-            return Piece::BlackKnight;
-        } else if (square & blackBishops) {
-            return Piece::BlackBishop;
-        } else if (square & blackRooks) {
-            return Piece::BlackRook;
-        } else if (square & blackQueens) {
-            return Piece::BlackQueen;
-        } else if (square & blackKing) {
-            return Piece::BlackKing;
+        for (const auto piece : magic_enum::enum_values<Piece>()) {
+            if (square & pieces[piece]) {
+                return piece;
+            }
         }
 
         return std::nullopt;
     }
 
-    // Bitboard represensation of each pieces
-    uint64_t whitePawns;
-    uint64_t whiteRooks;
-    uint64_t whiteBishops;
-    uint64_t whiteKnights;
-    uint64_t whiteQueens;
-    uint64_t whiteKing;
-
-    uint64_t blackPawns;
-    uint64_t blackRooks;
-    uint64_t blackBishops;
-    uint64_t blackKnights;
-    uint64_t blackQueens;
-    uint64_t blackKing;
+    std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces;
+    std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation;
 
     // castling
     uint64_t whiteCastlingRights;

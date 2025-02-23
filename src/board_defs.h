@@ -16,7 +16,7 @@ constexpr Player nextPlayer(Player p)
         return Player::White;
 }
 
-enum class Piece : uint8_t {
+enum Piece : uint8_t {
     WhitePawn = 0,
     WhiteKnight,
     WhiteBishop,

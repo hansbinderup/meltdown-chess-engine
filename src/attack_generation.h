@@ -53,9 +53,9 @@ constexpr static inline int16_t getMvvLvaScore(Piece attacker, Piece victim)
 
 constexpr static inline uint64_t getKnightAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)
 {
-    uint64_t knights = player.value_or(board.player) == Player::White ? board.whiteKnights : board.blackKnights;
-
+    uint64_t knights = player.value_or(board.player) == Player::White ? board.pieces[WhiteKnight] : board.pieces[BlackKnight];
     uint64_t attacks = {};
+
     while (knights) {
         const int from = std::countr_zero(knights);
         knights &= knights - 1;
@@ -68,8 +68,8 @@ constexpr static inline uint64_t getKnightAttacks(const BitBoard& board, std::op
 
 constexpr static inline uint64_t getRookAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)
 {
-    uint64_t rooks = player.value_or(board.player) == Player::White ? board.whiteRooks : board.blackRooks;
-    const uint64_t occupancy = board.getAllOccupation();
+    uint64_t rooks = player.value_or(board.player) == Player::White ? board.pieces[WhiteRook] : board.pieces[BlackRook];
+    const uint64_t occupancy = board.occupation[Both];
 
     uint64_t attacks = {};
     while (rooks) {
@@ -84,8 +84,8 @@ constexpr static inline uint64_t getRookAttacks(const BitBoard& board, std::opti
 
 constexpr static inline uint64_t getBishopAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)
 {
-    uint64_t bishops = player.value_or(board.player) == Player::White ? board.whiteBishops : board.blackBishops;
-    const uint64_t occupancy = board.getAllOccupation();
+    uint64_t bishops = player.value_or(board.player) == Player::White ? board.pieces[WhiteBishop] : board.pieces[BlackBishop];
+    const uint64_t occupancy = board.occupation[Both];
 
     uint64_t attacks = {};
     while (bishops) {
@@ -100,8 +100,8 @@ constexpr static inline uint64_t getBishopAttacks(const BitBoard& board, std::op
 
 constexpr static inline uint64_t getQueenAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)
 {
-    uint64_t queens = player.value_or(board.player) == Player::White ? board.whiteQueens : board.blackQueens;
-    const uint64_t occupancy = board.getAllOccupation();
+    uint64_t queens = player.value_or(board.player) == Player::White ? board.pieces[WhiteQueen] : board.pieces[BlackQueen];
+    const uint64_t occupancy = board.occupation[Both];
 
     uint64_t attacks = {};
     while (queens) {
@@ -117,7 +117,7 @@ constexpr static inline uint64_t getQueenAttacks(const BitBoard& board, std::opt
 
 constexpr static inline uint64_t getKingAttacks(const BitBoard& board, std::optional<Player> player = std::nullopt)
 {
-    const uint64_t king = player.value_or(board.player) == Player::White ? board.whiteKing : board.blackKing;
+    const uint64_t king = player.value_or(board.player) == Player::White ? board.pieces[WhiteKing] : board.pieces[BlackKing];
 
     if (king == 0) {
         return 0;
@@ -129,7 +129,7 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board, std::opti
 
 constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)
 {
-    const uint64_t pawns = board.whitePawns;
+    const uint64_t pawns = board.pieces[WhitePawn];
     uint64_t attacks = ((pawns & ~s_aFileMask) << 7);
     attacks |= ((pawns & ~s_hFileMask) << 9);
 
@@ -138,7 +138,7 @@ constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)
 
 constexpr static inline uint64_t getBlackPawnAttacks(const BitBoard& board)
 {
-    const uint64_t pawns = board.blackPawns;
+    const uint64_t pawns = board.pieces[BlackPawn];
     uint64_t attacks = ((pawns & ~s_aFileMask) >> 7);
     attacks |= ((pawns & ~s_hFileMask) >> 9);
 
