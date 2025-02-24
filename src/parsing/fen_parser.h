@@ -197,7 +197,9 @@ public:
 
     static inline bool parseFullMoveCounter(std::string_view& sv, BitBoard& board)
     {
-        if (const auto moveCounter = parsing::to_number(sv)) {
+        /* last entry - there might still be data in the string */
+        const auto input = sv_next_split(sv);
+        if (const auto moveCounter = parsing::to_number(input.value_or(sv))) {
             board.fullMoves = moveCounter.value();
             return true;
         }

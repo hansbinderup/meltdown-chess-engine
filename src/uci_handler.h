@@ -74,40 +74,38 @@ private:
     static bool handlePosition(std::string_view input)
     {
         auto [command, args] = parsing::split_sv_by_space(input);
+
+        /* helper to iterate list of moves - can be passed as both fen string or startpos */
+        constexpr const auto iterateMovesFnc = [](std::string_view sv) {
+            while (true) {
+                const auto moveSv = parsing::sv_next_split(sv);
+                const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
+
+                if (move.has_value()) {
+                    s_board = engine::performMove(s_board, move.value());
+                } else {
+                    break;
+                }
+            }
+        };
+
         if (command == "startpos") {
             s_board.reset();
             const auto subCommand = parsing::sv_next_split(args);
-
             if (subCommand == "moves") {
-                while (true) {
-                    auto spaceSep = args.find(' ');
-                    if (spaceSep == std::string_view::npos) {
-                        // ensure that we also parse move even if it's the last one
-                        const auto move = parsing::moveFromString(s_board, args);
-                        if (move.has_value()) {
-                            s_board = engine::performMove(s_board, move.value());
-                        }
-
-                        break;
-                    }
-
-                    const auto move = parsing::moveFromString(s_board, args.substr(0, spaceSep));
-
-                    if (move.has_value()) {
-                        s_board = engine::performMove(s_board, move.value());
-                    } else {
-                        std::cerr << "No move found! args: " << args << std::endl;
-                    }
-
-                    args = args.substr(spaceSep + 1);
-                }
+                iterateMovesFnc(args);
             }
         } else if (command == "fen") {
             const auto board = parsing::FenParser::parse(args);
             if (board.has_value()) {
-                s_fileLogger.log("Fen parsing result:\n");
-                engine::printBoardDebug(s_fileLogger, board.value());
                 s_board = std::move(board.value());
+
+                using namespace std::string_view_literals;
+                const auto movesPos = args.rfind("moves ");
+                if (movesPos != std::string_view::npos) {
+                    args = args.substr(movesPos + "moves "sv.size());
+                    iterateMovesFnc(args);
+                }
             } else {
                 s_fileLogger.log("Fen parsing failed: {}", args);
             }
