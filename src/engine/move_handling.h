@@ -221,8 +221,16 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
 
     newBoard.updateOccupation();
 
+    /* player making the move is black -> inc full moves */
+    if (board.player == Player::Black)
+        newBoard.fullMoves++;
+
+    if (move.isCapture())
+        newBoard.halfMoves = 0;
+    else
+        newBoard.halfMoves++;
+
     newBoard.player = nextPlayer(newBoard.player);
-    newBoard.roundsCount++;
 
     return newBoard;
 }
@@ -284,7 +292,8 @@ constexpr static inline void printBoardDebug(FileLogger& logger, const BitBoard&
 
     const auto allMoves = getAllMoves(board);
     logger << "Player: " << magic_enum::enum_name(board.player);
-    logger << "\nRound: " << std::to_string(board.roundsCount);
+    logger << "\nFullMoves: " << std::to_string(board.fullMoves);
+    logger << "\nHalfMoves: " << std::to_string(board.halfMoves);
     logger << "\nEnPessant: " << enPessantToString(board.enPessant);
     logger << "\nCastle: ";
     for (const auto& move : allMoves.getMoves()) {

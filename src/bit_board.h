@@ -36,7 +36,8 @@ struct BitBoard {
         updateOccupation();
 
         player = Player::White;
-        roundsCount = 0;
+        fullMoves = 0;
+        halfMoves = 0;
         enPessant.reset();
     }
 
@@ -58,12 +59,12 @@ struct BitBoard {
         return std::nullopt;
     }
 
-    std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces;
-    std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation;
+    std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces {};
+    std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation {};
 
     // castling
-    uint64_t whiteCastlingRights;
-    uint64_t blackCastlingRights;
+    uint64_t whiteCastlingRights {};
+    uint64_t blackCastlingRights {};
 
     // which player to perform next move
     Player player;
@@ -71,6 +72,7 @@ struct BitBoard {
     std::optional<uint64_t> enPessant;
 
     // amount of rounds that the game has been played
-    uint16_t roundsCount;
+    uint16_t fullMoves {};
+    uint16_t halfMoves {};
 };
 

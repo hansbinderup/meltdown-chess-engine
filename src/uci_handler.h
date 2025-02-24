@@ -3,6 +3,7 @@
 #include "src/evaluation/evaluator.h"
 #include "src/evaluation/perft.h"
 #include "src/file_logger.h"
+#include "src/parsing/fen_parser.h"
 #include "src/parsing/input_parsing.h"
 
 #include <iostream>
@@ -100,6 +101,15 @@ private:
 
                     args = args.substr(spaceSep + 1);
                 }
+            }
+        } else if (command == "fen") {
+            const auto board = parsing::FenParser::parse(args);
+            if (board.has_value()) {
+                s_fileLogger.log("Fen parsing result:\n");
+                engine::printBoardDebug(s_fileLogger, board.value());
+                s_board = std::move(board.value());
+            } else {
+                s_fileLogger.log("Fen parsing failed: {}", args);
             }
         }
 
