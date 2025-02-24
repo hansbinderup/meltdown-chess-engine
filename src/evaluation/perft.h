@@ -27,6 +27,7 @@ public:
         std::cout << "\nnodes: " << s_nodes;
         std::cout << "\ncaptures: " << s_captures;
         std::cout << "\ncastles: " << s_castles;
+        std::cout << "\nenPessants: " << s_enPessants;
         std::cout << "\nchecks: " << s_checks;
         std::cout << "\ncheckMates: " << s_checkMates;
         std::cout << "\ntime: " << timeDiff << "ms";
@@ -62,6 +63,10 @@ private:
                     s_castles++;
                 }
 
+                if (move.takeEnPessant()) {
+                    s_enPessants++;
+                }
+
                 s_nodes++;
             }
 
@@ -75,7 +80,7 @@ private:
         for (const auto& move : allMoves.getMoves()) {
             auto newBoard = engine::performMove(board, move);
 
-            if (engine::isKingAttacked(newBoard)) {
+            if (engine::isKingAttacked(newBoard, board.player)) {
                 // invalid move
                 continue;
             }
@@ -102,6 +107,7 @@ private:
         s_castles = 0;
         s_checks = 0;
         s_checkMates = 0;
+        s_enPessants = 0;
         s_prevNodes = 0;
     }
 
@@ -110,5 +116,6 @@ private:
     static inline uint64_t s_castles {};
     static inline uint64_t s_checks {};
     static inline uint64_t s_checkMates {};
+    static inline uint64_t s_enPessants {};
     static inline uint64_t s_prevNodes {};
 };

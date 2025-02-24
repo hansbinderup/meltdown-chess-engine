@@ -139,8 +139,8 @@ constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)
 constexpr static inline uint64_t getBlackPawnAttacks(const BitBoard& board)
 {
     const uint64_t pawns = board.pieces[BlackPawn];
-    uint64_t attacks = ((pawns & ~s_aFileMask) >> 7);
-    attacks |= ((pawns & ~s_hFileMask) >> 9);
+    uint64_t attacks = ((pawns & ~s_aFileMask) >> 9);
+    attacks |= ((pawns & ~s_hFileMask) >> 7);
 
     return attacks;
 }

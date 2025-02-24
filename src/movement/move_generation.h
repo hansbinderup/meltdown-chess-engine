@@ -163,12 +163,12 @@ constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, cons
     if (board.player == Player::White) {
         movement::getWhitePawnMoves(validMoves, board.pieces[WhitePawn], board.occupation[White], board.occupation[Black]);
         if (board.enPessant.has_value()) {
-            movement::getWhiteEnPessantMoves(validMoves, board.pieces[WhitePawn], board.enPessant.value(), board.occupation[White], board.occupation[Black]);
+            movement::getWhiteEnPessantMoves(validMoves, board.pieces[WhitePawn], board.enPessant.value(), board.occupation[Both]);
         }
     } else {
         movement::getBlackPawnMoves(validMoves, board.pieces[BlackPawn], board.occupation[Black], board.occupation[White]);
         if (board.enPessant.has_value()) {
-            movement::getWhiteEnPessantMoves(validMoves, board.pieces[BlackPawn], board.enPessant.value(), board.occupation[Black], board.occupation[White]);
+            movement::getBlackEnPessantMoves(validMoves, board.pieces[BlackPawn], board.enPessant.value(), board.occupation[Both]);
         }
     }
 }

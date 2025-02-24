@@ -98,23 +98,21 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnPromotions(validMoves, promoteAttackRight, -7, Piece::BlackPawn, true);
 }
 
-void getWhiteEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t enPessant, uint64_t ownOccupation, uint64_t theirOccupation)
+constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t enPessant, uint64_t occupation)
 {
-    const uint64_t allOccupation = ownOccupation | theirOccupation;
-
-    uint64_t moveLeft = ((pawns & ~s_row7Mask & ~s_aFileMask) << 7) & enPessant & ~allOccupation;
-    uint64_t moveRight = ((pawns & ~s_row7Mask & ~s_hFileMask) << 9) & enPessant & ~allOccupation;
+    // TODO: masks row 5?
+    uint64_t moveLeft = ((pawns & ~s_aFileMask) << 7) & enPessant & ~occupation;
+    uint64_t moveRight = ((pawns & ~s_hFileMask) << 9) & enPessant & ~occupation;
 
     backtrackPawnEnPessantMoves(validMoves, moveLeft, 7, Piece::WhitePawn, false);
     backtrackPawnEnPessantMoves(validMoves, moveRight, 9, Piece::WhitePawn, false);
 }
 
-void getBlackEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t enPessant, uint64_t ownOccupation, uint64_t theirOccupation)
+constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t enPessant, uint64_t occupation)
 {
-    const uint64_t allOccupation = ownOccupation | theirOccupation;
-
-    uint64_t moveLeft = ((pawns & ~s_row7Mask & ~s_aFileMask) >> 9) & enPessant & ~allOccupation;
-    uint64_t moveRight = ((pawns & ~s_row7Mask & ~s_hFileMask) >> 7) & enPessant & ~allOccupation;
+    // TODO: masks row 4?
+    uint64_t moveLeft = ((pawns & ~s_aFileMask) >> 9) & enPessant & ~occupation;
+    uint64_t moveRight = ((pawns & ~s_hFileMask) >> 7) & enPessant & ~occupation;
 
     backtrackPawnEnPessantMoves(validMoves, moveLeft, -9, Piece::BlackPawn, false);
     backtrackPawnEnPessantMoves(validMoves, moveRight, -7, Piece::BlackPawn, false);

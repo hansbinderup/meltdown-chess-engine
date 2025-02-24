@@ -183,7 +183,8 @@ private:
         if (depth >= 3 && !isChecked && m_ply) {
             auto boardCopy = board;
 
-            /* TODO: add en pessant handling when implemented */
+            /* enPessant is invalid if we skip move */
+            boardCopy.enPessant.reset();
 
             /* give opponent an extra move */
             boardCopy.player = nextPlayer(boardCopy.player);
