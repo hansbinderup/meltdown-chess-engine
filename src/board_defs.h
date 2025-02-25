@@ -70,6 +70,7 @@ constexpr inline char promotionToString(PromotionType p)
 }
 
 constexpr static inline uint8_t s_maxSearchDepth { 64 };
+constexpr static inline uint8_t s_amountSquares { 64 };
 
 constexpr static inline uint8_t s_firstRow { 0 };
 constexpr static inline uint8_t s_secondRow { 8 };

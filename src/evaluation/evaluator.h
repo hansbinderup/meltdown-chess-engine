@@ -6,6 +6,8 @@
 #include "src/evaluation/pv_table.h"
 #include "src/file_logger.h"
 #include "src/movement/move_types.h"
+#include <src/engine/zobrist_hashing.h>
+
 #include <chrono>
 #include <iostream>
 

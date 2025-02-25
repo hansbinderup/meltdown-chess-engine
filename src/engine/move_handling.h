@@ -3,6 +3,7 @@
 #include "magic_enum/magic_enum.hpp"
 #include "src/attack_generation.h"
 #include "src/bit_board.h"
+#include "src/engine/zobrist_hashing.h"
 #include "src/file_logger.h"
 #include "src/movement/move_generation.h"
 #include "src/movement/move_types.h"
@@ -295,6 +296,7 @@ constexpr static inline void printBoardDebug(FileLogger& logger, const BitBoard&
     logger << "\nFullMoves: " << std::to_string(board.fullMoves);
     logger << "\nHalfMoves: " << std::to_string(board.halfMoves);
     logger << "\nEnPessant: " << enPessantToString(board.enPessant);
+    logger << "\nHash: " << std::to_string(generateHashKey(board));
     logger << "\nCastle: ";
     for (const auto& move : allMoves.getMoves()) {
         if (move.isCastleMove()) {
