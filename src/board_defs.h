@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <limits>
 
@@ -30,6 +31,9 @@ enum Piece : uint8_t {
     BlackQueen,
     BlackKing,
 };
+
+constexpr static inline auto s_whitePieces = std::to_array<Piece>({ WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing });
+constexpr static inline auto s_blackPieces = std::to_array<Piece>({ BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing });
 
 enum PromotionType : uint8_t {
     PromotionNone = 0,

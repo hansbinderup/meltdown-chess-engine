@@ -28,7 +28,7 @@ public:
     {
         m_logger.log("Get best move for {}", magic_enum::enum_name(board.player));
 
-        const uint8_t depth = std::clamp(board.roundsCount, s_minDepth, s_maxDepth);
+        const uint8_t depth = std::clamp(board.fullMoves, s_minDepth, s_maxDepth);
         return scanForBestMove(depthInput.value_or(depth), board);
     }
 
@@ -367,7 +367,7 @@ private:
     std::chrono::time_point<std::chrono::system_clock> m_endTime;
 
     /* search configs */
-    constexpr static inline uint16_t s_minDepth { 7 };
+    constexpr static inline uint16_t s_minDepth { 8 };
     constexpr static inline uint16_t s_maxDepth { 10 };
 
     constexpr static inline uint16_t s_fullDepthMove { 4 };
