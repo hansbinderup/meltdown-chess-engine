@@ -35,6 +35,11 @@ public:
         std::cout << std::endl;
     }
 
+    constexpr static inline uint64_t getNodes()
+    {
+        return s_nodes;
+    }
+
 private:
     constexpr static inline void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {

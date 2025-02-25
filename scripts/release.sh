@@ -28,3 +28,5 @@ if $RUN; then
     echo "Running release build"
     "$BUILD_DIR/meltdown-chess-engine"
 fi
+
+ln -sf "$BUILD_DIR"/compile_commands.json .

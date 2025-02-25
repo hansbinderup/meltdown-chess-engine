@@ -6,11 +6,16 @@ project('meltdown-chess-engine', 'cpp',
 add_project_arguments('-fconstexpr-loop-limit=2147483647', language: 'cpp')
 add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
 
-# header only dependency
+# header only dependency - TODO: add as wrap dependency instead
 magic_enum_dep = declare_dependency(include_directories: 'externals/magic_enum/include/')
+meltdown_dep = declare_dependency(include_directories: '..', dependencies: magic_enum_dep)
 
-exe = executable('meltdown-chess-engine', 'src/main.cpp',
+meltdown = executable('meltdown-chess-engine', 'src/main.cpp',
   install : true,
-  dependencies: magic_enum_dep)
+  dependencies: [meltdown_dep])
 
-test('basic', exe)
+test('meltdown-chess-engine', meltdown)
+
+if get_option('unit-tests')
+  subdir('tests')
+endif
