@@ -47,23 +47,23 @@ constexpr static inline void performCastleMove(BitBoard& board, const movement::
     case CastleWhiteKingSide: {
         movePiece(board.pieces[WhiteKing], fromSquare, toSquare);
         movePiece(board.pieces[WhiteRook], 1ULL << gen::s_whiteKingSideCastleMoveRook.first, 1ULL << gen::s_whiteKingSideCastleMoveRook.second);
-        board.whiteCastlingRights = 0;
+        board.castlingRights &= ~(CastleWhiteKingSide | CastleWhiteQueenSide);
     } break;
 
     case CastleWhiteQueenSide: {
         movePiece(board.pieces[WhiteKing], fromSquare, toSquare);
         movePiece(board.pieces[WhiteRook], 1ULL << gen::s_whiteQueenSideCastleMoveRook.first, 1ULL << gen::s_whiteQueenSideCastleMoveRook.second);
-        board.whiteCastlingRights = 0;
+        board.castlingRights &= ~(CastleWhiteKingSide | CastleWhiteQueenSide);
     } break;
     case CastleBlackKingSide: {
         movePiece(board.pieces[BlackKing], fromSquare, toSquare);
         movePiece(board.pieces[BlackRook], 1ULL << gen::s_blackKingSideCastleMoveRook.first, 1ULL << gen::s_blackKingSideCastleMoveRook.second);
-        board.blackCastlingRights = 0;
+        board.castlingRights &= ~(CastleBlackKingSide | CastleBlackQueenSide);
     } break;
     case CastleBlackQueenSide: {
         movePiece(board.pieces[BlackKing], fromSquare, toSquare);
         movePiece(board.pieces[BlackRook], 1ULL << gen::s_blackQueenSideCastleMoveRook.first, 1ULL << gen::s_blackQueenSideCastleMoveRook.second);
-        board.blackCastlingRights = 0;
+        board.castlingRights &= ~(CastleBlackKingSide | CastleBlackQueenSide);
     } break;
     case CastleNone:
         break;
@@ -99,20 +99,39 @@ constexpr static inline void performPromotionMove(BitBoard& board, const movemen
     promotionPiece |= move.fromSquare();
 }
 
-constexpr static inline void updateCastlingRights(BitBoard& board, uint64_t fromSquare)
+constexpr static inline void updateCastlingRights(BitBoard& board, uint64_t square)
 {
-    if (board.player == Player::White && board.whiteCastlingRights) {
-        if (fromSquare & board.pieces[WhiteKing]) {
-            board.whiteCastlingRights = 0;
-        } else {
-            board.whiteCastlingRights &= ~fromSquare;
-        }
-    } else if (board.player == Player::Black && board.blackCastlingRights) {
-        if (fromSquare & board.pieces[BlackKing]) {
-            board.blackCastlingRights = 0;
-        } else {
-            board.blackCastlingRights &= ~fromSquare;
-        }
+    constexpr uint64_t whiteKingSquare = { 1ULL << 4 };
+    constexpr uint64_t whiteRookQueenSideSquare = { 1ULL << 0 };
+    constexpr uint64_t whiteRookKingSideSquare = { 1ULL << 7 };
+
+    constexpr uint64_t blackKingSquare = { whiteKingSquare << s_eightRow };
+    constexpr uint64_t blackRookQueenSideSquare = { whiteRookQueenSideSquare << s_eightRow };
+    constexpr uint64_t blackRookKingSideSquare = { whiteRookKingSideSquare << s_eightRow };
+
+    if (board.castlingRights == CastleNone) {
+        return;
+    }
+
+    switch (square) {
+    case whiteKingSquare:
+        board.castlingRights &= ~(CastleWhiteKingSide | CastleWhiteQueenSide);
+        break;
+    case whiteRookQueenSideSquare:
+        board.castlingRights &= ~CastleWhiteQueenSide;
+        break;
+    case whiteRookKingSideSquare:
+        board.castlingRights &= ~CastleWhiteKingSide;
+        break;
+    case blackKingSquare:
+        board.castlingRights &= ~(CastleBlackKingSide | CastleBlackQueenSide);
+        break;
+    case blackRookQueenSideSquare:
+        board.castlingRights &= ~CastleBlackQueenSide;
+        break;
+    case blackRookKingSideSquare:
+        board.castlingRights &= ~CastleBlackKingSide;
+        break;
     }
 }
 
@@ -196,10 +215,10 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
     } else {
         if (move.isPromotionMove())
             performPromotionMove(newBoard, move);
-        else {
-            // should be done before moving pieces
-            updateCastlingRights(newBoard, fromSquare);
-        }
+
+        // should be done before moving pieces
+        updateCastlingRights(newBoard, fromSquare);
+        updateCastlingRights(newBoard, toSquare);
 
         for (const auto piece : magic_enum::enum_values<Piece>()) {
             if (board.pieces[piece] & toSquare) {

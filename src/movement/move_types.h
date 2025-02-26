@@ -13,10 +13,10 @@ namespace movement {
  * 0000 0000 0000 0000 0000 1111 1100 0000 -> to value
  * 0000 0000 0000 0000 1111 0000 0000 0000 -> piece type
  * 0000 0000 0000 0111 0000 0000 0000 0000 -> promotion type
- * 0000 0000 0011 1000 0000 0000 0000 0000 -> castle type
- * 0000 0000 0100 0000 0000 0000 0000 0000 -> is capture
- * 0000 0000 1000 0000 0000 0000 0000 0000 -> enables en pessant
- * 0000 0001 0000 0000 0000 0000 0000 0000 -> takes en pessant
+ * 0000 0000 0111 1000 0000 0000 0000 0000 -> castle type
+ * 0000 0000 1000 0000 0000 0000 0000 0000 -> is capture
+ * 0000 0001 0000 0000 0000 0000 0000 0000 -> enables en pessant
+ * 0000 0010 0000 0000 0000 0000 0000 0000 -> takes en pessant
  * */
 class Move {
 public:
@@ -156,13 +156,13 @@ private:
     constexpr static inline uint64_t s_promotionMask { 0b111 }; /* 8 values (only 5 used) */
     constexpr static inline uint64_t s_promotionShift { 16 };
 
-    constexpr static inline uint64_t s_castlingMask { 0b111 }; /* 8 values (only 5 used) */
+    constexpr static inline uint64_t s_castlingMask { 0b1111 }; /* 4 bit flags */
     constexpr static inline uint64_t s_castlingShift { 19 };
 
     // Bool so no need for mask
-    constexpr static inline uint64_t s_captureShift { 22 };
-    constexpr static inline uint64_t s_enPessantShift { 23 };
-    constexpr static inline uint64_t s_takeEnPessantShift { 24 };
+    constexpr static inline uint64_t s_captureShift { 23 };
+    constexpr static inline uint64_t s_enPessantShift { 24 };
+    constexpr static inline uint64_t s_takeEnPessantShift { 25 };
 };
 
 class ValidMoves {

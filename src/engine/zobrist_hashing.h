@@ -85,7 +85,7 @@ constexpr uint64_t generateHashKey(const BitBoard& board)
         }
     }
 
-    /* TODO: add castling hash! Not currently in a format where that makes sense to do */
+    key ^= s_castlingHashTable[board.castlingRights];
 
     if (board.enPessant.has_value()) {
         const int square = std::countr_zero(board.enPessant.value());

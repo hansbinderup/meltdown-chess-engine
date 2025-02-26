@@ -11,16 +11,11 @@
 
 namespace gen {
 
+/* TODO: consider getting rid of these types and just use the squares */
 using CastleMove = std::pair<uint8_t, uint8_t>;
-
-constexpr CastleMove s_whiteKingSideCastleMove { 4, 6 };
-constexpr CastleMove s_whiteQueenSideCastleMove { 4, 2 };
 
 constexpr CastleMove s_whiteKingSideCastleMoveRook { 7, 5 };
 constexpr CastleMove s_whiteQueenSideCastleMoveRook { 0, 3 };
-
-constexpr CastleMove s_blackKingSideCastleMove { 4 + s_eightRow, 6 + s_eightRow };
-constexpr CastleMove s_blackQueenSideCastleMove { 4 + s_eightRow, 2 + s_eightRow };
 
 constexpr CastleMove s_blackKingSideCastleMoveRook { 7 + s_eightRow, 5 + s_eightRow };
 constexpr CastleMove s_blackQueenSideCastleMoveRook { 0 + s_eightRow, 3 + s_eightRow };
@@ -105,6 +100,64 @@ constexpr static inline void generateKingMoves(movement::ValidMoves& validMoves,
     }
 }
 
+constexpr static inline void generateCastlingMovesWhite(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
+{
+    constexpr uint64_t queenSideAttackMask { 0x1cULL }; // 0b11100 - fields that can block castling if attacked
+    constexpr uint64_t kingSideAttackMask { 0x30ULL }; // 0b110000 - fields that can block castling if attacked
+    constexpr uint64_t queenSideOccupationMask { 0xeULL }; // 0b1110 - fields that can block castling if occupied
+    constexpr uint64_t kingSideOccupationMask { 0x60ULL }; // 0b1100000 - fields that can block castling if occupied
+
+    constexpr CastleMove kingSideCastleMove { 4, 6 };
+    constexpr CastleMove queenSideCastleMove { 4, 2 };
+
+    const uint64_t occupation = board.occupation[Both];
+
+    // Queen side castling
+    if (board.castlingRights & CastleWhiteQueenSide) {
+        // Pieces in the way - castling not allowed
+        if (!(occupation & queenSideOccupationMask) && !(attacks & queenSideAttackMask)) {
+            validMoves.addMove(movement::Move::createCastle(queenSideCastleMove.first, queenSideCastleMove.second, WhiteKing, CastleWhiteQueenSide));
+        }
+    }
+
+    // King side castling
+    if (board.castlingRights & CastleWhiteKingSide) {
+        // Pieces in the way - castling not allowed
+        if (!(occupation & kingSideOccupationMask) && !(attacks & kingSideAttackMask)) {
+            validMoves.addMove(movement::Move::createCastle(kingSideCastleMove.first, kingSideCastleMove.second, WhiteKing, CastleWhiteKingSide));
+        }
+    }
+}
+
+constexpr static inline void generateCastlingMovesBlack(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
+{
+    constexpr uint64_t queenSideAttackMask { 0x1cULL << s_eightRow };
+    constexpr uint64_t kingSideAttackMask { 0x30ULL << s_eightRow };
+    constexpr uint64_t queenSideOccupationMask { 0xeULL << s_eightRow };
+    constexpr uint64_t kingSideOccupationMask { 0x60ULL << s_eightRow };
+
+    constexpr CastleMove kingSideCastleMove { 4 + s_eightRow, 6 + s_eightRow };
+    constexpr CastleMove queenSideCastleMove { 4 + s_eightRow, 2 + s_eightRow };
+
+    const uint64_t occupation = board.occupation[Both];
+
+    // Queen side castling
+    if (board.castlingRights & CastleBlackQueenSide) {
+        // Pieces in the way - castling not allowed
+        if (!(occupation & queenSideOccupationMask) && !(attacks & queenSideAttackMask)) {
+            validMoves.addMove(movement::Move::createCastle(queenSideCastleMove.first, queenSideCastleMove.second, BlackKing, CastleBlackQueenSide));
+        }
+    }
+
+    // King side castling
+    if (board.castlingRights & CastleBlackKingSide) {
+        // Pieces in the way - castling not allowed
+        if (!(occupation & kingSideOccupationMask) && !(attacks & kingSideAttackMask)) {
+            validMoves.addMove(movement::Move::createCastle(kingSideCastleMove.first, kingSideCastleMove.second, BlackKing, CastleBlackKingSide));
+        }
+    }
+}
+
 }
 
 constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, const BitBoard& board)
@@ -173,50 +226,12 @@ constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, cons
     }
 }
 
-// TODO: separate in player - this is not super pretty
 constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    const bool isWhite = board.player == Player::White;
-    const uint64_t castlingMask = isWhite ? board.whiteCastlingRights : board.blackCastlingRights;
-    const uint64_t king = isWhite ? board.pieces[WhiteKing] : board.pieces[BlackKing];
-    const uint64_t rook = isWhite ? board.pieces[WhiteRook] : board.pieces[BlackRook];
-    const uint64_t occupation = board.occupation[Both];
-
-    if (castlingMask == 0 || king == 0 || rook == 0) {
-        return;
-    }
-
-    if (attacks & king) {
-        return;
-    }
-
-    Piece piece = isWhite ? Piece::WhiteKing : Piece::BlackKing;
-    const uint64_t kingRookMask = king | rook;
-    const uint64_t queenSideCastleMask = isWhite ? s_whiteQueenSideCastleMask : s_blackQueenSideCastleMask;
-    const uint64_t kingSideCastleMask = isWhite ? s_whiteKingSideCastleMask : s_blackKingSideCastleMask;
-    const uint64_t queenSideCastleOccupationMask = isWhite ? s_whiteQueenSideCastleOccupationMask : s_blackQueenSideCastleOccupationMask;
-    const uint64_t kingSideCastleOccupationMask = isWhite ? s_whiteKingSideCastleOccupationMask : s_blackKingSideCastleOccupationMask;
-    const uint64_t queenSideCastleAttackMask = isWhite ? s_whiteQueenSideCastleAttackMask : s_blackQueenSideCastleAttackMask;
-    const uint64_t kingSideCastleAttackMask = isWhite ? s_whiteKingSideCastleAttackMask : s_blackKingSideCastleAttackMask;
-    const auto queenSideCastleMove = isWhite ? s_whiteQueenSideCastleMove : s_blackQueenSideCastleMove;
-    const auto kingSideCastleMove = isWhite ? s_whiteKingSideCastleMove : s_blackKingSideCastleMove;
-
-    // Queen side castling
-    if ((castlingMask & queenSideCastleMask & kingRookMask) == queenSideCastleMask) {
-        // Pieces in the way - castling not allowed
-        if (!(occupation & queenSideCastleOccupationMask) && !(attacks & queenSideCastleAttackMask)) {
-            validMoves.addMove(movement::Move::createCastle(queenSideCastleMove.first, queenSideCastleMove.second, piece, isWhite ? CastleWhiteQueenSide : CastleBlackQueenSide));
-        }
-    }
-
-    // King side castling
-    if ((castlingMask & kingSideCastleMask & kingRookMask) == kingSideCastleMask) {
-        // Pieces in the way - castling not allowed
-        if (!(occupation & kingSideCastleOccupationMask) && !(attacks & kingSideCastleAttackMask)) {
-            validMoves.addMove(
-                movement::Move::createCastle(kingSideCastleMove.first, kingSideCastleMove.second, piece, isWhite ? CastleWhiteKingSide : CastleBlackKingSide));
-        }
+    if (board.player == Player::White) {
+        generateCastlingMovesWhite(validMoves, board, attacks);
+    } else {
+        generateCastlingMovesBlack(validMoves, board, attacks);
     }
 }
-
 }

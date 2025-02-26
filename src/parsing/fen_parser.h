@@ -127,23 +127,7 @@ public:
         for (const auto c : input.value()) {
             const auto castle = castleFromChar(c);
             if (castle.has_value()) {
-                switch (castle.value()) {
-                case CastleWhiteKingSide:
-                    board.whiteCastlingRights |= s_whiteKingSideCastleMask;
-                    break;
-                case CastleWhiteQueenSide:
-                    board.whiteCastlingRights |= s_whiteQueenSideCastleMask;
-                    break;
-                case CastleBlackKingSide:
-                    board.blackCastlingRights |= s_blackKingSideCastleMask;
-                    break;
-                case CastleBlackQueenSide:
-                    board.blackCastlingRights |= s_blackQueenSideCastleMask;
-                    break;
-                case CastleNone:
-                    board.whiteCastlingRights = 0;
-                    board.blackCastlingRights = 0;
-                }
+                board.castlingRights |= castle.value();
             }
         }
 

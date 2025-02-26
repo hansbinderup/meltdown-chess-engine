@@ -30,8 +30,7 @@ struct BitBoard {
         pieces[Piece::BlackQueen] = { 0x08ULL << s_eightRow };
         pieces[Piece::BlackKing] = { 0x10ULL << s_eightRow };
 
-        whiteCastlingRights = { s_whiteQueenSideCastleMask | s_whiteKingSideCastleMask };
-        blackCastlingRights = { s_blackQueenSideCastleMask | s_blackKingSideCastleMask };
+        castlingRights = { CastleWhiteKingSide | CastleWhiteQueenSide | CastleBlackKingSide | CastleBlackQueenSide };
 
         updateOccupation();
 
@@ -63,8 +62,7 @@ struct BitBoard {
     std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation {};
 
     // castling
-    uint64_t whiteCastlingRights {};
-    uint64_t blackCastlingRights {};
+    uint64_t castlingRights {};
 
     // which player to perform next move
     Player player;
