@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/engine/move_handling.h"
+#include "src/engine/tt_hash.h"
 #include "src/evaluation/material_scoring.h"
 #include "src/evaluation/move_scoring.h"
 #include "src/evaluation/pv_table.h"
@@ -184,6 +185,11 @@ private:
 
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
+        const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth);
+        if (hashScore.has_value()) {
+            return hashScore.value();
+        }
+
         using namespace std::chrono;
         checkIfStopped();
 
@@ -200,6 +206,8 @@ private:
 
         m_nodes++;
 
+        engine::tt::TtHashFlag hashFlag = engine::tt::TtHashAlpha;
+        int16_t score = 0;
         uint16_t legalMoves = 0;
         uint64_t movesSearched = 0;
         const Player currentPlayer = board.player;
@@ -226,7 +234,7 @@ private:
             m_ply++;
 
             /* perform search with reduced depth (based on reduction limit) */
-            int16_t score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
+            score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
 
             m_ply--;
 
@@ -304,17 +312,18 @@ private:
 
             movesSearched++;
 
+            if (score >= beta) {
+                engine::tt::writeHashEntry(m_hash, score, depth, engine::tt::TtHashBeta);
+                m_scoring.killerMoves().update(move, m_ply);
+                return beta;
+            }
+
             if (score > alpha) {
                 alpha = score;
+                hashFlag = engine::tt::TtHashExact;
 
-                // info score cp 0 time 501 depth 11 seldepth 64 nodes 837635 pv g1f3 b8c6 b1c3 g8f6 h1g1 h8g8 g1h1 g8h8 a1b1 a8b8 b1a1
                 m_scoring.historyMoves().update(board, move, m_ply);
                 m_scoring.pvTable().updateTable(move, m_ply);
-
-                if (score >= beta) {
-                    m_scoring.killerMoves().update(move, m_ply);
-                    return beta;
-                }
             }
         }
 
@@ -329,6 +338,7 @@ private:
             }
         }
 
+        engine::tt::writeHashEntry(m_hash, score, depth, hashFlag);
         return alpha;
     }
 
