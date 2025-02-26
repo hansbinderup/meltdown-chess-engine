@@ -61,14 +61,14 @@ public:
 
     friend bool operator<=>(const Move& a, const Move& b) = default;
 
-    constexpr inline uint8_t fromValue() const
+    constexpr inline BoardPosition fromValue() const
     {
-        return data & s_toFromMask;
+        return static_cast<BoardPosition>(data & s_toFromMask);
     }
 
-    constexpr inline uint8_t toValue() const
+    constexpr inline BoardPosition toValue() const
     {
-        return (data >> s_toShift) & s_toFromMask;
+        return static_cast<BoardPosition>((data >> s_toShift) & s_toFromMask);
     }
 
     constexpr inline uint64_t fromSquare() const

@@ -82,7 +82,8 @@ private:
                 const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
 
                 if (move.has_value()) {
-                    s_board = engine::performMove(s_board, move.value());
+                    uint64_t hash {}; // TODO: make it optional to include
+                    s_board = engine::performMove(s_board, move.value(), hash);
                 } else {
                     break;
                 }

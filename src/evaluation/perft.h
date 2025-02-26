@@ -48,7 +48,7 @@ private:
 
         if (depth == 0) {
             for (const auto& move : allMoves.getMoves()) {
-                auto newBoard = engine::performMove(board, move);
+                auto newBoard = engine::performMove(board, move, s_hash);
                 if (engine::isKingAttacked(newBoard, board.player)) {
                     // invalid move
                     continue;
@@ -83,7 +83,7 @@ private:
         }
 
         for (const auto& move : allMoves.getMoves()) {
-            auto newBoard = engine::performMove(board, move);
+            auto newBoard = engine::performMove(board, move, s_hash);
 
             if (engine::isKingAttacked(newBoard, board.player)) {
                 // invalid move
@@ -123,4 +123,5 @@ private:
     static inline uint64_t s_checkMates {};
     static inline uint64_t s_enPessants {};
     static inline uint64_t s_prevNodes {};
+    static inline uint64_t s_hash {};
 };

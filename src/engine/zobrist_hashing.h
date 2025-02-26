@@ -72,6 +72,26 @@ constexpr auto s_playerKey = createPlayerKey();
 
 }
 
+constexpr static inline void hashPiece(Piece piece, BoardPosition pos, uint64_t& hash)
+{
+    hash ^= s_pieceHashTable[piece][pos];
+}
+
+constexpr static inline void hashEnpessant(BoardPosition pos, uint64_t& hash)
+{
+    hash ^= s_enpessantHashTable[pos];
+}
+
+constexpr static inline void hashCastling(uint64_t castleFlags, uint64_t& hash)
+{
+    hash ^= s_castlingHashTable[castleFlags];
+}
+
+constexpr static inline void hashPlayer(uint64_t& hash)
+{
+    hash ^= s_playerKey;
+}
+
 constexpr uint64_t generateHashKey(const BitBoard& board)
 {
     uint64_t key = 0;

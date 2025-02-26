@@ -49,9 +49,11 @@ public:
         sortMoves(board, allMoves, m_ply);
         m_logger << std::format("Move evaluations [{}]:\n", depth);
         for (const auto& move : allMoves.getMoves()) {
-            const auto newBoard = engine::performMove(board, move);
+            uint64_t oldHash = m_hash;
+            const auto newBoard = engine::performMove(board, move, m_hash);
 
             int16_t score = -negamax(depth, newBoard);
+            m_hash = oldHash;
 
             m_logger << std::format("  move: {}\tscore: {}\tnodes: {} \t pv: ", move.toString().data(), score, m_nodes);
 
@@ -221,8 +223,12 @@ private:
             /* give opponent an extra move */
             boardCopy.player = nextPlayer(boardCopy.player);
 
+            m_ply++;
+
             /* perform search with reduced depth (based on reduction limit) */
             int16_t score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
+
+            m_ply--;
 
             if (m_isStopped)
                 return 0;
@@ -239,9 +245,11 @@ private:
 
         sortMoves(board, allMoves, m_ply);
         for (const auto& move : allMoves.getMoves()) {
-
-            const auto newBoard = engine::performMove(board, move);
+            /* TODO: make this smarter.. un/do move? */
+            uint64_t oldHash = m_hash;
+            const auto newBoard = engine::performMove(board, move, m_hash);
             if (engine::isKingAttacked(newBoard, currentPlayer)) {
+                m_hash = oldHash;
                 // invalid move
                 continue;
             }
@@ -286,6 +294,7 @@ private:
                 }
             }
 
+            m_hash = oldHash;
             printMoveInfo(move, startTime);
 
             m_ply--;
@@ -295,16 +304,17 @@ private:
 
             movesSearched++;
 
-            if (score >= beta) {
-                m_scoring.killerMoves().update(move, m_ply);
-                return beta;
-            }
-
             if (score > alpha) {
                 alpha = score;
 
+                // info score cp 0 time 501 depth 11 seldepth 64 nodes 837635 pv g1f3 b8c6 b1c3 g8f6 h1g1 h8g8 g1h1 g8h8 a1b1 a8b8 b1a1
                 m_scoring.historyMoves().update(board, move, m_ply);
                 m_scoring.pvTable().updateTable(move, m_ply);
+
+                if (score >= beta) {
+                    m_scoring.killerMoves().update(move, m_ply);
+                    return beta;
+                }
             }
         }
 
@@ -357,10 +367,11 @@ private:
         sortMoves(board, allMoves, m_ply);
 
         for (const auto& move : allMoves.getMoves()) {
-
-            const auto newBoard = engine::performMove(board, move);
+            uint64_t oldHash = m_hash;
+            const auto newBoard = engine::performMove(board, move, m_hash);
 
             if (engine::isKingAttacked(newBoard, board.player)) {
+                m_hash = oldHash;
                 // invalid move
                 continue;
             }
@@ -370,6 +381,7 @@ private:
             const auto startTime = system_clock::now();
             const int16_t score = -quiesence(newBoard, -beta, -alpha);
 
+            m_hash = oldHash;
             printMoveInfo(move, startTime);
 
             m_ply--;
@@ -425,6 +437,7 @@ private:
     uint64_t m_nodes {};
     uint8_t m_ply;
     bool m_isStopped;
+    uint64_t m_hash {};
 
     MoveScoring m_scoring {};
 
