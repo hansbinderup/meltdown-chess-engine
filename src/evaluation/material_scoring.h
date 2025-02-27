@@ -18,17 +18,17 @@ namespace {
 /* material score for each piece - lookup based on Piece enum */
 constexpr static inline auto s_pieceScoring = std::to_array<int16_t>({
     100, /* White Pawn */
-    320, /* White Knight */
-    330, /* White Bishop */
+    300, /* White Knight */
+    350, /* White Bishop */
     500, /* White Rook */
-    900, /* White Queen */
-    20000, /* White King */
+    1000, /* White Queen */
+    10000, /* White King */
     -100, /* Black Pawn */
-    -320, /* Black Knight */
-    -330, /* Black Bishop */
+    -300, /* Black Knight */
+    -350, /* Black Bishop */
     -500, /* Black Rook */
-    -900, /* Black Queen */
-    -20000, /* Black King */
+    -1000, /* Black Queen */
+    -10000, /* Black King */
 });
 
 }
