@@ -162,7 +162,6 @@ private:
 
     constexpr movement::Move scanForBestMove(std::chrono::time_point<std::chrono::system_clock> startTime, uint8_t depth, const BitBoard& board)
     {
-        using namespace std::chrono;
 
         int16_t alpha = s_minScore;
         int16_t beta = s_maxScore;
@@ -190,18 +189,31 @@ private:
             alpha = score - s_aspirationWindow;
             beta = score + s_aspirationWindow;
 
-            const auto endTime = system_clock::now();
-            const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
-
-            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, d, depth, m_nodes);
-            const auto pvMoves = m_scoring.pvTable().getMoves();
-            for (const auto& move : pvMoves) {
-                std::cout << move.toString().data() << " ";
-            }
-            std::cout << std::endl;
+            printScoreInfo(startTime, score, d, depth);
         }
 
         return m_scoring.pvTable().bestMove();
+    }
+
+    constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int16_t score, uint8_t currentDepth, uint8_t searchDepth)
+    {
+        using namespace std::chrono;
+
+        const auto endTime = system_clock::now();
+        const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
+
+        if (score > -s_mateValue && score < -s_mateScore)
+            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, searchDepth, m_nodes);
+        else if (score > s_mateScore && score < s_mateValue)
+            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, searchDepth, m_nodes);
+        else
+            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, currentDepth, searchDepth, m_nodes);
+
+        const auto pvMoves = m_scoring.pvTable().getMoves();
+        for (const auto& move : pvMoves) {
+            std::cout << move.toString().data() << " ";
+        }
+        std::cout << std::endl;
     }
 
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
