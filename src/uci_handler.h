@@ -19,7 +19,9 @@ public:
     {
         s_fileLogger.log("\n\n*** Running UciHandler! ***\n");
         s_isRunning = true;
+
         s_board.reset();
+        s_evaluator.reset();
 
         std::array<char, s_inputBufferSize> buffer;
         while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
@@ -39,6 +41,8 @@ private:
             return handleIsReady();
         } else if (command == "position") {
             return handlePosition(args);
+        } else if (command == "ucinewgame") {
+            return handleUcinewgame();
         } else if (command == "go") {
             return handleGo(args);
         } else if (command == "debug") {
@@ -115,34 +119,43 @@ private:
         return true;
     }
 
+    static bool handleUcinewgame()
+    {
+        s_board.reset();
+        s_evaluator.reset();
+        engine::tt::clearTable();
+
+        return true;
+    }
+
     static bool handleGo(std::string_view args)
     {
-        static evaluation::Evaluator evaluator(s_fileLogger);
         std::optional<uint8_t> depth;
 
-        evaluator.reset();
+        s_evaluator.resetSearch();
+
         while (const auto setting = parsing::sv_next_split(args)) {
             const auto value = parsing::sv_next_split(args);
             const auto valNum = parsing::to_number(value.value_or(args));
 
             if (setting == "wtime") {
-                evaluator.setWhiteTime(valNum.value_or(0));
+                s_evaluator.setWhiteTime(valNum.value_or(0));
             } else if (setting == "btime") {
-                evaluator.setBlackTime(valNum.value_or(0));
+                s_evaluator.setBlackTime(valNum.value_or(0));
             } else if (setting == "movestogo") {
-                evaluator.setMovesToGo(valNum.value_or(0));
+                s_evaluator.setMovesToGo(valNum.value_or(0));
             } else if (setting == "movetime") {
-                evaluator.setMoveTime(valNum.value_or(0));
+                s_evaluator.setMoveTime(valNum.value_or(0));
             } else if (setting == "winc") {
-                evaluator.setWhiteMoveInc(valNum.value_or(0));
+                s_evaluator.setWhiteMoveInc(valNum.value_or(0));
             } else if (setting == "binc") {
-                evaluator.setBlackMoveInc(valNum.value_or(0));
+                s_evaluator.setBlackMoveInc(valNum.value_or(0));
             } else if (setting == "depth") {
                 depth = valNum;
             }
         }
 
-        const auto bestMove = evaluator.getBestMove(s_board, depth);
+        const auto bestMove = s_evaluator.getBestMove(s_board, depth);
 
         std::cout << "bestmove " << bestMove.toString().data() << "\n";
         return true;
@@ -153,8 +166,7 @@ private:
         auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "position") {
             engine::printBoardDebug(s_fileLogger, s_board);
-            static evaluation::Evaluator evaluator(s_fileLogger);
-            evaluator.printEvaluation(s_board);
+            s_evaluator.printEvaluation(s_board);
         }
 
         return true;
@@ -175,6 +187,7 @@ private:
     static inline bool s_isRunning = false;
     static inline FileLogger s_fileLogger { "/tmp/uci.log" };
     static inline BitBoard s_board {};
+    static inline evaluation::Evaluator s_evaluator { s_fileLogger };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };

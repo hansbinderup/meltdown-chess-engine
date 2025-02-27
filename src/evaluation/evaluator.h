@@ -29,7 +29,18 @@ public:
     constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         const auto startTime = std::chrono::system_clock::now();
-        setupTimeControls(startTime, board);
+
+        /*
+         * if a depth has been provided then make sure that we search to that depth
+         * timeout will be 10 minutes
+         */
+        if (depthInput.has_value()) {
+            m_endTime = startTime + std::chrono::minutes(10);
+        } else {
+            setupTimeControls(startTime, board);
+        }
+
+        m_hash = engine::generateHashKey(board);
 
         return scanForBestMove(startTime, depthInput.value_or(s_maxSearchDepth), board);
     }
@@ -99,18 +110,28 @@ public:
         m_blackMoveInc = inc;
     }
 
-    void reset()
+    /*
+     * This method will reset search parameters
+     * to be called before starting a scan
+     */
+    void resetSearch()
     {
-        m_nodes = 0;
-        m_scoring.reset();
-        m_isStopped = false;
-
         m_whiteTime = 0;
         m_blackTime = 0;
         m_movesToGo = 0;
         m_moveTime.reset();
         m_whiteMoveInc = 0;
         m_blackMoveInc = 0;
+        m_isStopped = false;
+        m_nodes = 0;
+    }
+
+    /* full reset - will reset hash and scoring tables */
+    void reset()
+    {
+        resetSearch();
+        m_scoring.reset();
+        engine::tt::clearTable();
     }
 
 private:
@@ -186,7 +207,7 @@ private:
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
         const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth);
-        if (hashScore.has_value()) {
+        if (m_ply && hashScore.has_value()) {
             return hashScore.value();
         }
 
@@ -224,6 +245,11 @@ private:
          * */
         if (depth >= 3 && !isChecked && m_ply) {
             auto boardCopy = board;
+            uint64_t oldHash = m_hash;
+            if (boardCopy.enPessant.has_value())
+                engine::hashEnpessant(static_cast<BoardPosition>(boardCopy.enPessant.value()), m_hash);
+
+            engine::hashPlayer(m_hash);
 
             /* enPessant is invalid if we skip move */
             boardCopy.enPessant.reset();
@@ -236,6 +262,7 @@ private:
             /* perform search with reduced depth (based on reduction limit) */
             score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
 
+            m_hash = oldHash;
             m_ply--;
 
             if (m_isStopped)
@@ -311,19 +338,18 @@ private:
                 return 0;
 
             movesSearched++;
-
-            if (score >= beta) {
-                engine::tt::writeHashEntry(m_hash, score, depth, engine::tt::TtHashBeta);
-                m_scoring.killerMoves().update(move, m_ply);
-                return beta;
-            }
-
             if (score > alpha) {
                 alpha = score;
                 hashFlag = engine::tt::TtHashExact;
 
                 m_scoring.historyMoves().update(board, move, m_ply);
                 m_scoring.pvTable().updateTable(move, m_ply);
+
+                if (score >= beta) {
+                    engine::tt::writeHashEntry(m_hash, score, depth, engine::tt::TtHashBeta);
+                    m_scoring.killerMoves().update(move, m_ply);
+                    return beta;
+                }
             }
         }
 
@@ -338,7 +364,7 @@ private:
             }
         }
 
-        engine::tt::writeHashEntry(m_hash, score, depth, hashFlag);
+        engine::tt::writeHashEntry(m_hash, alpha, depth, hashFlag);
         return alpha;
     }
 
@@ -363,6 +389,9 @@ private:
         m_nodes++;
 
         const int16_t evaluation = materialScore(board);
+
+        if (m_ply >= s_maxSearchDepth)
+            return evaluation;
 
         // Hard cutoff
         if (evaluation >= beta) {
@@ -399,12 +428,12 @@ private:
             if (m_isStopped)
                 return 0;
 
-            if (score >= beta)
-                // change to beta for hard cutoff
-                return beta;
-
             if (score > alpha) {
                 alpha = score;
+
+                if (score >= beta)
+                    // change to beta for hard cutoff
+                    return beta;
             }
         }
 
