@@ -17,7 +17,7 @@ done
 # Meson setup (if -s is passed)
 if $SETUP; then
     echo "Setting up Meson..."
-    meson setup "$BUILD_DIR" --buildtype=release -Doptimization=3
+    meson setup "$BUILD_DIR" --buildtype=release
 fi
 
 # Compile
