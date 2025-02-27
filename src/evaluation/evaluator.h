@@ -206,8 +206,9 @@ private:
 
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
+        const bool isPvNode = (beta - alpha) > 1;
         const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth, m_ply);
-        if (m_ply && hashScore.has_value()) {
+        if (m_ply && !isPvNode && hashScore.has_value()) {
             return hashScore.value();
         }
 

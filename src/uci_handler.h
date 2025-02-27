@@ -94,6 +94,9 @@ private:
             }
         };
 
+        /* if position is changed we can't rely on our tables anymore */
+        s_evaluator.reset();
+
         if (command == "startpos") {
             s_board.reset();
             const auto subCommand = parsing::sv_next_split(args);
