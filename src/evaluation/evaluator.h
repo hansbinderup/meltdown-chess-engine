@@ -57,6 +57,8 @@ public:
         }
         m_logger << "\n\n";
 
+        m_endTime = std::chrono::system_clock::now() + std::chrono::minutes(10);
+
         auto allMoves = engine::getAllMoves(board);
         sortMoves(board, allMoves, m_ply);
         m_logger << std::format("Move evaluations [{}]:\n", depth);
@@ -67,7 +69,7 @@ public:
             int16_t score = -negamax(depth, newBoard);
             m_hash = oldHash;
 
-            m_logger << std::format("  move: {}\tscore: {}\tnodes: {} \t pv: ", move.toString().data(), score, m_nodes);
+            m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", m_scoring.score(newBoard, move, 0), move.toString().data(), score, m_nodes);
 
             const auto pvMoves = m_scoring.pvTable().getMoves();
             for (const auto& move : pvMoves) {
@@ -114,7 +116,7 @@ public:
      * This method will reset search parameters
      * to be called before starting a scan
      */
-    void resetSearch()
+    void reset()
     {
         m_whiteTime = 0;
         m_blackTime = 0;
@@ -124,14 +126,7 @@ public:
         m_blackMoveInc = 0;
         m_isStopped = false;
         m_nodes = 0;
-    }
-
-    /* full reset - will reset hash and scoring tables */
-    void reset()
-    {
-        resetSearch();
         m_scoring.reset();
-        engine::tt::clearTable();
     }
 
 private:
@@ -170,6 +165,7 @@ private:
          * iterative deeping - with aspiration window
          * https://web.archive.org/web/20070705134903/www.seanet.com/%7Ebrucemo/topics/aspiration.htm
          */
+
         for (uint8_t d = 1; d <= depth; d++) {
             if (m_isStopped)
                 break;
@@ -418,12 +414,12 @@ private:
         auto allMoves = engine::getAllCaptures(board);
         sortMoves(board, allMoves, m_ply);
 
+        uint64_t dummyHash { 0 };
+
         for (const auto& move : allMoves.getMoves()) {
-            uint64_t oldHash = m_hash;
-            const auto newBoard = engine::performMove(board, move, m_hash);
+            const auto newBoard = engine::performMove(board, move, dummyHash);
 
             if (engine::isKingAttacked(newBoard, board.player)) {
-                m_hash = oldHash;
                 // invalid move
                 continue;
             }
@@ -433,7 +429,6 @@ private:
             const auto startTime = system_clock::now();
             const int16_t score = -quiesence(newBoard, -beta, -alpha);
 
-            m_hash = oldHash;
             printMoveInfo(move, startTime);
 
             m_ply--;

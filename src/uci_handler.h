@@ -21,6 +21,7 @@ public:
         s_isRunning = true;
 
         s_board.reset();
+        engine::tt::clearTable();
         s_evaluator.reset();
 
         std::array<char, s_inputBufferSize> buffer;
@@ -77,6 +78,10 @@ private:
 
     static bool handlePosition(std::string_view input)
     {
+        /* if position is changed we can't rely on our tables anymore */
+        engine::tt::clearTable();
+        s_evaluator.reset();
+
         auto [command, args] = parsing::split_sv_by_space(input);
 
         /* helper to iterate list of moves - can be passed as both fen string or startpos */
@@ -93,9 +98,6 @@ private:
                 }
             }
         };
-
-        /* if position is changed we can't rely on our tables anymore */
-        s_evaluator.reset();
 
         if (command == "startpos") {
             s_board.reset();
@@ -135,7 +137,7 @@ private:
     {
         std::optional<uint8_t> depth;
 
-        s_evaluator.resetSearch();
+        s_evaluator.reset();
 
         while (const auto setting = parsing::sv_next_split(args)) {
             const auto value = parsing::sv_next_split(args);
