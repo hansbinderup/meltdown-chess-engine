@@ -44,19 +44,15 @@ public:
         m_pvLength.at(ply) = ply;
     }
 
-    bool updateTable(const movement::Move& move, uint8_t currentDepth)
+    bool updateTable(const movement::Move& move, uint8_t ply)
     {
-        if (currentDepth >= s_maxSearchDepth) {
-            return false;
-        }
+        auto& currentRow = m_pvTable.at(ply);
+        currentRow.at(ply) = move;
 
-        auto& currentRow = m_pvTable.at(currentDepth);
-        currentRow.at(currentDepth) = move;
+        std::ranges::copy(m_pvTable.at(ply + 1) | std::views::drop(ply + 1),
+            currentRow.begin() + ply + 1);
 
-        std::ranges::copy(m_pvTable.at(currentDepth + 1) | std::views::drop(currentDepth + 1),
-            currentRow.begin() + currentDepth + 1);
-
-        m_pvLength.at(currentDepth) = m_pvLength.at(currentDepth + 1);
+        m_pvLength.at(ply) = m_pvLength.at(ply + 1);
         return true;
     }
 

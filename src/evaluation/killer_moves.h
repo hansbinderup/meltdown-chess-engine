@@ -11,7 +11,8 @@ public:
     using KillerMove = std::pair<movement::Move, movement::Move>;
     void update(const movement::Move& move, uint8_t ply)
     {
-        if (!move.isCapture()) {
+        /* only quiet moves */
+        if (move.isCapture()) {
             return; // nothing to do
         }
 

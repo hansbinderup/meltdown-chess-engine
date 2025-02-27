@@ -4,7 +4,6 @@
 #include "src/bit_board.h"
 #include "src/movement/move_types.h"
 #include <algorithm>
-#include <utility>
 
 namespace heuristic {
 
@@ -17,7 +16,8 @@ public:
 
     void update(const BitBoard& board, const movement::Move& move, uint8_t ply)
     {
-        if (!move.isCapture()) {
+        /* only quiet moves */
+        if (move.isCapture()) {
             return; // nothing to do
         }
 
