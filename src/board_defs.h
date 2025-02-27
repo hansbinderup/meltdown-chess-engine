@@ -102,3 +102,6 @@ constexpr static inline uint64_t s_row7Mask { 0xffULL << s_seventhRow };
 constexpr static inline int16_t s_maxScore = std::numeric_limits<int16_t>::max();
 constexpr static inline int16_t s_minScore = -s_maxScore; // num limit is +1 higher than max
 
+constexpr static inline int16_t s_mateValue { s_maxScore - 1000 };
+constexpr static inline int16_t s_mateScore { s_maxScore - 2000 };
+

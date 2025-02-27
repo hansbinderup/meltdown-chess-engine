@@ -206,7 +206,7 @@ private:
 
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
-        const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth);
+        const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth, m_ply);
         if (m_ply && hashScore.has_value()) {
             return hashScore.value();
         }
@@ -346,7 +346,7 @@ private:
                 m_scoring.pvTable().updateTable(move, m_ply);
 
                 if (score >= beta) {
-                    engine::tt::writeHashEntry(m_hash, score, depth, engine::tt::TtHashBeta);
+                    engine::tt::writeHashEntry(m_hash, score, depth, m_ply, engine::tt::TtHashBeta);
                     m_scoring.killerMoves().update(move, m_ply);
                     return beta;
                 }
@@ -357,14 +357,14 @@ private:
             if (isChecked) {
                 // We want absolute negative score - but with amount of moves to the given checkmate
                 // we add the ply to make checkmate in less moves a better move
-                return s_minScore + m_ply;
+                return -s_mateValue + m_ply;
             } else {
                 // Stalemate - absolute neutral score
                 return 0;
             }
         }
 
-        engine::tt::writeHashEntry(m_hash, alpha, depth, hashFlag);
+        engine::tt::writeHashEntry(m_hash, alpha, depth, m_ply, hashFlag);
         return alpha;
     }
 

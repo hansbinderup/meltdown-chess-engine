@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/board_defs.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -33,7 +34,7 @@ inline void clearTable()
     std::ranges::fill(s_ttHashTable, TtHashEntry {});
 }
 
-constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alpha, int16_t beta, uint8_t depth)
+constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alpha, int16_t beta, uint8_t depth, uint8_t ply)
 {
     auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -42,15 +43,23 @@ constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alph
     }
 
     if (entry.depth >= depth) {
+        int16_t score = entry.score;
+
+        /* special case when mating score is found */
+        if (score < -s_mateScore)
+            score += ply;
+        if (score > s_mateScore)
+            score -= ply;
+
         if (entry.flag == TtHashExact) {
-            return entry.score;
+            return score;
         }
 
-        if ((entry.flag == TtHashAlpha) && (entry.score <= alpha)) {
+        if ((entry.flag == TtHashAlpha) && (score <= alpha)) {
             return alpha;
         }
 
-        if ((entry.flag == TtHashBeta) && (entry.score >= beta)) {
+        if ((entry.flag == TtHashBeta) && (score >= beta)) {
             return beta;
         }
     }
@@ -58,9 +67,15 @@ constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alph
     return std::nullopt;
 }
 
-constexpr inline void writeHashEntry(uint64_t key, int16_t score, uint8_t depth, TtHashFlag flag)
+constexpr inline void writeHashEntry(uint64_t key, int16_t score, uint8_t depth, uint8_t ply, TtHashFlag flag)
 {
     auto& entry = s_ttHashTable[key % s_ttHashSize];
+
+    /* special case when mating score is found */
+    if (score < -s_mateScore)
+        score -= ply;
+    if (score > s_mateScore)
+        score += ply;
 
     entry.key = key;
     entry.score = score;
