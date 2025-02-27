@@ -107,10 +107,10 @@ public:
 
         for (const auto c : input.value()) {
             if (c == 'w') {
-                board.player = Player::White;
+                board.player = PlayerWhite;
                 return true;
             } else if (c == 'b') {
-                board.player = Player::Black;
+                board.player = PlayerBlack;
                 return true;
             }
         }

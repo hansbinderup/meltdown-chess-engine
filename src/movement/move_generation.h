@@ -149,56 +149,56 @@ constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, co
 {
     generateKnightMoves(
         validMoves,
-        board.player == Player::White ? board.pieces[WhiteKnight] : board.pieces[BlackKnight],
-        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
-        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
-        board.player == Player::White ? Piece::WhiteKnight : Piece::BlackKnight);
+        board.player == PlayerWhite ? board.pieces[WhiteKnight] : board.pieces[BlackKnight],
+        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
+        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
+        board.player == PlayerWhite ? Piece::WhiteKnight : Piece::BlackKnight);
 }
 
 constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
     generateRookMoves(
         validMoves,
-        board.player == Player::White ? board.pieces[WhiteRook] : board.pieces[BlackRook],
-        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
-        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
-        board.player == Player::White ? Piece::WhiteRook : Piece::BlackRook);
+        board.player == PlayerWhite ? board.pieces[WhiteRook] : board.pieces[BlackRook],
+        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
+        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
+        board.player == PlayerWhite ? Piece::WhiteRook : Piece::BlackRook);
 }
 
 constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
     generateBishopMoves(
         validMoves,
-        board.player == Player::White ? board.pieces[WhiteBishop] : board.pieces[BlackBishop],
-        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
-        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
-        board.player == Player::White ? Piece::WhiteBishop : Piece::BlackBishop);
+        board.player == PlayerWhite ? board.pieces[WhiteBishop] : board.pieces[BlackBishop],
+        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
+        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
+        board.player == PlayerWhite ? Piece::WhiteBishop : Piece::BlackBishop);
 }
 
 constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
     generateQueenMoves(
         validMoves,
-        board.player == Player::White ? board.pieces[WhiteQueen] : board.pieces[BlackQueen],
-        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
-        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
-        board.player == Player::White ? Piece::WhiteQueen : Piece::BlackQueen);
+        board.player == PlayerWhite ? board.pieces[WhiteQueen] : board.pieces[BlackQueen],
+        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
+        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
+        board.player == PlayerWhite ? Piece::WhiteQueen : Piece::BlackQueen);
 }
 
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
     generateKingMoves(
         validMoves,
-        board.player == Player::White ? board.pieces[WhiteKing] : board.pieces[BlackKing],
-        board.player == Player::White ? board.occupation[White] : board.occupation[Black],
-        board.player == Player::White ? board.occupation[Black] : board.occupation[White],
-        board.player == Player::White ? Piece::WhiteKing : Piece::BlackKing,
+        board.player == PlayerWhite ? board.pieces[WhiteKing] : board.pieces[BlackKing],
+        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
+        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
+        board.player == PlayerWhite ? Piece::WhiteKing : Piece::BlackKing,
         attacks);
 }
 
 constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    if (board.player == Player::White) {
+    if (board.player == PlayerWhite) {
         movement::getWhitePawnMoves(validMoves, board.pieces[WhitePawn], board.occupation[White], board.occupation[Black]);
         if (board.enPessant.has_value()) {
             movement::getWhiteEnPessantMoves(validMoves, board.pieces[WhitePawn], board.enPessant.value(), board.occupation[Both]);
@@ -213,7 +213,7 @@ constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, cons
 
 constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    if (board.player == Player::White) {
+    if (board.player == PlayerWhite) {
         generateCastlingMovesWhite(validMoves, board, attacks);
     } else {
         generateCastlingMovesBlack(validMoves, board, attacks);

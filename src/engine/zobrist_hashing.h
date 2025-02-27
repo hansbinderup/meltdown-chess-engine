@@ -113,7 +113,7 @@ constexpr uint64_t generateHashKey(const BitBoard& board)
     }
 
     /* only need to hash black as we only have two players */
-    if (board.player == Player::Black) {
+    if (board.player == PlayerBlack) {
         key ^= s_playerKey;
     }
 

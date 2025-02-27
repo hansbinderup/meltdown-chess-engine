@@ -34,7 +34,7 @@ struct BitBoard {
 
         updateOccupation();
 
-        player = Player::White;
+        player = PlayerWhite;
         fullMoves = 0;
         halfMoves = 0;
         enPessant.reset();

@@ -139,8 +139,8 @@ private:
     {
         using namespace std::chrono;
 
-        const auto timeLeft = board.player == Player::White ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
-        const auto timeInc = board.player == Player::White ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
+        const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
+        const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
         const auto buffer = timeBuffer(board);
 
         if (m_moveTime) {

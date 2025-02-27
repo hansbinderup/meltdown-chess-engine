@@ -75,7 +75,7 @@ constexpr static inline void performCastleMove(BitBoard& board, const movement::
 
 constexpr static inline void performPromotionMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
 {
-    const bool isWhite = board.player == Player::White;
+    const bool isWhite = board.player == PlayerWhite;
     const auto type = isWhite ? WhitePawn : BlackPawn;
 
     // first clear to be promoted pawn
@@ -147,8 +147,8 @@ constexpr static inline movement::ValidMoves getAllMoves(const BitBoard& board)
 {
     movement::ValidMoves validMoves;
 
-    if (board.player == Player::White) {
-        uint64_t attacks = gen::getAllAttacks(board, Player::Black);
+    if (board.player == PlayerWhite) {
+        uint64_t attacks = gen::getAllAttacks(board, PlayerBlack);
         gen::getKingMoves(validMoves, board, attacks);
         gen::getPawnMoves(validMoves, board);
         gen::getKnightMoves(validMoves, board);
@@ -157,7 +157,7 @@ constexpr static inline movement::ValidMoves getAllMoves(const BitBoard& board)
         gen::getQueenMoves(validMoves, board);
         gen::getCastlingMoves(validMoves, board, attacks);
     } else {
-        uint64_t attacks = gen::getAllAttacks(board, Player::White);
+        uint64_t attacks = gen::getAllAttacks(board, PlayerWhite);
         gen::getKingMoves(validMoves, board, attacks);
         gen::getPawnMoves(validMoves, board);
         gen::getKnightMoves(validMoves, board);
@@ -185,19 +185,19 @@ constexpr static inline movement::ValidMoves getAllCaptures(const BitBoard& boar
 
 constexpr static inline bool isKingAttacked(const BitBoard& board, Player player)
 {
-    if (player == Player::White) {
-        return board.pieces[WhiteKing] & gen::getAllAttacks(board, Player::Black);
+    if (player == PlayerWhite) {
+        return board.pieces[WhiteKing] & gen::getAllAttacks(board, PlayerBlack);
     } else {
-        return board.pieces[BlackKing] & gen::getAllAttacks(board, Player::White);
+        return board.pieces[BlackKing] & gen::getAllAttacks(board, PlayerWhite);
     }
 }
 
 constexpr static inline bool isKingAttacked(const BitBoard& board)
 {
-    if (board.player == Player::White) {
-        return board.pieces[WhiteKing] & gen::getAllAttacks(board, Player::Black);
+    if (board.player == PlayerWhite) {
+        return board.pieces[WhiteKing] & gen::getAllAttacks(board, PlayerBlack);
     } else {
-        return board.pieces[BlackKing] & gen::getAllAttacks(board, Player::White);
+        return board.pieces[BlackKing] & gen::getAllAttacks(board, PlayerWhite);
     }
 }
 
@@ -211,7 +211,7 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
     if (move.isCastleMove()) {
         performCastleMove(newBoard, move, hash);
     } else if (move.takeEnPessant()) {
-        if (newBoard.player == Player::White) {
+        if (newBoard.player == PlayerWhite) {
             movePiece(newBoard.pieces[WhitePawn], fromPos, toPos, WhitePawn, hash);
             clearPiece(newBoard.pieces[BlackPawn], static_cast<BoardPosition>(toPos - 8), BlackPawn, hash);
             hashEnpessant(static_cast<BoardPosition>(toPos - 8), hash); // remove from hash
@@ -250,7 +250,7 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
     newBoard.updateOccupation();
 
     /* player making the move is black -> inc full moves */
-    if (board.player == Player::Black)
+    if (board.player == PlayerBlack)
         newBoard.fullMoves++;
 
     if (move.isCapture())

@@ -64,7 +64,7 @@ constexpr int16_t materialScore(const BitBoard& board)
     if (std::popcount(board.pieces[WhitePawn]) >= 5)
         score -= std::popcount(board.pieces[BlackKnight]) * 30;
 
-    return board.player == Player::White ? score : -score;
+    return board.player == PlayerWhite ? score : -score;
 }
 
 }

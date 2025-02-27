@@ -4,17 +4,17 @@
 #include <cstdint>
 #include <limits>
 
-enum class Player {
-    White,
-    Black,
+enum Player {
+    PlayerWhite,
+    PlayerBlack,
 };
 
 constexpr Player nextPlayer(Player p)
 {
-    if (p == Player::White)
-        return Player::Black;
+    if (p == PlayerWhite)
+        return PlayerBlack;
     else
-        return Player::White;
+        return PlayerWhite;
 }
 
 enum Piece : uint8_t {
