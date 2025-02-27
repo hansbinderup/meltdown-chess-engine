@@ -5,6 +5,7 @@
 #include "src/evaluation/material_scoring.h"
 #include "src/evaluation/move_scoring.h"
 #include "src/evaluation/pv_table.h"
+#include "src/evaluation/repetition.h"
 #include "src/file_logger.h"
 #include "src/movement/move_types.h"
 #include <src/engine/zobrist_hashing.h>
@@ -145,7 +146,7 @@ private:
             m_endTime = start + time - buffer + timeInc;
         } else {
             /* TODO: how long should we search if no time controls are set? */
-            const auto time = timeLeft / s_defaultAmountMoves;
+            const auto time = timeLeft / (s_defaultAmountMoves - board.fullMoves);
             m_endTime = start + time - buffer + timeInc;
         }
 
@@ -214,10 +215,16 @@ private:
 
     constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
     {
-        const bool isPvNode = (beta - alpha) > 1;
-        const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth, m_ply);
-        if (m_ply && !isPvNode && hashScore.has_value()) {
-            return hashScore.value();
+        if (m_ply) {
+            if (m_repetition.isRepetition(m_hash)) {
+                return 0; /* draw score */
+            }
+
+            const bool isPvNode = (beta - alpha) > 1;
+            const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth, m_ply);
+            if (!isPvNode && hashScore.has_value()) {
+                return hashScore.value();
+            }
         }
 
         using namespace std::chrono;
@@ -267,12 +274,14 @@ private:
             boardCopy.player = nextPlayer(boardCopy.player);
 
             m_ply++;
+            m_repetition.add(oldHash);
 
             /* perform search with reduced depth (based on reduction limit) */
             score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
 
             m_hash = oldHash;
             m_ply--;
+            m_repetition.remove();
 
             if (m_isStopped)
                 return 0;
@@ -298,6 +307,7 @@ private:
                 continue;
             }
 
+            m_repetition.add(oldHash);
             m_ply++;
             legalMoves++;
 
@@ -341,6 +351,7 @@ private:
             m_hash = oldHash;
             printMoveInfo(move, startTime);
 
+            m_repetition.remove();
             m_ply--;
 
             if (m_isStopped)
@@ -414,16 +425,17 @@ private:
         auto allMoves = engine::getAllCaptures(board);
         sortMoves(board, allMoves, m_ply);
 
-        uint64_t dummyHash { 0 };
-
         for (const auto& move : allMoves.getMoves()) {
-            const auto newBoard = engine::performMove(board, move, dummyHash);
+            uint64_t oldHash = m_hash;
+            const auto newBoard = engine::performMove(board, move, m_hash);
 
             if (engine::isKingAttacked(newBoard, board.player)) {
+                m_hash = oldHash;
                 // invalid move
                 continue;
             }
 
+            m_repetition.add(oldHash);
             m_ply++;
 
             const auto startTime = system_clock::now();
@@ -431,6 +443,7 @@ private:
 
             printMoveInfo(move, startTime);
 
+            m_repetition.remove();
             m_ply--;
 
             if (m_isStopped)
@@ -487,6 +500,7 @@ private:
     uint64_t m_hash {};
 
     MoveScoring m_scoring {};
+    Repetition m_repetition;
 
     uint64_t m_whiteTime {};
     uint64_t m_blackTime {};
