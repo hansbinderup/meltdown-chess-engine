@@ -12,23 +12,29 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: hansbinderup/meson-gcc:1.0
+    container:
+      image: hansbinderup/meson-gcc:1.0
+      options: --user root
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Clean
-      run: scripts/clean.sh
+      with:
+          clean: true
+          set-safe-directory: true
     - name: Build release
       run: scripts/build.sh
 
   unit-tests:
     runs-on: ubuntu-latest
-    container: hansbinderup/meson-gcc:1.0
+    container:
+      image: hansbinderup/meson-gcc:1.0
+      options: --user root
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-    - name: Clean
-      run: scripts/clean.sh
+      with:
+          clean: true
+          set-safe-directory: true
     - name: Build and run unit tests
       run: scripts/unit_test.sh
     - name: Test Report
