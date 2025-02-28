@@ -1,21 +1,18 @@
 #!/bin/bash
 
-BUILD_DIR="release"
-SETUP=false
+BUILD_DIR=".build"
 RUN=false
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -s) SETUP=true ;;
         -r) RUN=true ;;
         *) echo "Unknown option: $1" && exit 1 ;;
     esac
     shift
 done
 
-# Meson setup (if -s is passed)
-if $SETUP; then
+if [ ! -d "$BUILD_DIR" ]; then
     echo "Setting up Meson..."
     meson setup "$BUILD_DIR" --buildtype=release
 fi

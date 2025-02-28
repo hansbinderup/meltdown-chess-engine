@@ -1,8 +1,11 @@
 #!/bin/bash
 
-BUILD_DIR=".test"
+BUILD_DIR=".build-tests"
 
-meson setup "$BUILD_DIR" -Dunit-tests=true -Db_coverage=true
+
+if [ ! -d "$BUILD_DIR" ]; then
+    meson setup "$BUILD_DIR" -Dunit-tests=true -Db_coverage=true
+fi
 
 # only run the unit tests - we don't want to start the application here
 meson test unit-tests -C "$BUILD_DIR" --print-errorlogs --timeout=10
