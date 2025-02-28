@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 BUILD_DIR=".debug"
 
 if [ ! -d "$BUILD_DIR" ]; then
