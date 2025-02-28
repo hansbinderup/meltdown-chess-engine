@@ -23,7 +23,7 @@ std::optional<uint64_t> to_number(std::string_view str)
     return std::nullopt;
 }
 
-static std::pair<std::string_view, std::string_view> split_sv_by_space(std::string_view sv)
+constexpr std::pair<std::string_view, std::string_view> split_sv_by_space(std::string_view sv)
 {
     const auto firstSep = sv.find_first_of(' ');
     const auto first = sv.substr(0, firstSep);
@@ -34,7 +34,7 @@ static std::pair<std::string_view, std::string_view> split_sv_by_space(std::stri
     return std::make_pair(first, second);
 }
 
-static std::optional<std::string_view> sv_next_split(std::string_view& sv)
+constexpr std::optional<std::string_view> sv_next_split(std::string_view& sv)
 {
     const auto firstSep = sv.find_first_of(' ');
 
