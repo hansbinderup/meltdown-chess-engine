@@ -14,9 +14,10 @@ if get_option('buildtype') != 'debug'
   add_project_arguments('-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 endif
 
+# TODO: add to separate meson file
+magic_enum = subproject('magic_enum', default_options: ['test=false'])
+magic_enum_dep = magic_enum.get_variable('magic_enum_dep')
 
-# header only dependency - TODO: add as wrap dependency instead
-magic_enum_dep = declare_dependency(include_directories: 'externals/magic_enum/include/')
 meltdown_dep = declare_dependency(include_directories: '..', dependencies: magic_enum_dep)
 
 meltdown = executable('meltdown-chess-engine', 'src/main.cpp',

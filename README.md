@@ -24,6 +24,9 @@ Comments:
 
 ## Getting started
 
-1. Init dependencies: `git submodule update --init --recursive`
-2. Setup meson by running: `meson setup build`
-3. Compile using meson: `meson compile -C build`
+1. Setup [docker](https://docs.docker.com/get-started/get-docker/)
+2. Run docker iteractively: `./docker/run.sh`
+3. Run one of the 3 build scripts:
+    * For release/optimized build: `./scripts/build.sh -r` (-r is optional and will run the compiled executable)
+    * For debugging in gdb: `./scripts/debug.sh`
+    * Compile and run unit-tests: `./scripts/unit_test.sh`
