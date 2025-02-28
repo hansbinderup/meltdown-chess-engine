@@ -20,7 +20,8 @@ jobs:
       uses: actions/checkout@v4
       with:
           clean: true
-          set-safe-directory: true
+    - name: Safe directory
+      run: git config --global --add safe.directory '*'
     - name: Build release
       run: scripts/build.sh
 
@@ -34,7 +35,8 @@ jobs:
       uses: actions/checkout@v4
       with:
           clean: true
-          set-safe-directory: true
+    - name: Safe directory
+      run: git config --global --add safe.directory '*'
     - name: Build and run unit tests
       run: scripts/unit_test.sh
     - name: Test Report
