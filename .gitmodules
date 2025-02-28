@@ -1,3 +1,0 @@
-[submodule "externals/magic_enum"]
-	path = externals/magic_enum
-	url = git@github.com:Neargye/magic_enum.git
