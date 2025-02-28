@@ -108,8 +108,7 @@ constexpr uint64_t generateHashKey(const BitBoard& board)
     key ^= s_castlingHashTable[board.castlingRights];
 
     if (board.enPessant.has_value()) {
-        const int square = std::countr_zero(board.enPessant.value());
-        key ^= s_enpessantHashTable[square];
+        key ^= s_enpessantHashTable[board.enPessant.value()];
     }
 
     /* only need to hash black as we only have two players */

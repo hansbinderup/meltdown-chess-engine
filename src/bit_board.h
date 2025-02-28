@@ -67,7 +67,7 @@ struct BitBoard {
     // which player to perform next move
     Player player;
 
-    std::optional<uint64_t> enPessant;
+    std::optional<BoardPosition> enPessant;
 
     // amount of rounds that the game has been played
     uint16_t fullMoves {};

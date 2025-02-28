@@ -13,20 +13,6 @@ namespace engine {
 
 namespace {
 
-std::string enPessantToString(std::optional<uint64_t> val)
-{
-    if (val.has_value() && val.value() != 0) {
-        const int position = std::countr_zero(val.value());
-
-        char column = 'a' + (position % 8);
-        char row = '1' + (position / 8);
-
-        return std::string { column, row };
-    }
-
-    return "none";
-}
-
 constexpr static inline void clearPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
     piece &= ~(1ULL << pos);
@@ -201,6 +187,15 @@ constexpr static inline bool isKingAttacked(const BitBoard& board)
     }
 }
 
+constexpr BoardPosition enpessantCapturePosition(BoardPosition pos, Player player)
+{
+    if (player == PlayerWhite) {
+        return static_cast<BoardPosition>(pos - 8);
+    } else {
+        return static_cast<BoardPosition>(pos + 8);
+    }
+}
+
 constexpr static inline BitBoard performMove(const BitBoard& board, const movement::Move& move, uint64_t& hash)
 {
     BitBoard newBoard = board;
@@ -213,12 +208,10 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
     } else if (move.takeEnPessant()) {
         if (newBoard.player == PlayerWhite) {
             movePiece(newBoard.pieces[WhitePawn], fromPos, toPos, WhitePawn, hash);
-            clearPiece(newBoard.pieces[BlackPawn], static_cast<BoardPosition>(toPos - 8), BlackPawn, hash);
-            hashEnpessant(static_cast<BoardPosition>(toPos - 8), hash); // remove from hash
+            clearPiece(newBoard.pieces[BlackPawn], enpessantCapturePosition(toPos, PlayerWhite), BlackPawn, hash);
         } else {
-            movePiece(newBoard.pieces[BlackPawn], fromPos, toPos, WhitePawn, hash);
-            clearPiece(newBoard.pieces[WhitePawn], static_cast<BoardPosition>(toPos + 8), WhitePawn, hash);
-            hashEnpessant(static_cast<BoardPosition>(toPos + 8), hash); // remove from hash
+            movePiece(newBoard.pieces[BlackPawn], fromPos, toPos, BlackPawn, hash);
+            clearPiece(newBoard.pieces[WhitePawn], enpessantCapturePosition(toPos, PlayerBlack), WhitePawn, hash);
         }
     } else if (move.isPromotionMove()) {
         performPromotionMove(newBoard, move, hash);
@@ -239,12 +232,14 @@ constexpr static inline BitBoard performMove(const BitBoard& board, const moveme
     updateCastlingRights(newBoard, toPos);
     hashCastling(newBoard.castlingRights, hash); // add new hash
 
-    if (move.hasEnPessant()) {
-        const BoardPosition enpessantPos = static_cast<BoardPosition>(move.piece() == Piece::WhitePawn ? toPos - 8 : toPos + 8);
-        newBoard.enPessant = 1ULL << enpessantPos;
-        hashEnpessant(enpessantPos, hash);
-    } else {
+    if (board.enPessant.has_value()) {
         newBoard.enPessant.reset();
+        hashEnpessant(board.enPessant.value(), hash);
+    }
+
+    if (move.hasEnPessant()) {
+        newBoard.enPessant = enpessantCapturePosition(toPos, newBoard.player);
+        hashEnpessant(newBoard.enPessant.value(), hash);
     }
 
     newBoard.updateOccupation();
@@ -323,7 +318,7 @@ constexpr static inline void printBoardDebug(FileLogger& logger, const BitBoard&
     logger << "Player: " << magic_enum::enum_name(board.player);
     logger << "\nFullMoves: " << std::to_string(board.fullMoves);
     logger << "\nHalfMoves: " << std::to_string(board.halfMoves);
-    logger << "\nEnPessant: " << enPessantToString(board.enPessant);
+    logger << "\nEnPessant: " << (board.enPessant.has_value() ? magic_enum::enum_name(board.enPessant.value()) : "none");
     logger << "\nHash: " << std::to_string(generateHashKey(board));
     logger << "\nCastle: ";
     for (const auto& move : allMoves.getMoves()) {

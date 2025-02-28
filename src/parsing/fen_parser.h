@@ -153,15 +153,15 @@ public:
 
         const uint8_t column = input.value().at(0) - 'a';
         const uint8_t row = input.value().at(1) - '1';
-        const uint8_t square = (row * 8) + column;
+        const BoardPosition pos = static_cast<BoardPosition>((row * 8) + column);
 
-        std::cout << input.value() << " " << std::to_string(row) << " " << std::to_string(column) << " " << std::to_string(square) << std::endl;
+        std::cout << input.value() << " " << std::to_string(row) << " " << std::to_string(column) << " " << std::to_string(pos) << std::endl;
 
-        if (square > 63) {
+        if (pos > 63) {
             return false;
         }
 
-        board.enPessant = 1ULL << square;
+        board.enPessant = pos;
         return true;
     }
 

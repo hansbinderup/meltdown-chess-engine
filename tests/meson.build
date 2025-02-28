@@ -5,6 +5,7 @@ unit_test_sources = files(
   'src/perft.cpp',
   'src/zobrist_hashing.cpp',
   'src/tt_hash_table.cpp',
+  'src/move_gen_hashing.cpp'
 )
 
 exe = executable(
