@@ -1,0 +1,64 @@
+
+
+#include "src/bit_board.h"
+#include "src/parsing/fen_parser.h"
+
+#include <catch2/catch_test_macros.hpp>
+
+#define private public
+#include <src/evaluation/evaluator.h>
+
+TEST_CASE("Movegen Hashing", "[move ordering]")
+{
+    FileLogger s_fileLogger { "/tmp/uci.log" };
+    evaluation::Evaluator s_evaluator { s_fileLogger };
+    s_evaluator.reset();
+
+    SECTION("Test capture moves only")
+    {
+        const auto board = parsing::FenParser::parse("1k6/8/8/4q3/3P4/8/n5n1/R6K w - - 0 0");
+        REQUIRE(board.has_value());
+
+        auto allMoves = engine::getAllMoves(board.value());
+        s_evaluator.sortMoves(board.value(), allMoves, 0);
+
+        const auto movesBeforeEval = allMoves.getMoves();
+        REQUIRE(movesBeforeEval[0].piece() == WhitePawn);
+        REQUIRE(movesBeforeEval[1].piece() == WhiteRook);
+        REQUIRE(movesBeforeEval[2].piece() == WhiteKing);
+
+        const auto move = s_evaluator.getBestMove(board.value(), 4);
+        REQUIRE(move.piece() == WhitePawn);
+
+        s_evaluator.sortMoves(board.value(), allMoves, 0);
+        const auto movesAfterEval = allMoves.getMoves();
+        REQUIRE(movesAfterEval[0].piece() == WhitePawn);
+        REQUIRE(movesAfterEval[1].piece() == WhiteRook);
+        REQUIRE(movesAfterEval[2].piece() == WhiteKing);
+    }
+
+    SECTION("Test capture and evasion moves")
+    {
+        const auto board = parsing::FenParser::parse("1k6/6p1/7Q/4q3/3P4/8/n5n1/R6K w - - 0 0");
+        REQUIRE(board.has_value());
+
+        auto allMoves = engine::getAllMoves(board.value());
+        s_evaluator.sortMoves(board.value(), allMoves, 0);
+
+        const auto movesBeforeEval = allMoves.getMoves();
+        REQUIRE(movesBeforeEval[0].piece() == WhitePawn);
+        REQUIRE(movesBeforeEval[1].piece() == WhiteRook);
+        REQUIRE(movesBeforeEval[2].piece() == WhiteKing);
+        REQUIRE(movesBeforeEval[3].piece() == WhiteQueen);
+
+        const auto move = s_evaluator.getBestMove(board.value(), 4);
+        REQUIRE(move.piece() == WhiteQueen);
+
+        s_evaluator.sortMoves(board.value(), allMoves, 0);
+        const auto movesAfterEval = allMoves.getMoves();
+        REQUIRE(movesAfterEval[0].piece() == WhiteQueen);
+        REQUIRE(movesAfterEval[1].piece() == WhitePawn);
+        REQUIRE(movesAfterEval[2].piece() == WhiteRook);
+        REQUIRE(movesAfterEval[3].piece() == WhiteKing);
+    }
+}
