@@ -28,16 +28,12 @@ public:
         std::cout << "\ncaptures: " << s_captures;
         std::cout << "\ncastles: " << s_castles;
         std::cout << "\nenPessants: " << s_enPessants;
+        std::cout << "\npromotions " << s_promotions;
         std::cout << "\nchecks: " << s_checks;
         std::cout << "\ncheckMates: " << s_checkMates;
         std::cout << "\ntime: " << timeDiff << "ms";
 
         std::cout << std::endl;
-    }
-
-    constexpr static inline uint64_t getNodes()
-    {
-        return s_nodes;
     }
 
 private:
@@ -71,6 +67,9 @@ private:
                 if (move.takeEnPessant()) {
                     s_enPessants++;
                 }
+
+                if (move.isPromotionMove())
+                    s_promotions++;
 
                 s_nodes++;
             }
@@ -113,6 +112,7 @@ private:
         s_checks = 0;
         s_checkMates = 0;
         s_enPessants = 0;
+        s_promotions = 0;
         s_prevNodes = 0;
     }
 
@@ -122,6 +122,7 @@ private:
     static inline uint64_t s_checks {};
     static inline uint64_t s_checkMates {};
     static inline uint64_t s_enPessants {};
+    static inline uint64_t s_promotions {};
     static inline uint64_t s_prevNodes {};
     static inline uint64_t s_hash {};
 };

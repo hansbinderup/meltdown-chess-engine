@@ -56,7 +56,7 @@ public:
 
     constexpr static inline Move createEnPessant(uint8_t from, uint8_t to, Piece piece, bool enPessant, bool takeEnPessant)
     {
-        return Move(from, to, piece, PromotionNone, CastleNone, false, enPessant, takeEnPessant);
+        return Move(from, to, piece, PromotionNone, CastleNone, takeEnPessant, enPessant, takeEnPessant);
     }
 
     friend bool operator<=>(const Move& a, const Move& b) = default;
