@@ -134,7 +134,7 @@ constexpr movement::ValidMoves getAllMoves(const BitBoard& board)
     movement::ValidMoves validMoves;
 
     if (board.player == PlayerWhite) {
-        uint64_t attacks = gen::getAllAttacks(board, PlayerBlack);
+        const uint64_t attacks = board.attacks[PlayerBlack];
         gen::getKingMoves(validMoves, board, attacks);
         gen::getPawnMoves(validMoves, board);
         gen::getKnightMoves(validMoves, board);
@@ -143,7 +143,7 @@ constexpr movement::ValidMoves getAllMoves(const BitBoard& board)
         gen::getQueenMoves(validMoves, board);
         gen::getCastlingMoves(validMoves, board, attacks);
     } else {
-        uint64_t attacks = gen::getAllAttacks(board, PlayerWhite);
+        const uint64_t attacks = board.attacks[PlayerWhite];
         gen::getKingMoves(validMoves, board, attacks);
         gen::getPawnMoves(validMoves, board);
         gen::getKnightMoves(validMoves, board);
@@ -172,19 +172,15 @@ constexpr movement::ValidMoves getAllCaptures(const BitBoard& board)
 constexpr static inline bool isKingAttacked(const BitBoard& board, Player player)
 {
     if (player == PlayerWhite) {
-        return board.pieces[WhiteKing] & gen::getAllAttacks(board, PlayerBlack);
+        return board.pieces[WhiteKing] & board.attacks[PlayerBlack];
     } else {
-        return board.pieces[BlackKing] & gen::getAllAttacks(board, PlayerWhite);
+        return board.pieces[BlackKing] & board.attacks[PlayerWhite];
     }
 }
 
 constexpr static inline bool isKingAttacked(const BitBoard& board)
 {
-    if (board.player == PlayerWhite) {
-        return board.pieces[WhiteKing] & gen::getAllAttacks(board, PlayerBlack);
-    } else {
-        return board.pieces[BlackKing] & gen::getAllAttacks(board, PlayerWhite);
-    }
+    return isKingAttacked(board, board.player);
 }
 
 constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos, Player player)
@@ -243,6 +239,9 @@ constexpr BitBoard performMove(const BitBoard& board, const movement::Move& move
     }
 
     newBoard.updateOccupation();
+
+    newBoard.attacks[PlayerWhite] = gen::getAllAttacks(newBoard, PlayerWhite);
+    newBoard.attacks[PlayerBlack] = gen::getAllAttacks(newBoard, PlayerBlack);
 
     /* player making the move is black -> inc full moves */
     if (board.player == PlayerBlack)
