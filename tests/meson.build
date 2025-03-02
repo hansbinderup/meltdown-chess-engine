@@ -8,6 +8,7 @@ unit_test_sources = files(
   'src/test_move_gen_hashing.cpp',
   'src/test_move_ordering.cpp',
   'src/test_killer_moves.cpp',
+  'src/test_history_moves.cpp',
 )
 
 exe = executable(
