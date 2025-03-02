@@ -468,9 +468,13 @@ private:
 
     constexpr void sortMoves(const BitBoard& board, movement::ValidMoves& moves, uint8_t ply)
     {
-        std::sort(moves.getMoves().begin(), moves.getMoves().end(), [&, this](const auto& a, const auto& b) {
+        /* use stable sort to keep determinism
+         * TODO: consider if there's a better way to sort */
+        std::stable_sort(moves.getMoves().begin(), moves.getMoves().end(), [&, this](const auto& a, const auto& b) {
             return m_scoring.score(board, a, ply) > m_scoring.score(board, b, ply);
         });
+
+        m_scoring.pvTable().setIsScoring(false);
     }
 
     constexpr void checkIfStopped()

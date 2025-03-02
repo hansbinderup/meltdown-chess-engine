@@ -21,7 +21,7 @@ public:
         m_killerMoves.at(ply) = updatedKillerMove;
     }
 
-    KillerMove get(uint8_t ply)
+    KillerMove get(uint8_t ply) const
     {
         return m_killerMoves.at(ply);
     }
