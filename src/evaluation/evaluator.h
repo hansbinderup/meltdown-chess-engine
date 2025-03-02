@@ -48,6 +48,8 @@ public:
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
+        reset();
+
         uint8_t depth = depthInput.value_or(5);
 
         auto captures = engine::getAllCaptures(board);
@@ -64,13 +66,9 @@ public:
         sortMoves(board, allMoves, m_ply);
         m_logger << std::format("Move evaluations [{}]:\n", depth);
         for (const auto& move : allMoves) {
-            uint64_t oldHash = m_hash;
-            const auto newBoard = engine::performMove(board, move, m_hash);
+            int32_t score = negamax(depth, board);
 
-            int32_t score = -negamax(depth, newBoard);
-            m_hash = oldHash;
-
-            m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", m_scoring.score(board, move, 0), move.toString().data(), score, m_nodes);
+            m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", move.toString().data(), m_scoring.score(board, move, 0), score, m_nodes);
 
             for (const auto& move : m_scoring.pvTable()) {
                 m_logger << move.toString().data() << " ";
@@ -80,6 +78,8 @@ public:
             // flush so we can follow each line appear - can take some time
             m_logger.flush();
         }
+
+        m_logger.log("Best move: {}", m_scoring.pvTable().bestMove().toString().data());
     }
 
     void setWhiteTime(uint64_t time)

@@ -100,7 +100,7 @@ constexpr static inline uint64_t s_hFileMask { 0x8080808080808080 };
 constexpr static inline uint64_t s_row2Mask { 0xffULL << s_secondRow };
 constexpr static inline uint64_t s_row7Mask { 0xffULL << s_seventhRow };
 
-constexpr static inline int32_t s_maxScore = std::numeric_limits<int32_t>::max();
+constexpr static inline int32_t s_maxScore = 50000;
 constexpr static inline int32_t s_minScore = -s_maxScore; // num limit is +1 higher than max
 
 constexpr static inline int32_t s_mateValue { s_maxScore - 1000 };
