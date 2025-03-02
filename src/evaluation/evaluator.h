@@ -132,6 +132,12 @@ public:
     {
         resetTiming(); // full reset required
         m_scoring.reset();
+        m_repetition.reset();
+    }
+
+    void updateRepetition(uint64_t hash)
+    {
+        m_repetition.add(hash);
     }
 
 private:

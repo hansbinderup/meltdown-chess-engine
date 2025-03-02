@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/board_defs.h"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 
@@ -36,7 +37,13 @@ public:
         return m_repetitions.begin() + m_count;
     }
 
+    void reset()
+    {
+        std::ranges::fill(m_repetitions, 0);
+        m_count = 0;
+    }
+
 private:
-    uint8_t m_count {};
-    std::array<uint64_t, s_maxSearchDepth> m_repetitions {};
+    uint16_t m_count {};
+    std::array<uint64_t, s_maxHalfMoves> m_repetitions {};
 };
