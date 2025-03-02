@@ -117,7 +117,7 @@ public:
      * This method will reset search parameters
      * to be called before starting a scan
      */
-    void reset()
+    void resetTiming()
     {
         m_whiteTime = 0;
         m_blackTime = 0;
@@ -127,6 +127,11 @@ public:
         m_blackMoveInc = 0;
         m_isStopped = false;
         m_nodes = 0;
+    }
+
+    void reset()
+    {
+        resetTiming(); // full reset required
         m_scoring.reset();
     }
 

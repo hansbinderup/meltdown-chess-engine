@@ -137,7 +137,7 @@ private:
     {
         std::optional<uint8_t> depth;
 
-        s_evaluator.reset();
+        s_evaluator.resetTiming();
 
         while (const auto setting = parsing::sv_next_split(args)) {
             const auto value = parsing::sv_next_split(args);
