@@ -9,7 +9,7 @@ namespace heuristic {
 
 class HistoryMoves {
 public:
-    int16_t get(Piece movePiece, uint8_t targetPosition)
+    int32_t get(Piece movePiece, uint8_t targetPosition)
     {
         return m_historyMoves.at(targetPosition).at(movePiece);
     }
@@ -35,7 +35,7 @@ public:
     }
 
 private:
-    using HistoryMove = std::array<int16_t, magic_enum::enum_count<Piece>()>;
+    using HistoryMove = std::array<int32_t, magic_enum::enum_count<Piece>()>;
     std::array<HistoryMove, 64> m_historyMoves {}; // history move for each square
 };
 

@@ -16,7 +16,7 @@ namespace evaluation {
 namespace {
 
 /* material score for each piece - lookup based on Piece enum */
-constexpr static inline auto s_pieceScoring = std::to_array<int16_t>({
+constexpr static inline auto s_pieceScoring = std::to_array<int32_t>({
     100, /* White Pawn */
     300, /* White Knight */
     350, /* White Bishop */
@@ -33,9 +33,9 @@ constexpr static inline auto s_pieceScoring = std::to_array<int16_t>({
 
 }
 
-constexpr int16_t materialScore(const BitBoard& board)
+constexpr int32_t materialScore(const BitBoard& board)
 {
-    int16_t score = 0;
+    int32_t score = 0;
 
     // Material scoring
     for (const auto piece : magic_enum::enum_values<Piece>()) {

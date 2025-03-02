@@ -21,7 +21,7 @@ struct TtHashEntry {
     uint64_t key = 0;
     uint8_t depth = 0;
     TtHashFlag flag = TtHashExact;
-    int16_t score = 0;
+    int32_t score = 0;
 };
 
 static inline std::array<TtHashEntry, s_ttHashSize> s_ttHashTable;
@@ -34,7 +34,7 @@ inline void clearTable()
     std::ranges::fill(s_ttHashTable, TtHashEntry {});
 }
 
-constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alpha, int16_t beta, uint8_t depth, uint8_t ply)
+constexpr inline std::optional<int32_t> readHashEntry(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
 {
     auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -43,7 +43,7 @@ constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alph
     }
 
     if (entry.depth >= depth) {
-        int16_t score = entry.score;
+        int32_t score = entry.score;
 
         /* special case when mating score is found */
         if (score < -s_mateScore)
@@ -67,7 +67,7 @@ constexpr inline std::optional<int16_t> readHashEntry(uint64_t key, int16_t alph
     return std::nullopt;
 }
 
-constexpr inline void writeHashEntry(uint64_t key, int16_t score, uint8_t depth, uint8_t ply, TtHashFlag flag)
+constexpr inline void writeHashEntry(uint64_t key, int32_t score, uint8_t depth, uint8_t ply, TtHashFlag flag)
 {
     auto& entry = s_ttHashTable[key % s_ttHashSize];
 

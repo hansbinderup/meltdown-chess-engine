@@ -48,7 +48,7 @@ public:
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        uint8_t depth = depthInput.value_or(3);
+        uint8_t depth = depthInput.value_or(5);
 
         auto captures = engine::getAllCaptures(board);
         sortMoves(board, captures, m_ply);
@@ -67,10 +67,10 @@ public:
             uint64_t oldHash = m_hash;
             const auto newBoard = engine::performMove(board, move, m_hash);
 
-            int16_t score = -negamax(depth, newBoard);
+            int32_t score = -negamax(depth, newBoard);
             m_hash = oldHash;
 
-            m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", m_scoring.score(newBoard, move, 0), move.toString().data(), score, m_nodes);
+            m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", m_scoring.score(board, move, 0), move.toString().data(), score, m_nodes);
 
             const auto pvMoves = m_scoring.pvTable().getMoves();
             for (const auto& move : pvMoves) {
@@ -159,8 +159,8 @@ private:
     constexpr movement::Move scanForBestMove(std::chrono::time_point<std::chrono::system_clock> startTime, uint8_t depth, const BitBoard& board)
     {
 
-        int16_t alpha = s_minScore;
-        int16_t beta = s_maxScore;
+        int32_t alpha = s_minScore;
+        int32_t beta = s_maxScore;
 
         /*
          * iterative deeping - with aspiration window
@@ -173,7 +173,7 @@ private:
 
             m_scoring.pvTable().setIsFollowing(true);
 
-            int16_t score = negamax(d, board, alpha, beta);
+            int32_t score = negamax(d, board, alpha, beta);
 
             /* the search fell outside the window - we need to retry a full search */
             if ((score <= alpha) || (score >= beta)) {
@@ -192,7 +192,7 @@ private:
         return m_scoring.pvTable().bestMove();
     }
 
-    constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int16_t score, uint8_t currentDepth, uint8_t searchDepth)
+    constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth, uint8_t searchDepth)
     {
         using namespace std::chrono;
 
@@ -213,7 +213,7 @@ private:
         std::cout << std::endl;
     }
 
-    constexpr int16_t negamax(uint8_t depth, const BitBoard& board, int16_t alpha = s_minScore, int16_t beta = s_maxScore)
+    constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
         if (m_ply) {
             if (m_repetition.isRepetition(m_hash)) {
@@ -244,8 +244,8 @@ private:
         m_nodes++;
 
         engine::tt::TtHashFlag hashFlag = engine::tt::TtHashAlpha;
-        int16_t score = 0;
-        uint16_t legalMoves = 0;
+        int32_t score = 0;
+        uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
         const Player currentPlayer = board.player;
         const bool isChecked = engine::isKingAttacked(board);
@@ -312,7 +312,7 @@ private:
             legalMoves++;
 
             const auto startTime = system_clock::now();
-            int16_t score = 0;
+            int32_t score = 0;
 
             /*
              * LMR
@@ -401,14 +401,14 @@ private:
         }
     }
 
-    constexpr int16_t quiesence(const BitBoard& board, int16_t alpha, int16_t beta)
+    constexpr int32_t quiesence(const BitBoard& board, int32_t alpha, int32_t beta)
     {
         using namespace std::chrono;
         checkIfStopped();
 
         m_nodes++;
 
-        const int16_t evaluation = materialScore(board);
+        const int32_t evaluation = materialScore(board);
 
         if (m_ply >= s_maxSearchDepth)
             return evaluation;
@@ -439,7 +439,7 @@ private:
             m_ply++;
 
             const auto startTime = system_clock::now();
-            const int16_t score = -quiesence(newBoard, -beta, -alpha);
+            const int32_t score = -quiesence(newBoard, -beta, -alpha);
 
             printMoveInfo(move, startTime);
 
@@ -512,9 +512,9 @@ private:
     std::chrono::time_point<std::chrono::system_clock> m_endTime;
 
     /* search configs */
-    constexpr static inline uint16_t s_fullDepthMove { 4 };
-    constexpr static inline uint16_t s_reductionLimit { 3 };
-    constexpr static inline uint16_t s_defaultAmountMoves { 50 };
+    constexpr static inline uint32_t s_fullDepthMove { 4 };
+    constexpr static inline uint32_t s_reductionLimit { 3 };
+    constexpr static inline uint32_t s_defaultAmountMoves { 50 };
 
     constexpr static inline uint8_t s_aspirationWindow { 50 };
     constexpr static inline uint8_t s_nullMoveReduction { 2 };

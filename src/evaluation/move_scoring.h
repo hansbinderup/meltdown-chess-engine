@@ -35,7 +35,7 @@ public:
         return m_historyMoves;
     }
 
-    constexpr int16_t score(const BitBoard& board, const movement::Move& move, uint8_t ply)
+    constexpr int32_t score(const BitBoard& board, const movement::Move& move, uint8_t ply)
     {
         if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
             m_pvTable.setIsScoring(false);
