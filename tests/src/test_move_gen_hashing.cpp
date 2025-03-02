@@ -10,7 +10,7 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 {
     const uint64_t originalHash = engine::generateHashKey(board);
     auto allMoves = engine::getAllMoves(board);
-    for (const auto& move : allMoves.getMoves()) {
+    for (const auto& move : allMoves) {
         uint64_t hash = originalHash;
         const auto newBoard = engine::performMove(board, move, hash);
         const auto newHash = engine::generateHashKey(newBoard);

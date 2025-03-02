@@ -53,7 +53,7 @@ public:
         auto captures = engine::getAllCaptures(board);
         sortMoves(board, captures, m_ply);
         m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
-        for (const auto& move : captures.getMoves()) {
+        for (const auto& move : captures) {
             m_logger << std::format("{} [{}]  ", move.toString().data(), m_scoring.score(board, move, 0));
         }
         m_logger << "\n\n";
@@ -63,7 +63,7 @@ public:
         auto allMoves = engine::getAllMoves(board);
         sortMoves(board, allMoves, m_ply);
         m_logger << std::format("Move evaluations [{}]:\n", depth);
-        for (const auto& move : allMoves.getMoves()) {
+        for (const auto& move : allMoves) {
             uint64_t oldHash = m_hash;
             const auto newBoard = engine::performMove(board, move, m_hash);
 
@@ -72,8 +72,7 @@ public:
 
             m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", m_scoring.score(board, move, 0), move.toString().data(), score, m_nodes);
 
-            const auto pvMoves = m_scoring.pvTable().getMoves();
-            for (const auto& move : pvMoves) {
+            for (const auto& move : m_scoring.pvTable()) {
                 m_logger << move.toString().data() << " ";
             }
             m_logger << "\n";
@@ -211,8 +210,7 @@ private:
         else
             std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, currentDepth, searchDepth, m_nodes);
 
-        const auto pvMoves = m_scoring.pvTable().getMoves();
-        for (const auto& move : pvMoves) {
+        for (const auto& move : m_scoring.pvTable()) {
             std::cout << move.toString().data() << " ";
         }
         std::cout << std::endl;
@@ -302,7 +300,7 @@ private:
         }
 
         sortMoves(board, allMoves, m_ply);
-        for (const auto& move : allMoves.getMoves()) {
+        for (const auto& move : allMoves) {
             /* TODO: make this smarter.. un/do move? */
             uint64_t oldHash = m_hash;
             const auto newBoard = engine::performMove(board, move, m_hash);
@@ -430,7 +428,7 @@ private:
         auto allMoves = engine::getAllCaptures(board);
         sortMoves(board, allMoves, m_ply);
 
-        for (const auto& move : allMoves.getMoves()) {
+        for (const auto& move : allMoves) {
             uint64_t oldHash = m_hash;
             const auto newBoard = engine::performMove(board, move, m_hash);
 
@@ -470,7 +468,7 @@ private:
     {
         /* use stable sort to keep determinism
          * TODO: consider if there's a better way to sort */
-        std::stable_sort(moves.getMoves().begin(), moves.getMoves().end(), [&, this](const auto& a, const auto& b) {
+        std::stable_sort(moves.begin(), moves.end(), [&, this](const auto& a, const auto& b) {
             return m_scoring.score(board, a, ply) > m_scoring.score(board, b, ply);
         });
 

@@ -22,19 +22,18 @@ TEST_CASE("Movegen Hashing", "[move ordering]")
         auto allMoves = engine::getAllMoves(board.value());
         s_evaluator.sortMoves(board.value(), allMoves, 0);
 
-        const auto movesBeforeEval = allMoves.getMoves();
-        REQUIRE(movesBeforeEval[0].piece() == WhitePawn);
-        REQUIRE(movesBeforeEval[1].piece() == WhiteRook);
-        REQUIRE(movesBeforeEval[2].piece() == WhiteKing);
+        REQUIRE(allMoves[0].piece() == WhitePawn);
+        REQUIRE(allMoves[1].piece() == WhiteRook);
+        REQUIRE(allMoves[2].piece() == WhiteKing);
 
         const auto move = s_evaluator.getBestMove(board.value(), 4);
         REQUIRE(move.piece() == WhitePawn);
 
         s_evaluator.sortMoves(board.value(), allMoves, 0);
-        const auto movesAfterEval = allMoves.getMoves();
-        REQUIRE(movesAfterEval[0].piece() == WhitePawn);
-        REQUIRE(movesAfterEval[1].piece() == WhiteRook);
-        REQUIRE(movesAfterEval[2].piece() == WhiteKing);
+
+        REQUIRE(allMoves[0].piece() == WhitePawn);
+        REQUIRE(allMoves[1].piece() == WhiteRook);
+        REQUIRE(allMoves[2].piece() == WhiteKing);
     }
 
     SECTION("Test capture and evasion moves")
@@ -45,11 +44,10 @@ TEST_CASE("Movegen Hashing", "[move ordering]")
         auto allMoves = engine::getAllMoves(board.value());
         s_evaluator.sortMoves(board.value(), allMoves, 0);
 
-        const auto movesBeforeEval = allMoves.getMoves();
-        REQUIRE(movesBeforeEval[0].piece() == WhitePawn); // pawn is attacking queen
-        REQUIRE(movesBeforeEval[1].piece() == WhiteRook);
-        REQUIRE(movesBeforeEval[2].piece() == WhiteKing);
-        REQUIRE(movesBeforeEval[3].piece() == WhiteQueen);
+        REQUIRE(allMoves[0].piece() == WhitePawn); // pawn is attacking queen
+        REQUIRE(allMoves[1].piece() == WhiteRook);
+        REQUIRE(allMoves[2].piece() == WhiteKing);
+        REQUIRE(allMoves[3].piece() == WhiteQueen);
 
         const auto move = s_evaluator.getBestMove(board.value(), 4);
         REQUIRE(move.piece() == WhiteQueen); // evading attack + checking king = better move!

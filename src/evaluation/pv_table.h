@@ -34,11 +34,6 @@ public:
         return m_pvTable.at(0).at(0);
     }
 
-    const std::span<const movement::Move> getMoves() const
-    {
-        return { m_pvTable.at(0).data(), m_pvLength.at(0) };
-    }
-
     void updateLength(uint8_t ply)
     {
         m_pvLength.at(ply) = ply;
@@ -84,13 +79,31 @@ public:
     {
         m_isFollowing = false;
 
-        for (const auto& move : moves.getMoves()) {
+        for (const auto& move : moves) {
             if (isPvMove(move, ply)) {
                 m_isScoring = true;
                 m_isFollowing = true;
             }
         }
     }
+
+    uint8_t size() const
+    {
+        return m_pvLength.at(0);
+    }
+
+    const movement::Move* begin() const
+    {
+        return m_pvTable.at(0).begin();
+    }
+
+    const movement::Move* end() const
+    {
+        return m_pvTable.at(0).begin() + size();
+    }
+
+    movement::Move operator[](int i) const { return m_pvTable.at(0).at(i); }
+    movement::Move& operator[](int i) { return m_pvTable.at(0).at(i); }
 
 private:
     using PVNode = std::array<movement::Move, s_maxSearchDepth>;

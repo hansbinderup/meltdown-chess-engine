@@ -40,11 +40,10 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
             pvTable.updateTable(move, p);
         }
 
-        auto moves = pvTable.getMoves();
-        REQUIRE(moves.size() == size);
+        REQUIRE(pvTable.size() == size);
         for (uint8_t p = A1; p <= G3; p++) {
             Move move = Move::create(p, p + 8, WhitePawn, false);
-            REQUIRE(moves[p] == move);
+            REQUIRE(pvTable[p] == move);
         }
     }
 
