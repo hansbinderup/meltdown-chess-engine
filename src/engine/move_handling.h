@@ -161,7 +161,7 @@ constexpr movement::ValidMoves getAllCaptures(const BitBoard& board)
     movement::ValidMoves captures;
     const auto allMoves = getAllMoves(board);
 
-    for (const auto& move : allMoves.getMoves()) {
+    for (const auto& move : allMoves) {
         if (move.isCapture())
             captures.addMove(move);
     }
@@ -321,14 +321,14 @@ constexpr void printBoardDebug(FileLogger& logger, const BitBoard& board)
     logger << "\nEnPessant: " << (board.enPessant.has_value() ? magic_enum::enum_name(board.enPessant.value()) : "none");
     logger << "\nHash: " << std::to_string(generateHashKey(board));
     logger << "\nCastle: ";
-    for (const auto& move : allMoves.getMoves()) {
+    for (const auto& move : allMoves) {
         if (move.isCastleMove()) {
             logger << move.toString().data() << " ";
         }
     }
 
     logger << "\n\nMoves[" << allMoves.count() << "]:\n";
-    for (const auto& move : allMoves.getMoves()) {
+    for (const auto& move : allMoves) {
         logger << move.toString().data() << " ";
     }
 

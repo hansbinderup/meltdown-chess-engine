@@ -85,7 +85,7 @@ static inline std::optional<movement::Move> moveFromString(const BitBoard& board
             promotion = PromotionQueen;
     }
 
-    const auto allMoves = engine::getAllMoves(board).getMoves();
+    const auto allMoves = engine::getAllMoves(board);
     for (const auto& move : allMoves) {
         if (compareMove(move, fromIndex, toIndex, promotion)) {
             return move;

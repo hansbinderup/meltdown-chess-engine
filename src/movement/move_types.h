@@ -167,16 +167,6 @@ private:
 
 class ValidMoves {
 public:
-    std::span<const Move> getMoves() const
-    {
-        return std::span(m_moves.data(), m_count);
-    }
-
-    std::span<Move> getMoves()
-    {
-        return std::span(m_moves.data(), m_count);
-    }
-
     uint32_t count() const
     {
         return m_count;
@@ -187,9 +177,32 @@ public:
         m_moves[m_count++] = std::move(move);
     }
 
+    Move* begin()
+    {
+        return m_moves.begin();
+    }
+
+    Move* end()
+    {
+        return m_moves.begin() + m_count;
+    }
+
+    const Move* begin() const
+    {
+        return m_moves.begin();
+    }
+
+    const Move* end() const
+    {
+        return m_moves.begin() + m_count;
+    }
+
+    Move operator[](int i) const { return m_moves[i]; }
+    Move& operator[](int i) { return m_moves[i]; }
+
 private:
     std::array<Move, s_maxMoves> m_moves {};
-    uint32_t m_count = 0;
+    std::size_t m_count = 0;
 };
 
 }
