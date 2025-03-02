@@ -126,6 +126,7 @@ public:
         m_blackMoveInc = 0;
         m_isStopped = false;
         m_nodes = 0;
+        m_selDepth = 0;
     }
 
     void reset()
@@ -191,7 +192,7 @@ private:
                 alpha = s_minScore;
                 beta = s_maxScore;
 
-                printScoreInfo(startTime, score, d, depth);
+                printScoreInfo(startTime, score, d);
                 continue;
             }
 
@@ -199,7 +200,7 @@ private:
             alpha = score - s_aspirationWindow;
             beta = score + s_aspirationWindow;
 
-            printScoreInfo(startTime, score, d, depth);
+            printScoreInfo(startTime, score, d);
 
             /* only increment depth, if we didn't fall out of the window */
             d++;
@@ -208,7 +209,7 @@ private:
         return m_scoring.pvTable().bestMove();
     }
 
-    constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth, uint8_t searchDepth)
+    constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth)
     {
         using namespace std::chrono;
 
@@ -216,11 +217,11 @@ private:
         const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
 
         if (score > -s_mateValue && score < -s_mateScore)
-            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, searchDepth, m_nodes);
+            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes);
         else if (score > s_mateScore && score < s_mateValue)
-            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, searchDepth, m_nodes);
+            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes);
         else
-            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, currentDepth, searchDepth, m_nodes);
+            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes);
 
         for (const auto& move : m_scoring.pvTable()) {
             std::cout << move.toString().data() << " ";
@@ -367,6 +368,7 @@ private:
         checkIfStopped();
 
         m_nodes++;
+        m_selDepth = std::max(m_selDepth, m_ply);
 
         const int32_t evaluation = materialScore(board);
 
@@ -516,6 +518,7 @@ private:
     uint8_t m_ply;
     bool m_isStopped;
     uint64_t m_hash {};
+    uint8_t m_selDepth {};
 
     MoveScoring m_scoring {};
     Repetition m_repetition;
