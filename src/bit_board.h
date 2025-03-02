@@ -60,6 +60,7 @@ struct BitBoard {
 
     std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces {};
     std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation {};
+    std::array<uint64_t, magic_enum::enum_count<Player>()> attacks {};
 
     // castling
     uint64_t castlingRights {};
