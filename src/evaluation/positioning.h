@@ -13,7 +13,7 @@ namespace evaluation {
 
 namespace {
 
-constexpr auto s_whitePawnTable = std::to_array<int16_t>(
+constexpr auto s_whitePawnTable = std::to_array<int32_t>(
     { 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, -10, -10, 0, 0, 0,
         0, 0, 0, 5, 5, 0, 0, 0,
@@ -23,7 +23,7 @@ constexpr auto s_whitePawnTable = std::to_array<int16_t>(
         30, 30, 30, 40, 40, 30, 30, 30,
         90, 90, 90, 90, 90, 90, 90, 90 });
 
-constexpr auto s_whiteKnightTable = std::to_array<int16_t>(
+constexpr auto s_whiteKnightTable = std::to_array<int32_t>(
     { -5, -10, 0, 0, 0, 0, -10, -5,
         -5, 0, 0, 0, 0, 0, 0, -5,
         -5, 5, 20, 10, 10, 20, 5, -5,
@@ -33,7 +33,7 @@ constexpr auto s_whiteKnightTable = std::to_array<int16_t>(
         -5, 0, 0, 10, 10, 0, 0, -5,
         -5, 0, 0, 0, 0, 0, 0, -5 });
 
-constexpr auto s_whiteBishopTable = std::to_array<int16_t>(
+constexpr auto s_whiteBishopTable = std::to_array<int32_t>(
     { 0, 0, -10, 0, 0, -10, 0, 0,
         0, 30, 0, 0, 0, 0, 30, 0,
         0, 10, 0, 0, 0, 0, 10, 0,
@@ -43,7 +43,7 @@ constexpr auto s_whiteBishopTable = std::to_array<int16_t>(
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0 });
 
-constexpr auto s_whiteRookTable = std::to_array<int16_t>(
+constexpr auto s_whiteRookTable = std::to_array<int32_t>(
     { 0, 0, 0, 20, 20, 0, 0, 0,
         0, 0, 10, 20, 20, 10, 0, 0,
         0, 0, 10, 20, 20, 10, 0, 0,
@@ -53,7 +53,7 @@ constexpr auto s_whiteRookTable = std::to_array<int16_t>(
         50, 50, 50, 50, 50, 50, 50, 50,
         50, 50, 50, 50, 50, 50, 50, 50 });
 
-constexpr auto s_whiteQueenTable = std::to_array<int16_t>(
+constexpr auto s_whiteQueenTable = std::to_array<int32_t>(
     { -20, -10, -10, -5, -5, -10, -10, -20,
         -10, 0, 5, 0, 0, 0, 0, -10,
         -10, 5, 5, 5, 5, 5, 0, -10,
@@ -63,7 +63,7 @@ constexpr auto s_whiteQueenTable = std::to_array<int16_t>(
         -10, 0, 0, 0, 0, 0, 0, -10,
         -20, -10, -10, -5, -5, -10, -10, -20 });
 
-constexpr auto s_whiteKingTable = std::to_array<int16_t>(
+constexpr auto s_whiteKingTable = std::to_array<int32_t>(
     { 0, 0, 5, 0, -15, 0, 10, 0,
         0, 5, 5, -5, -5, 0, 5, 0,
         0, 0, 5, 10, 10, 5, 0, 0,
@@ -73,7 +73,7 @@ constexpr auto s_whiteKingTable = std::to_array<int16_t>(
         0, 0, 5, 5, 5, 5, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0 });
 
-constexpr auto s_blackPawnTable = std::to_array<int16_t>(
+constexpr auto s_blackPawnTable = std::to_array<int32_t>(
     { 90, 90, 90, 90, 90, 90, 90, 90,
         30, 30, 30, 40, 40, 30, 30, 30,
         20, 20, 20, 30, 30, 30, 20, 20,
@@ -83,7 +83,7 @@ constexpr auto s_blackPawnTable = std::to_array<int16_t>(
         0, 0, 0, -10, -10, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0 });
 
-constexpr auto s_blackKnightTable = std::to_array<int16_t>(
+constexpr auto s_blackKnightTable = std::to_array<int32_t>(
     { -5, 0, 0, 0, 0, 0, 0, -5,
         -5, 0, 0, 10, 10, 0, 0, -5,
         -5, 5, 20, 20, 20, 20, 5, -5,
@@ -93,7 +93,7 @@ constexpr auto s_blackKnightTable = std::to_array<int16_t>(
         -5, 0, 0, 0, 0, 0, 0, -5,
         -5, -10, 0, 0, 0, 0, -10, -5 });
 
-constexpr auto s_blackBishopTable = std::to_array<int16_t>(
+constexpr auto s_blackBishopTable = std::to_array<int32_t>(
     { 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 10, 10, 0, 0, 0,
@@ -103,7 +103,7 @@ constexpr auto s_blackBishopTable = std::to_array<int16_t>(
         0, 30, 0, 0, 0, 0, 30, 0,
         0, 0, -10, 0, 0, -10, 0, 0 });
 
-constexpr auto s_blackRookTable = std::to_array<int16_t>(
+constexpr auto s_blackRookTable = std::to_array<int32_t>(
     { 50, 50, 50, 50, 50, 50, 50, 50,
         50, 50, 50, 50, 50, 50, 50, 50,
         0, 0, 10, 20, 20, 10, 0, 0,
@@ -113,7 +113,7 @@ constexpr auto s_blackRookTable = std::to_array<int16_t>(
         0, 0, 10, 20, 20, 10, 0, 0,
         0, 0, 0, 20, 20, 0, 0, 0 });
 
-constexpr auto s_blackQueenTable = std::to_array<int16_t>(
+constexpr auto s_blackQueenTable = std::to_array<int32_t>(
     { -20, -10, -10, -5, -5, -10, -10, -20,
         -10, 0, 0, 0, 0, 0, 0, -10,
         -10, 0, 5, 5, 5, 5, 0, -10,
@@ -123,7 +123,7 @@ constexpr auto s_blackQueenTable = std::to_array<int16_t>(
         -10, 0, 5, 0, 0, 0, 0, -10,
         -20, -10, -10, -5, -5, -10, -10, -20 });
 
-constexpr auto s_blackKingTable = std::to_array<int16_t>(
+constexpr auto s_blackKingTable = std::to_array<int32_t>(
     { 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 5, 5, 5, 5, 0, 0,
         0, 5, 5, 10, 10, 5, 5, 0,
@@ -168,11 +168,11 @@ constexpr static inline auto& getTable(Piece type)
 
 }
 
-constexpr static inline int16_t getPiecePositionScore(uint64_t piece, Piece type)
+constexpr static inline int32_t getPiecePositionScore(uint64_t piece, Piece type)
 {
     const auto& table = getTable(type);
 
-    int16_t score = 0;
+    int32_t score = 0;
     while (piece) {
         int square = std::countr_zero(piece); // Find the lowest set bit
         score += table[square];

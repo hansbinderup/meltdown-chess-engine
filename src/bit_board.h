@@ -70,7 +70,7 @@ struct BitBoard {
     std::optional<BoardPosition> enPessant;
 
     // amount of rounds that the game has been played
-    uint16_t fullMoves {};
-    uint16_t halfMoves {};
+    uint32_t fullMoves {};
+    uint32_t halfMoves {};
 };
 

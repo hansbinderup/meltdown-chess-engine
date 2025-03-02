@@ -6,8 +6,8 @@
 
 using namespace engine::tt;
 
-constexpr int16_t alpha = -100;
-constexpr int16_t beta = 100;
+constexpr int32_t alpha = -100;
+constexpr int32_t beta = 100;
 constexpr uint8_t depth = 5;
 constexpr uint8_t ply = 2;
 
@@ -16,7 +16,7 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
     clearTable();
 
     uint64_t key = 0x123456789ABCDEF;
-    int16_t score = 42;
+    int32_t score = 42;
 
     writeHashEntry(key, score, depth, ply, TtHashExact);
     auto retrieved = readHashEntry(key, alpha, beta, depth, ply);
@@ -30,8 +30,8 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
     clearTable();
 
     uint64_t key = 0xDEADBEEFCAFEBABE;
-    int16_t oldScore = 10;
-    int16_t newScore = 50;
+    int32_t oldScore = 10;
+    int32_t newScore = 50;
 
     writeHashEntry(key, oldScore, 3, ply, TtHashExact);
     writeHashEntry(key, newScore, 6, ply, TtHashExact); // Deeper depth
@@ -64,7 +64,7 @@ TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
 {
     clearTable();
 
-    constexpr int16_t nearMate = s_mateValue - 10;
+    constexpr int32_t nearMate = s_mateValue - 10;
 
     uint64_t key = 0xCAFEBABEDEADBEEF;
 

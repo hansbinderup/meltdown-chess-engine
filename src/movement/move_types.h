@@ -177,7 +177,7 @@ public:
         return std::span(m_moves.data(), m_count);
     }
 
-    uint16_t count() const
+    uint32_t count() const
     {
         return m_count;
     }
@@ -189,7 +189,7 @@ public:
 
 private:
     std::array<Move, s_maxMoves> m_moves {};
-    uint16_t m_count = 0;
+    uint32_t m_count = 0;
 };
 
 }

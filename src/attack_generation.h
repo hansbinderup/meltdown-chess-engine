@@ -28,7 +28,7 @@ namespace {
         King   100    200    300    400    500    600
 */
 
-using MvvTableEntry = std::array<int16_t, 12>;
+using MvvTableEntry = std::array<int32_t, 12>;
 constexpr auto s_mvvLvaTable = std::to_array<MvvTableEntry>(
     {
         { 105, 205, 305, 405, 505, 605, 105, 205, 305, 405, 505, 605 },
@@ -46,7 +46,7 @@ constexpr auto s_mvvLvaTable = std::to_array<MvvTableEntry>(
     });
 }
 
-constexpr static inline int16_t getMvvLvaScore(Piece attacker, Piece victim)
+constexpr static inline int32_t getMvvLvaScore(Piece attacker, Piece victim)
 {
     return s_mvvLvaTable.at(attacker).at(victim);
 }
