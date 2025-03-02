@@ -44,7 +44,7 @@ public:
         m_pvLength.at(ply) = ply;
     }
 
-    bool updateTable(const movement::Move& move, uint8_t ply)
+    void updateTable(const movement::Move& move, uint8_t ply)
     {
         auto& currentRow = m_pvTable.at(ply);
         currentRow.at(ply) = move;
@@ -53,7 +53,6 @@ public:
             currentRow.begin() + ply + 1);
 
         m_pvLength.at(ply) = m_pvLength.at(ply + 1);
-        return true;
     }
 
     void setIsFollowing(bool val)
@@ -63,7 +62,7 @@ public:
 
     void setIsScoring(bool val)
     {
-        m_isFollowing = val;
+        m_isScoring = val;
     }
 
     bool isFollowing() const
@@ -76,7 +75,7 @@ public:
         return m_isScoring;
     }
 
-    constexpr bool isPvMove(const movement::Move& move, uint8_t ply) const
+    bool isPvMove(const movement::Move& move, uint8_t ply) const
     {
         return m_pvTable.at(0).at(ply) == move;
     }

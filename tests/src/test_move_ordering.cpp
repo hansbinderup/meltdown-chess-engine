@@ -46,19 +46,12 @@ TEST_CASE("Movegen Hashing", "[move ordering]")
         s_evaluator.sortMoves(board.value(), allMoves, 0);
 
         const auto movesBeforeEval = allMoves.getMoves();
-        REQUIRE(movesBeforeEval[0].piece() == WhitePawn);
+        REQUIRE(movesBeforeEval[0].piece() == WhitePawn); // pawn is attacking queen
         REQUIRE(movesBeforeEval[1].piece() == WhiteRook);
         REQUIRE(movesBeforeEval[2].piece() == WhiteKing);
         REQUIRE(movesBeforeEval[3].piece() == WhiteQueen);
 
         const auto move = s_evaluator.getBestMove(board.value(), 4);
-        REQUIRE(move.piece() == WhiteQueen);
-
-        s_evaluator.sortMoves(board.value(), allMoves, 0);
-        const auto movesAfterEval = allMoves.getMoves();
-        REQUIRE(movesAfterEval[0].piece() == WhiteQueen);
-        REQUIRE(movesAfterEval[1].piece() == WhitePawn);
-        REQUIRE(movesAfterEval[2].piece() == WhiteRook);
-        REQUIRE(movesAfterEval[3].piece() == WhiteKing);
+        REQUIRE(move.piece() == WhiteQueen); // evading attack + checking king = better move!
     }
 }

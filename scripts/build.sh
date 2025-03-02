@@ -19,6 +19,8 @@ if [ ! -d "$BUILD_DIR" ]; then
     meson setup "$BUILD_DIR" --buildtype=release
 fi
 
+ln -sf "$BUILD_DIR"/compile_commands.json .
+
 # Compile
 meson compile -C "$BUILD_DIR"
 
@@ -28,4 +30,3 @@ if $RUN; then
     "$BUILD_DIR/meltdown-chess-engine"
 fi
 
-ln -sf "$BUILD_DIR"/compile_commands.json .
