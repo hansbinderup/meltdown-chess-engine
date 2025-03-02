@@ -253,10 +253,8 @@ private:
         m_nodes++;
 
         engine::tt::TtHashFlag hashFlag = engine::tt::TtHashAlpha;
-        int32_t score = 0;
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
-        const Player currentPlayer = board.player;
         const bool isChecked = engine::isKingAttacked(board);
 
         // Dangerous position - increase search depth
@@ -264,39 +262,9 @@ private:
             depth++;
         }
 
-        /*
-         * null move pruning
-         * https://www.chessprogramming.org/Null_Move_Pruning
-         * */
         if (depth >= 3 && !isChecked && m_ply) {
-            auto boardCopy = board;
-            uint64_t oldHash = m_hash;
-            if (boardCopy.enPessant.has_value())
-                engine::hashEnpessant(static_cast<BoardPosition>(boardCopy.enPessant.value()), m_hash);
-
-            engine::hashPlayer(m_hash);
-
-            /* enPessant is invalid if we skip move */
-            boardCopy.enPessant.reset();
-
-            /* give opponent an extra move */
-            boardCopy.player = nextPlayer(boardCopy.player);
-
-            m_ply++;
-            m_repetition.add(oldHash);
-
-            /* perform search with reduced depth (based on reduction limit) */
-            score = -negamax(depth - 1 - s_nullMoveReduction, boardCopy, -beta, -beta + 1);
-
-            m_hash = oldHash;
-            m_ply--;
-            m_repetition.remove();
-
-            if (m_isStopped)
-                return 0;
-
-            if (score >= beta) {
-                return beta;
+            if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                return nullMoveScore.value();
             }
         }
 
@@ -307,28 +275,20 @@ private:
 
         sortMoves(board, allMoves, m_ply);
         for (const auto& move : allMoves) {
-            /* TODO: make this smarter.. un/do move? */
-            uint64_t oldHash = m_hash;
-            const auto newBoard = engine::performMove(board, move, m_hash);
-            if (engine::isKingAttacked(newBoard, currentPlayer)) {
-                m_hash = oldHash;
-                // invalid move
+            const auto moveRes = makeMove(board, move);
+            if (!moveRes.has_value()) {
                 continue;
             }
 
-            m_repetition.add(oldHash);
-            m_ply++;
-            legalMoves++;
-
-            const auto startTime = system_clock::now();
             int32_t score = 0;
+            legalMoves++;
 
             /*
              * LMR
              * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction
              */
             if (movesSearched == 0) {
-                score = -negamax(depth - 1, newBoard, -beta, -alpha);
+                score = -negamax(depth - 1, moveRes->board, -beta, -alpha);
             } else {
                 if (movesSearched >= s_fullDepthMove
                     && depth >= s_reductionLimit
@@ -336,7 +296,7 @@ private:
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
                     /* search current move with reduced depth */
-                    score = -negamax(depth - 2, newBoard, -alpha - 1, -alpha);
+                    score = -negamax(depth - 2, moveRes->board, -alpha - 1, -alpha);
                 } else {
                     /* TODO: hack to ensure full depth is reached */
                     score = alpha + 1;
@@ -348,20 +308,16 @@ private:
                  * search with a null window
                  */
                 if (score > alpha) {
-                    score = -negamax(depth - 1, newBoard, -alpha - 1, -alpha);
+                    score = -negamax(depth - 1, moveRes->board, -alpha - 1, -alpha);
 
                     /* if it failed high, do a full re-search */
                     if ((score > alpha) && (score < beta)) {
-                        score = -negamax(depth - 1, newBoard, -beta, -alpha);
+                        score = -negamax(depth - 1, moveRes->board, -beta, -alpha);
                     }
                 }
             }
 
-            m_hash = oldHash;
-            printMoveInfo(move, startTime);
-
-            m_repetition.remove();
-            m_ply--;
+            undoMove(moveRes->hash);
 
             if (m_isStopped)
                 return 0;
@@ -397,19 +353,6 @@ private:
         return alpha;
     }
 
-    void
-    printMoveInfo(const movement::Move& move, const std::chrono::time_point<std::chrono::system_clock>& startTime)
-    {
-        using namespace std::chrono;
-
-        const auto endTime = system_clock::now();
-        const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
-
-        if (timeDiff > 500) {
-            std::cout << "info currmove " << move.toString().data() << " currmovenumber " << m_ply + 1 << " nodes " << m_nodes << std::endl;
-        }
-    }
-
     constexpr int32_t quiesence(const BitBoard& board, int32_t alpha, int32_t beta)
     {
         using namespace std::chrono;
@@ -435,25 +378,13 @@ private:
         sortMoves(board, allMoves, m_ply);
 
         for (const auto& move : allMoves) {
-            uint64_t oldHash = m_hash;
-            const auto newBoard = engine::performMove(board, move, m_hash);
-
-            if (engine::isKingAttacked(newBoard, board.player)) {
-                m_hash = oldHash;
-                // invalid move
+            const auto moveRes = makeMove(board, move);
+            if (!moveRes.has_value()) {
                 continue;
             }
 
-            m_repetition.add(oldHash);
-            m_ply++;
-
-            const auto startTime = system_clock::now();
-            const int32_t score = -quiesence(newBoard, -beta, -alpha);
-
-            printMoveInfo(move, startTime);
-
-            m_repetition.remove();
-            m_ply--;
+            const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
+            undoMove(moveRes->hash);
 
             if (m_isStopped)
                 return 0;
@@ -468,6 +399,42 @@ private:
         }
 
         return alpha;
+    }
+
+    /*
+     * null move pruning
+     * https://www.chessprogramming.org/Null_Move_Pruning
+     * */
+    std::optional<int32_t> nullMovePruning(const BitBoard& board, uint8_t depth, int32_t beta)
+    {
+        auto nullMoveBoard = board;
+        uint64_t oldHash = m_hash;
+        if (nullMoveBoard.enPessant.has_value())
+            engine::hashEnpessant(nullMoveBoard.enPessant.value(), m_hash);
+
+        engine::hashPlayer(m_hash);
+
+        /* enPessant is invalid if we skip move */
+        nullMoveBoard.enPessant.reset();
+
+        /* give opponent an extra move */
+        nullMoveBoard.player = nextPlayer(nullMoveBoard.player);
+
+        m_ply++;
+        m_repetition.add(oldHash);
+
+        /* perform search with reduced depth (based on reduction limit) */
+        int32_t score = -negamax(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+
+        m_hash = oldHash;
+        m_ply--;
+        m_repetition.remove();
+
+        if (score >= beta) {
+            return beta;
+        }
+
+        return std::nullopt;
     }
 
     constexpr void sortMoves(const BitBoard& board, movement::ValidMoves& moves, uint8_t ply)
@@ -503,6 +470,36 @@ private:
         } else {
             return 5ms;
         }
+    }
+
+    struct MoveResult {
+        uint64_t hash;
+        BitBoard board;
+    };
+
+    std::optional<MoveResult> makeMove(const BitBoard& board, const movement::Move& move)
+    {
+        const MoveResult res { m_hash, engine::performMove(board, move, m_hash) };
+
+        if (engine::isKingAttacked(res.board, board.player)) {
+            m_hash = res.hash;
+            // invalid move
+
+            return std::nullopt;
+        }
+
+        m_repetition.add(res.hash);
+        m_ply++;
+
+        return res;
+    }
+
+    void undoMove(uint64_t hash)
+    {
+        m_hash = hash;
+
+        m_repetition.remove();
+        m_ply--;
     }
 
     FileLogger& m_logger;
