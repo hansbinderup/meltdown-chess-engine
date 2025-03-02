@@ -7,7 +7,7 @@
 
 class Perft {
 public:
-    constexpr static inline void run(const BitBoard& board, uint8_t depth)
+    constexpr static void run(const BitBoard& board, uint8_t depth)
     {
         reset();
         std::cout << std::format("*** Starting perft - depth {} ***\n", depth);
@@ -37,7 +37,7 @@ public:
     }
 
 private:
-    constexpr static inline void search(const BitBoard& board, uint8_t depth, bool printMove = false)
+    constexpr static void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {
         const auto allMoves = engine::getAllMoves(board);
         uint64_t legalMoves = 0;
@@ -104,7 +104,7 @@ private:
         }
     }
 
-    static inline void reset()
+    void static reset()
     {
         s_nodes = 0;
         s_captures = 0;
