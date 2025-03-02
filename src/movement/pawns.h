@@ -8,7 +8,7 @@ namespace movement {
 
 namespace {
 
-constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
+constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
 {
     while (moves) {
         int to = std::countr_zero(moves); // Find first set bit
@@ -18,7 +18,7 @@ constexpr static inline void backtrackPawnMoves(ValidMoves& validMoves, uint64_t
     }
 }
 
-constexpr static inline void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool enable)
+constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool enable)
 {
     while (moves) {
         int to = std::countr_zero(moves); // Find first set bit
@@ -28,7 +28,7 @@ constexpr static inline void backtrackPawnEnPessantMoves(ValidMoves& validMoves,
     }
 }
 
-constexpr static inline void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
+constexpr void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
 {
     while (moves) {
         int to = std::countr_zero(moves); // Find first set bit

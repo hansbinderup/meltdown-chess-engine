@@ -31,7 +31,7 @@ constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, B
     setPiece(piece, toPos, type, hash);
 }
 
-constexpr static inline void performCastleMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
+constexpr void performCastleMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
 {
     const BoardPosition fromPos = move.fromValue();
     const BoardPosition toPos = move.toValue();
@@ -59,7 +59,7 @@ constexpr static inline void performCastleMove(BitBoard& board, const movement::
     }
 }
 
-constexpr static inline void performPromotionMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
+constexpr void performPromotionMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
 {
     const bool isWhite = board.player == PlayerWhite;
     const auto type = isWhite ? WhitePawn : BlackPawn;
@@ -97,7 +97,7 @@ constexpr static inline void performPromotionMove(BitBoard& board, const movemen
     }
 }
 
-constexpr static inline void updateCastlingRights(BitBoard& board, BoardPosition pos)
+constexpr void updateCastlingRights(BitBoard& board, BoardPosition pos)
 {
     if (board.castlingRights == CastleNone) {
         return;
@@ -129,7 +129,7 @@ constexpr static inline void updateCastlingRights(BitBoard& board, BoardPosition
 
 }
 
-constexpr static inline movement::ValidMoves getAllMoves(const BitBoard& board)
+constexpr movement::ValidMoves getAllMoves(const BitBoard& board)
 {
     movement::ValidMoves validMoves;
 
@@ -156,7 +156,7 @@ constexpr static inline movement::ValidMoves getAllMoves(const BitBoard& board)
     return validMoves;
 }
 
-constexpr static inline movement::ValidMoves getAllCaptures(const BitBoard& board)
+constexpr movement::ValidMoves getAllCaptures(const BitBoard& board)
 {
     movement::ValidMoves captures;
     const auto allMoves = getAllMoves(board);
@@ -187,7 +187,7 @@ constexpr static inline bool isKingAttacked(const BitBoard& board)
     }
 }
 
-constexpr BoardPosition enpessantCapturePosition(BoardPosition pos, Player player)
+constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos, Player player)
 {
     if (player == PlayerWhite) {
         return static_cast<BoardPosition>(pos - 8);
@@ -196,7 +196,7 @@ constexpr BoardPosition enpessantCapturePosition(BoardPosition pos, Player playe
     }
 }
 
-constexpr static inline BitBoard performMove(const BitBoard& board, const movement::Move& move, uint64_t& hash)
+constexpr BitBoard performMove(const BitBoard& board, const movement::Move& move, uint64_t& hash)
 {
     BitBoard newBoard = board;
 
@@ -291,7 +291,7 @@ constexpr static inline std::string pieceToStr(Piece piece)
     return "##";
 }
 
-constexpr static inline void printBoardDebug(FileLogger& logger, const BitBoard& board)
+constexpr void printBoardDebug(FileLogger& logger, const BitBoard& board)
 {
     logger.log("\n******* BitBoard debug: *******\n");
 
