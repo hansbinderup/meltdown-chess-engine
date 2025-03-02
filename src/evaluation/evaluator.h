@@ -177,7 +177,8 @@ private:
          * https://web.archive.org/web/20070705134903/www.seanet.com/%7Ebrucemo/topics/aspiration.htm
          */
 
-        for (uint8_t d = 1; d <= depth; d++) {
+        uint8_t d = 1;
+        while (d <= depth) {
             if (m_isStopped)
                 break;
 
@@ -189,6 +190,8 @@ private:
             if ((score <= alpha) || (score >= beta)) {
                 alpha = s_minScore;
                 beta = s_maxScore;
+
+                printScoreInfo(startTime, score, d, depth);
                 continue;
             }
 
@@ -197,6 +200,9 @@ private:
             beta = score + s_aspirationWindow;
 
             printScoreInfo(startTime, score, d, depth);
+
+            /* only increment depth, if we didn't fall out of the window */
+            d++;
         }
 
         return m_scoring.pvTable().bestMove();
@@ -236,7 +242,6 @@ private:
             }
         }
 
-        using namespace std::chrono;
         checkIfStopped();
 
         m_scoring.pvTable().updateLength(m_ply);
@@ -264,6 +269,9 @@ private:
 
         if (depth >= 3 && !isChecked && m_ply) {
             if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                if (m_isStopped)
+                    return 0;
+
                 return nullMoveScore.value();
             }
         }
