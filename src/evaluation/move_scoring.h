@@ -35,11 +35,10 @@ public:
         return m_historyMoves;
     }
 
-    constexpr int32_t score(const BitBoard& board, const movement::Move& move, uint8_t ply)
+    // NOTE: MUST BE CONST - STL SORTING ALGORTIHMS WILL MESS WITH THE STACK IF NOT
+    constexpr int32_t score(const BitBoard& board, const movement::Move& move, uint8_t ply) const
     {
         if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
-            m_pvTable.setIsScoring(false);
-
             // return highest value if move is PV
             return 20000;
         }

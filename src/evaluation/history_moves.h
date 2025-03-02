@@ -9,7 +9,7 @@ namespace heuristic {
 
 class HistoryMoves {
 public:
-    int32_t get(Piece movePiece, uint8_t targetPosition)
+    int32_t get(Piece movePiece, uint8_t targetPosition) const
     {
         return m_historyMoves.at(targetPosition).at(movePiece);
     }
