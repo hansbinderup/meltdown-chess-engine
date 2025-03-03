@@ -50,6 +50,9 @@ constexpr int32_t materialScore(const BitBoard& board)
         score -= getPiecePositionScore(board.pieces[piece], piece);
     }
 
+    score += getPawnScore<PlayerWhite>(board.pieces[WhitePawn]);
+    score -= getPawnScore<PlayerBlack>(board.pieces[BlackPawn]);
+
     return board.player == PlayerWhite ? score : -score;
 }
 
