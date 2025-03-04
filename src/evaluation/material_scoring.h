@@ -43,7 +43,7 @@ constexpr int32_t materialScore(const BitBoard& board)
 
         switch (piece) {
         case WhitePawn:
-            score += position::getPawnScore<PlayerWhite>(board.pieces[piece]);
+            score += position::getPawnScore<PlayerWhite>(board, board.pieces[piece]);
             break;
         case WhiteKnight:
             score += position::getKnightScore<PlayerWhite>(board.pieces[piece]);
@@ -64,7 +64,7 @@ constexpr int32_t materialScore(const BitBoard& board)
             /* BLACK PIECES - should all be negated! */
 
         case BlackPawn:
-            score -= position::getPawnScore<PlayerBlack>(board.pieces[piece]);
+            score -= position::getPawnScore<PlayerBlack>(board, board.pieces[piece]);
             break;
         case BlackKnight:
             score -= position::getKnightScore<PlayerBlack>(board.pieces[piece]);
