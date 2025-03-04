@@ -124,7 +124,7 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board, std::opti
     }
 
     const int from = std::countr_zero(king);
-    return movement::s_kingsTable.at(from);
+    return movement::getKingAttacks(from);
 }
 
 constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)

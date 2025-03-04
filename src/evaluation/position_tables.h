@@ -308,37 +308,4 @@ constexpr auto s_blackKingTable = std::to_array<int32_t>(
         0, 5, 5, -5, -5, 0, 5, 0,
         0, 0, 5, 0, -15, 0, 10, 0 });
 
-constexpr static inline auto& getTable(Piece type)
-{
-    switch (type) {
-    case WhitePawn:
-        return s_whitePawnTable;
-    case WhiteKnight:
-        return s_whiteKnightTable;
-    case WhiteBishop:
-        return s_whiteBishopTable;
-    case WhiteRook:
-        return s_whiteRookTable;
-    case WhiteQueen:
-        return s_whiteQueenTable;
-    case WhiteKing:
-        return s_whiteKingTable;
-    case BlackPawn:
-        return s_blackPawnTable;
-    case BlackKnight:
-        return s_blackKnightTable;
-    case BlackBishop:
-        return s_blackBishopTable;
-    case BlackRook:
-        return s_blackRookTable;
-    case BlackQueen:
-        return s_blackQueenTable;
-    case BlackKing:
-        return s_blackKingTable;
-    }
-
-    /* shouldn't happen but compiler might complain about it */
-    return s_whitePawnTable;
-}
-
 }
