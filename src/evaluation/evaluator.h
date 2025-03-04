@@ -52,6 +52,8 @@ public:
 
         uint8_t depth = depthInput.value_or(5);
 
+        m_logger << std::format("\nMaterial score: {}", materialScore(board));
+
         auto captures = engine::getAllCaptures(board);
         sortMoves(board, captures, m_ply);
         m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
@@ -184,7 +186,6 @@ private:
                 break;
 
             m_scoring.pvTable().setIsFollowing(true);
-
             int32_t score = negamax(d, board, alpha, beta);
 
             /* the search fell outside the window - we need to retry a full search */
@@ -192,7 +193,6 @@ private:
                 alpha = s_minScore;
                 beta = s_maxScore;
 
-                printScoreInfo(startTime, score, d);
                 continue;
             }
 
@@ -212,6 +212,10 @@ private:
     constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth)
     {
         using namespace std::chrono;
+
+        /* if we're stopped to early and no PV was found - don't print empty eval */
+        if (m_scoring.pvTable().size() == 0)
+            return;
 
         const auto endTime = system_clock::now();
         const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
@@ -270,9 +274,6 @@ private:
 
         if (depth >= 3 && !isChecked && m_ply) {
             if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
-                if (m_isStopped)
-                    return 0;
-
                 return nullMoveScore.value();
             }
         }
