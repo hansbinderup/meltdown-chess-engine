@@ -21,7 +21,7 @@ public:
         s_isRunning = true;
 
         s_board.reset();
-        engine::tt::clearTable();
+        engine::TtHashTable::clearTable();
         s_evaluator.reset();
 
         std::array<char, s_inputBufferSize> buffer;
@@ -79,7 +79,7 @@ private:
     static bool handlePosition(std::string_view input)
     {
         /* if position is changed we can't rely on our tables anymore */
-        engine::tt::clearTable();
+        engine::TtHashTable::clearTable();
         s_evaluator.reset();
 
         auto [command, args] = parsing::split_sv_by_space(input);
@@ -129,7 +129,7 @@ private:
     {
         s_board.reset();
         s_evaluator.reset();
-        engine::tt::clearTable();
+        engine::TtHashTable::clearTable();
 
         return true;
     }

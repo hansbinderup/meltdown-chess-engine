@@ -221,7 +221,7 @@ private:
         else if (score > s_mateScore && score < s_mateValue)
             std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes);
         else
-            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes);
+            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull());
 
         for (const auto& move : m_scoring.pvTable()) {
             std::cout << move.toString().data() << " ";
@@ -237,7 +237,7 @@ private:
             }
 
             const bool isPvNode = (beta - alpha) > 1;
-            const auto hashScore = engine::tt::readHashEntry(m_hash, alpha, beta, depth, m_ply);
+            const auto hashScore = engine::TtHashTable::readHashEntry(m_hash, alpha, beta, depth, m_ply);
             if (!isPvNode && hashScore.has_value()) {
                 return hashScore.value();
             }
@@ -258,7 +258,7 @@ private:
 
         m_nodes++;
 
-        engine::tt::TtHashFlag hashFlag = engine::tt::TtHashAlpha;
+        engine::TtHashFlag hashFlag = engine::TtHashAlpha;
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
         const bool isChecked = engine::isKingAttacked(board);
@@ -334,13 +334,13 @@ private:
             movesSearched++;
             if (score > alpha) {
                 alpha = score;
-                hashFlag = engine::tt::TtHashExact;
+                hashFlag = engine::TtHashExact;
 
                 m_scoring.historyMoves().update(board, move, m_ply);
                 m_scoring.pvTable().updateTable(move, m_ply);
 
                 if (score >= beta) {
-                    engine::tt::writeHashEntry(m_hash, score, depth, m_ply, engine::tt::TtHashBeta);
+                    engine::TtHashTable::writeHashEntry(m_hash, score, depth, m_ply, engine::TtHashBeta);
                     m_scoring.killerMoves().update(move, m_ply);
                     return beta;
                 }
@@ -358,7 +358,7 @@ private:
             }
         }
 
-        engine::tt::writeHashEntry(m_hash, alpha, depth, m_ply, hashFlag);
+        engine::TtHashTable::writeHashEntry(m_hash, alpha, depth, m_ply, hashFlag);
         return alpha;
     }
 
