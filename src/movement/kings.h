@@ -46,5 +46,10 @@ constexpr std::array<uint64_t, 64> generateKingsTable()
 
 constexpr auto s_kingsTable = generateKingsTable();
 
+static inline uint64_t getKingAttacks(uint8_t square)
+{
+    return s_kingsTable[square];
+}
+
 }
 

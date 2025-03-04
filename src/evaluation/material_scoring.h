@@ -40,18 +40,49 @@ constexpr int32_t materialScore(const BitBoard& board)
     // Material scoring
     for (const auto piece : magic_enum::enum_values<Piece>()) {
         score += std::popcount(board.pieces[piece]) * s_pieceScoring[piece];
-    }
 
-    for (const auto piece : s_whitePieces) {
-        score += getPiecePositionScore(board.pieces[piece], piece);
-    }
+        switch (piece) {
+        case WhitePawn:
+            score += position::getPawnScore<PlayerWhite>(board.pieces[piece]);
+            break;
+        case WhiteKnight:
+            score += position::getKnightScore<PlayerWhite>(board.pieces[piece]);
+            break;
+        case WhiteBishop:
+            score += position::getBishopScore<PlayerWhite>(board, board.pieces[piece]);
+            break;
+        case WhiteRook:
+            score += position::getRookScore<PlayerWhite>(board, board.pieces[piece]);
+            break;
+        case WhiteQueen:
+            score += position::getQueenScore<PlayerWhite>(board, board.pieces[piece]);
+            break;
+        case WhiteKing:
+            score += position::getKingScore<PlayerWhite>(board, board.pieces[piece]);
+            break;
 
-    for (const auto piece : s_blackPieces) {
-        score -= getPiecePositionScore(board.pieces[piece], piece);
-    }
+            /* BLACK PIECES - should all be negated! */
 
-    score += getPawnScore<PlayerWhite>(board.pieces[WhitePawn]);
-    score -= getPawnScore<PlayerBlack>(board.pieces[BlackPawn]);
+        case BlackPawn:
+            score -= position::getPawnScore<PlayerBlack>(board.pieces[piece]);
+            break;
+        case BlackKnight:
+            score -= position::getKnightScore<PlayerBlack>(board.pieces[piece]);
+            break;
+        case BlackBishop:
+            score -= position::getBishopScore<PlayerBlack>(board, board.pieces[piece]);
+            break;
+        case BlackRook:
+            score -= position::getRookScore<PlayerBlack>(board, board.pieces[piece]);
+            break;
+        case BlackQueen:
+            score -= position::getQueenScore<PlayerBlack>(board, board.pieces[piece]);
+            break;
+        case BlackKing:
+            score -= position::getKingScore<PlayerBlack>(board, board.pieces[piece]);
+            break;
+        }
+    }
 
     return board.player == PlayerWhite ? score : -score;
 }
