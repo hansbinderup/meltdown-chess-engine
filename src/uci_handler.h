@@ -21,8 +21,12 @@ public:
         s_isRunning = true;
 
         s_board.reset();
-        engine::TtHashTable::clearTable();
+        engine::TtHashTable::clear();
         s_evaluator.reset();
+
+        /* const auto board = parsing::FenParser::parse("pk6/8/8/6Bb/8/PPPP4/8/PK6 w - - 0 0"); */
+        /* engine::printBoardDebug(s_fileLogger, board.value()); */
+        /* s_evaluator.printEvaluation(board.value(), 5); */
 
         std::array<char, s_inputBufferSize> buffer;
         while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
@@ -132,7 +136,7 @@ private:
     {
         s_board.reset();
         s_evaluator.reset();
-        engine::TtHashTable::clearTable();
+        engine::TtHashTable::clear();
 
         return true;
     }
