@@ -78,10 +78,6 @@ private:
 
     static bool handlePosition(std::string_view input)
     {
-        /* if position is changed we can't rely on our tables anymore */
-        engine::TtHashTable::clearTable();
-        s_evaluator.reset();
-
         auto [command, args] = parsing::split_sv_by_space(input);
 
         /* helper to iterate list of moves - can be passed as both fen string or startpos */
@@ -102,6 +98,10 @@ private:
 
         if (command == "startpos") {
             s_board.reset();
+
+            s_evaluator.reset();
+            engine::TtHashTable::advanceGeneration();
+
             const auto subCommand = parsing::sv_next_split(args);
             if (subCommand == "moves") {
                 iterateMovesFnc(args);
@@ -110,6 +110,9 @@ private:
             const auto board = parsing::FenParser::parse(args);
             if (board.has_value()) {
                 s_board = std::move(board.value());
+
+                s_evaluator.reset();
+                engine::TtHashTable::advanceGeneration();
 
                 using namespace std::string_view_literals;
                 const auto movesPos = args.rfind("moves ");
