@@ -24,10 +24,6 @@ public:
         engine::TtHashTable::clear();
         s_evaluator.reset();
 
-        /* const auto board = parsing::FenParser::parse("pk6/8/8/6Bb/8/PPPP4/8/PK6 w - - 0 0"); */
-        /* engine::printBoardDebug(s_fileLogger, board.value()); */
-        /* s_evaluator.printEvaluation(board.value(), 5); */
-
         std::array<char, s_inputBufferSize> buffer;
         while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
             processInput(std::string_view(buffer.data()));
@@ -38,7 +34,6 @@ private:
     static bool processInput(std::string_view input)
     {
         const auto [command, args] = parsing::split_sv_by_space(input);
-        /* s_fileLogger.log("processInput, command: {}, args: {}", command, args); */
 
         if (command == "uci") {
             return handleUci();

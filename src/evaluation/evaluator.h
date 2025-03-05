@@ -148,9 +148,11 @@ private:
     {
         using namespace std::chrono;
 
+        /* allow some extra time for processing etc */
+        constexpr auto buffer = 5ms;
+
         const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
         const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
-        const auto buffer = timeBuffer(board);
 
         if (m_moveTime) {
             m_endTime = start + milliseconds(m_moveTime.value()) - buffer + timeInc;
@@ -158,14 +160,26 @@ private:
             const auto time = timeLeft / m_movesToGo;
             m_endTime = start + time - buffer + timeInc;
         } else {
-            /* TODO: how long should we search if no time controls are set? */
-            const auto time = timeLeft / (s_defaultAmountMoves - board.fullMoves);
-            m_endTime = start + time - buffer + timeInc;
+            /* Dynamic time allocation based on game phase */
+            constexpr uint32_t openingMoves = 20;
+            constexpr uint32_t lateGameMoves = 50;
+
+            /* Estimate remaining moves */
+            uint32_t movesRemaining = std::clamp(s_defaultAmountMoves - board.fullMoves, openingMoves, lateGameMoves);
+
+            /* Allocate time proportionally */
+            const auto time = timeLeft / movesRemaining;
+
+            /* Adjust based on game phase (early = slightly faster, late = slightly deeper) */
+            const float phaseFactor = 1.0 + (static_cast<float>(board.fullMoves) / s_defaultAmountMoves) * 0.5;
+            const auto adjustedTime = duration_cast<milliseconds>(time * phaseFactor);
+
+            m_endTime = start + adjustedTime - buffer + timeInc;
         }
 
         /* just to make sure that we actually search something - better to run out of time than to not search any moves.. */
         if (m_endTime <= start) {
-            m_endTime = start + buffer + timeInc;
+            m_endTime = start + milliseconds(250) + timeInc;
         }
     };
 
@@ -184,6 +198,29 @@ private:
         while (d <= depth) {
             if (m_isStopped)
                 break;
+
+            /* always allow full scan on first move - will be good for the hash table :) */
+            if (board.fullMoves > 0) {
+                const auto now = std::chrono::system_clock::now();
+                const auto timeLeft = m_endTime - now;
+                const auto timeSpent = now - startTime;
+
+                /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
+                 * might need tweaking - will do when game phases are implemented */
+                const auto timeLimit = timeSpent / 1.9;
+
+                /* uncommment for debugging */
+
+                /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
+                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
+                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
+                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
+
+                if (timeLeft < timeLimit) {
+                    /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
+                    break;
+                }
+            }
 
             m_scoring.pvTable().setIsFollowing(true);
             int32_t score = negamax(d, board, alpha, beta);
@@ -470,19 +507,6 @@ private:
 
         if (std::chrono::system_clock::now() > m_endTime) {
             m_isStopped = true;
-        }
-    }
-
-    constexpr std::chrono::milliseconds timeBuffer(const BitBoard& board)
-    {
-        using namespace std::chrono_literals;
-
-        if (board.fullMoves < 4) {
-            return 500ms;
-        } else if (board.fullMoves < 6) {
-            return 250ms;
-        } else {
-            return 5ms;
         }
     }
 
