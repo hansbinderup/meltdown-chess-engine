@@ -248,6 +248,11 @@ private:
 
     constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth)
     {
+        /* most likely means that we've been stopped early / before a pv line was found - no need to print it */
+        if (m_scoring.pvTable().size() == 0) {
+            return;
+        }
+
         using namespace std::chrono;
 
         const auto endTime = system_clock::now();

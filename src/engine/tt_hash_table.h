@@ -105,7 +105,7 @@ public:
     }
 
 private:
-    constexpr static inline std::size_t s_hashTableSizeMb { 64 };
+    constexpr static inline std::size_t s_hashTableSizeMb { 128 };
     constexpr static inline std::size_t s_ttHashSize { (s_hashTableSizeMb * 1024 * 1024) / sizeof(TtHashEntry) };
     constexpr static inline uint8_t s_generationMask { 0xF }; /* 4-bit wrapping generation (max 16 generations allowed) */
 
