@@ -23,7 +23,7 @@ struct TtHashEntry {
 
 class TtHashTable {
 public:
-    static void clearTable()
+    static void clear()
     {
         std::ranges::fill(s_ttHashTable, TtHashEntry {});
         s_hashCount = 0;
@@ -41,7 +41,7 @@ public:
         return std::min((1000 * s_hashCount) / s_ttHashSize, 1000UL);
     }
 
-    constexpr static std::optional<int32_t> readHashEntry(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
+    constexpr static std::optional<int32_t> readEntry(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -83,7 +83,7 @@ public:
         return std::nullopt;
     }
 
-    constexpr static void writeHashEntry(uint64_t key, int32_t score, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, int32_t score, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -109,7 +109,7 @@ private:
     constexpr static inline std::size_t s_ttHashSize { (s_hashTableSizeMb * 1024 * 1024) / sizeof(TtHashEntry) };
     constexpr static inline uint8_t s_generationMask { 0xF }; /* 4-bit wrapping generation (max 16 generations allowed) */
 
-    static inline std::array<TtHashEntry, s_ttHashSize> s_ttHashTable;
+    static inline std::array<TtHashEntry, s_ttHashSize> s_ttHashTable; /* TODO: make dynamic so size can be adjusted from UCI */
     static inline uint64_t s_hashCount {};
     static inline uint8_t s_currentGeneration {};
 };

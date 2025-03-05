@@ -1,7 +1,7 @@
 #pragma once
 
 #include "src/engine/move_handling.h"
-#include "src/engine/tt_hash.h"
+#include "src/engine/tt_hash_table.h"
 #include "src/evaluation/material_scoring.h"
 #include "src/evaluation/move_scoring.h"
 #include "src/evaluation/pv_table.h"
@@ -241,7 +241,7 @@ private:
             }
 
             const bool isPvNode = (beta - alpha) > 1;
-            const auto hashScore = engine::TtHashTable::readHashEntry(m_hash, alpha, beta, depth, m_ply);
+            const auto hashScore = engine::TtHashTable::readEntry(m_hash, alpha, beta, depth, m_ply);
             if (!isPvNode && hashScore.has_value()) {
                 return hashScore.value();
             }
@@ -336,7 +336,7 @@ private:
                 return 0;
 
             if (score >= beta) {
-                engine::TtHashTable::writeHashEntry(m_hash, score, depth, m_ply, engine::TtHashBeta);
+                engine::TtHashTable::writeEntry(m_hash, score, depth, m_ply, engine::TtHashBeta);
                 m_scoring.killerMoves().update(move, m_ply);
                 return beta;
             }
@@ -362,7 +362,7 @@ private:
             }
         }
 
-        engine::TtHashTable::writeHashEntry(m_hash, alpha, depth, m_ply, hashFlag);
+        engine::TtHashTable::writeEntry(m_hash, alpha, depth, m_ply, hashFlag);
         return alpha;
     }
 
