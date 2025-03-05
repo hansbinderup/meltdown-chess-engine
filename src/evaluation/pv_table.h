@@ -106,10 +106,15 @@ public:
     movement::Move& operator[](int i) { return m_pvTable.at(0).at(i); }
 
 private:
-    using PVNode = std::array<movement::Move, s_maxSearchDepth>;
-    std::array<PVNode, s_maxSearchDepth> m_pvTable {};
-    std::array<uint8_t, s_maxSearchDepth> m_pvLength {};
+    /* NOTE: tables are +1 as we'll need space to copy next layer of ply -
+     * EVEN if we're at the max level */
+    constexpr static inline std::size_t s_pvTableSize { s_maxSearchDepth + 1 };
 
+    using PVNode = std::array<movement::Move, s_pvTableSize>;
+    std::array<PVNode, s_pvTableSize> m_pvTable {};
+    std::array<uint8_t, s_pvTableSize> m_pvLength {};
+
+    /* TODO: use single state instead of two bools - will be racy when we start multi threading */
     bool m_isScoring;
     bool m_isFollowing;
 };

@@ -250,10 +250,6 @@ private:
     {
         using namespace std::chrono;
 
-        /* if we're stopped to early and no PV was found - don't print empty eval */
-        if (m_scoring.pvTable().size() == 0)
-            return;
-
         const auto endTime = system_clock::now();
         const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
 
