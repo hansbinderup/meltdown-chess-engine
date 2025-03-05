@@ -70,7 +70,7 @@ public:
         for (const auto& move : allMoves) {
             int32_t score = negamax(depth, board);
 
-            m_logger << std::format("  move[{}]: {}\tscore: {}\tnodes: {} \t pv: ", move.toString().data(), m_scoring.score(board, move, 0), score, m_nodes);
+            m_logger << std::format("  {}: ordering score: {}\tevaluation: {}\tnodes: {} \t pv: ", move.toString().data(), m_scoring.score(board, move, 0), score, m_nodes);
 
             for (const auto& move : m_scoring.pvTable()) {
                 m_logger << move.toString().data() << " ";
@@ -249,15 +249,15 @@ private:
 
         checkIfStopped();
 
+        // Engine is not designed to search deeper than this! Make sure to stop before it's too late
+        if (m_ply >= s_maxSearchDepth) {
+            return materialScore(board);
+        }
+
         m_scoring.pvTable().updateLength(m_ply);
 
         if (depth == 0) {
             return quiesence(board, alpha, beta);
-        }
-
-        // Engine is not designed to search deeper than this! Make sure to stop before it's too late
-        if (m_ply >= s_maxSearchDepth) {
-            return materialScore(board);
         }
 
         m_nodes++;
@@ -268,12 +268,15 @@ private:
         const bool isChecked = engine::isKingAttacked(board);
 
         // Dangerous position - increase search depth
-        if (isChecked) {
+        if (depth <= 5 && isChecked) {
             depth++;
         }
 
-        if (depth >= 3 && !isChecked && m_ply) {
+        if (depth > s_nullMoveReduction && !isChecked && m_ply) {
             if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                if (m_isStopped)
+                    return 0;
+
                 return nullMoveScore.value();
             }
         }
@@ -332,6 +335,12 @@ private:
             if (m_isStopped)
                 return 0;
 
+            if (score >= beta) {
+                engine::TtHashTable::writeHashEntry(m_hash, score, depth, m_ply, engine::TtHashBeta);
+                m_scoring.killerMoves().update(move, m_ply);
+                return beta;
+            }
+
             movesSearched++;
             if (score > alpha) {
                 alpha = score;
@@ -339,12 +348,6 @@ private:
 
                 m_scoring.historyMoves().update(board, move, m_ply);
                 m_scoring.pvTable().updateTable(move, m_ply);
-
-                if (score >= beta) {
-                    engine::TtHashTable::writeHashEntry(m_hash, score, depth, m_ply, engine::TtHashBeta);
-                    m_scoring.killerMoves().update(move, m_ply);
-                    return beta;
-                }
             }
         }
 
@@ -400,12 +403,12 @@ private:
             if (m_isStopped)
                 return 0;
 
+            if (score >= beta)
+                // change to beta for hard cutoff
+                return beta;
+
             if (score > alpha) {
                 alpha = score;
-
-                if (score >= beta)
-                    // change to beta for hard cutoff
-                    return beta;
             }
         }
 
@@ -536,7 +539,7 @@ private:
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
     constexpr static inline uint32_t s_reductionLimit { 3 };
-    constexpr static inline uint32_t s_defaultAmountMoves { 50 };
+    constexpr static inline uint32_t s_defaultAmountMoves { 75 };
 
     constexpr static inline uint8_t s_aspirationWindow { 50 };
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
