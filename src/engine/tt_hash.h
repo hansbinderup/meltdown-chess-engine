@@ -18,6 +18,7 @@ struct TtHashEntry {
     uint8_t depth = 0;
     TtHashFlag flag = TtHashExact;
     int32_t score = 0;
+    uint8_t generation = 0;
 };
 
 class TtHashTable {
@@ -26,6 +27,12 @@ public:
     {
         std::ranges::fill(s_ttHashTable, TtHashEntry {});
         s_hashCount = 0;
+        s_currentGeneration = 0;
+    }
+
+    static void advanceGeneration()
+    {
+        s_currentGeneration = (s_currentGeneration + 1) & s_generationMask; /* Increment and wrap - max gen */
     }
 
     static uint16_t getHashFull()
@@ -39,6 +46,15 @@ public:
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
         if (entry.key != key) {
+            return std::nullopt;
+        }
+
+        /* Entry is outdated (from a previous generation) */
+        if (entry.generation != s_currentGeneration) {
+            entry.key = 0; // Invalidate the entry
+            if (s_hashCount > 0) {
+                --s_hashCount;
+            }
             return std::nullopt;
         }
 
@@ -77,20 +93,25 @@ public:
         if (score > s_mateScore)
             score += ply;
 
+        if (entry.key == 0) {
+            ++s_hashCount;
+        }
+
         entry.key = key;
         entry.score = score;
         entry.flag = flag;
         entry.depth = depth;
-
-        s_hashCount++;
+        entry.generation = s_currentGeneration;
     }
 
 private:
     constexpr static inline std::size_t s_hashTableSizeMb { 64 };
     constexpr static inline std::size_t s_ttHashSize { (s_hashTableSizeMb * 1024 * 1024) / sizeof(TtHashEntry) };
+    constexpr static inline uint8_t s_generationMask { 0xF }; /* 4-bit wrapping generation (max 16 generations allowed) */
 
     static inline std::array<TtHashEntry, s_ttHashSize> s_ttHashTable;
     static inline uint64_t s_hashCount {};
+    static inline uint8_t s_currentGeneration {};
 };
 }
 
