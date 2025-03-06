@@ -43,6 +43,19 @@ public:
             return 20000;
         }
 
+        switch (move.promotionType()) {
+        case PromotionNone:
+            break;
+        case PromotionQueen:
+            return 19000;
+        case PromotionKnight:
+            return 18000;
+        case PromotionBishop:
+            return 16000;
+        case PromotionRook:
+            return 17000;
+        }
+
         const auto attacker = board.getPieceAtSquare(move.fromSquare());
         const auto victim = board.getPieceAtSquare(move.toSquare());
 
