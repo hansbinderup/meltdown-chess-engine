@@ -273,22 +273,18 @@ private:
 
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
-        std::optional<movement::Move> ttMove;
+        if (m_ply && m_repetition.isRepetition(m_hash)) {
+            return 0; /* draw score */
+        }
 
-        if (m_ply) {
-            if (m_repetition.isRepetition(m_hash)) {
-                return 0; /* draw score */
-            }
+        const auto hashProbe = engine::TtHashTable::probe(m_hash, alpha, beta, depth, m_ply);
+        if (hashProbe.has_value()) {
+            if (m_ply)
+                return hashProbe->first;
 
-            const auto hashProbe = engine::TtHashTable::probe(m_hash, alpha, beta, depth, m_ply);
-            if (hashProbe.has_value()) {
-                const bool isPvNode = (beta - alpha) > 1;
-                if (!isPvNode) {
-                    return hashProbe->first;
-                }
-
-                ttMove = hashProbe->second;
-            }
+            m_ttMove = hashProbe->second;
+        } else {
+            m_ttMove.reset();
         }
 
         checkIfStopped();
@@ -315,7 +311,7 @@ private:
         const bool isChecked = engine::isKingAttacked(board);
 
         // Dangerous position - increase search depth
-        if (depth <= 5 && isChecked) {
+        if (isChecked) {
             depth++;
         }
 
@@ -330,7 +326,7 @@ private:
             m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
         }
 
-        sortMoves(board, allMoves, m_ply, ttMove);
+        sortMoves(board, allMoves, m_ply, m_ttMove);
         for (const auto& move : allMoves) {
             const auto moveRes = makeMove(board, move);
             if (!moveRes.has_value()) {
@@ -556,6 +552,7 @@ private:
     bool m_isStopped;
     uint64_t m_hash {};
     uint8_t m_selDepth {};
+    std::optional<movement::Move> m_ttMove;
 
     MoveScoring m_scoring {};
     Repetition m_repetition;
