@@ -10,8 +10,7 @@
 
 TEST_CASE("Movegen Hashing", "[move ordering]")
 {
-    FileLogger s_fileLogger { "/tmp/uci.log" };
-    evaluation::Evaluator s_evaluator { s_fileLogger };
+    evaluation::Evaluator s_evaluator;
     s_evaluator.reset();
 
     SECTION("Test capture moves only")

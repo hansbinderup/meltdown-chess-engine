@@ -1,9 +1,10 @@
 #pragma once
 
+#include "fmt/base.h"
 #include "src/board_defs.h"
 
 #include <cstdint>
-#include <span>
+#include <string_view>
 
 namespace movement {
 
@@ -206,3 +207,21 @@ private:
 };
 
 }
+
+template<>
+struct fmt::formatter<movement::Move> : fmt::formatter<std::string_view> {
+    template<typename FormatContext>
+    auto format(const movement::Move& m, FormatContext& ctx) const
+    {
+        char fromC = 'a' + (m.fromValue() % 8); // Column
+        char fromR = '1' + (m.fromValue() / 8); // Row
+        char toC = 'a' + (m.toValue() % 8); // Column
+        char toR = '1' + (m.toValue() / 8); // Row
+
+        if (m.promotionType() != PromotionNone) {
+            return fmt::format_to(ctx.out(), "{}{}{}{}{}", fromC, fromR, toC, toR, promotionToString(m.promotionType()));
+        }
+
+        return fmt::format_to(ctx.out(), "{}{}{}{}", fromC, fromR, toC, toR);
+    }
+};

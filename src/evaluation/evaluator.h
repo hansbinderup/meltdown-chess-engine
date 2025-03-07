@@ -1,32 +1,21 @@
 #pragma once
 
+#include "fmt/ranges.h"
 #include "src/engine/move_handling.h"
 #include "src/engine/tt_hash_table.h"
 #include "src/evaluation/material_scoring.h"
 #include "src/evaluation/move_scoring.h"
 #include "src/evaluation/pv_table.h"
 #include "src/evaluation/repetition.h"
-#include "src/file_logger.h"
 #include "src/movement/move_types.h"
 #include <src/engine/zobrist_hashing.h>
 
 #include <chrono>
-#include <iostream>
 
 namespace evaluation {
 
 class Evaluator {
 public:
-    Evaluator(const Evaluator&) = delete;
-    Evaluator(Evaluator&&) = delete;
-    Evaluator& operator=(const Evaluator&) = delete;
-    Evaluator& operator=(Evaluator&&) = delete;
-
-    Evaluator(FileLogger& m_logger)
-        : m_logger(m_logger)
-    {
-    }
-
     constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         const auto startTime = std::chrono::system_clock::now();
@@ -48,40 +37,39 @@ public:
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        reset();
+        resetTiming(); /* to reset nodes etc but not tables */
 
         uint8_t depth = depthInput.value_or(5);
 
-        m_logger << std::format("\nMaterial score: {}", materialScore(board));
+        fmt::println("");
 
         auto captures = engine::getAllCaptures(board);
-        sortMoves(board, captures, m_ply);
-        m_logger << std::format("\n\nCaptures[{}]:\n", captures.count());
-        for (const auto& move : captures) {
-            m_logger << std::format("{} [{}]  ", move.toString().data(), m_scoring.score(board, move, 0));
+        if (captures.count()) {
+            sortMoves(board, captures, m_ply);
+
+            fmt::print("Captures[{}]: ", captures.count());
+            for (const auto& move : captures) {
+                fmt::print("{} [{}]  ", move, m_scoring.score(board, move, 0));
+            }
+            fmt::print("\n\n");
         }
-        m_logger << "\n\n";
 
         m_endTime = std::chrono::system_clock::now() + std::chrono::minutes(10);
 
         auto allMoves = engine::getAllMoves(board);
         sortMoves(board, allMoves, m_ply);
-        m_logger << std::format("Move evaluations [{}]:\n", depth);
+        const int32_t score = negamax(depth, board);
+
+        fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : allMoves) {
-            int32_t score = negamax(depth, board);
-
-            m_logger << std::format("  {}: ordering score: {}\tevaluation: {}\tnodes: {} \t pv: ", move.toString().data(), m_scoring.score(board, move, 0), score, m_nodes);
-
-            for (const auto& move : m_scoring.pvTable()) {
-                m_logger << move.toString().data() << " ";
-            }
-            m_logger << "\n";
-
-            // flush so we can follow each line appear - can take some time
-            m_logger.flush();
+            fmt::println("  {}: {}", move, m_scoring.score(board, move, 0));
         }
 
-        m_logger.log("Best move: {}", m_scoring.pvTable().bestMove().toString().data());
+        fmt::println("\nTotal nodes:     {}\n"
+                     "Search score:    {}\n"
+                     "PV-line:         {}\n"
+                     "Material score:  {}\n",
+            m_nodes, score, fmt::join(m_scoring.pvTable(), " "), materialScore(board));
     }
 
     void setWhiteTime(uint64_t time)
@@ -248,27 +236,20 @@ private:
 
     constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth)
     {
-        /* most likely means that we've been stopped early / before a pv line was found - no need to print it */
-        if (m_scoring.pvTable().size() == 0) {
-            return;
-        }
-
         using namespace std::chrono;
 
         const auto endTime = system_clock::now();
         const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
 
         if (score > -s_mateValue && score < -s_mateScore)
-            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes);
+            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes);
         else if (score > s_mateScore && score < s_mateValue)
-            std::cout << std::format("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes);
+            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes);
         else
-            std::cout << std::format("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull());
+            fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull());
 
-        for (const auto& move : m_scoring.pvTable()) {
-            std::cout << move.toString().data() << " ";
-        }
-        std::cout << std::endl;
+        fmt::println("{}", fmt::join(m_scoring.pvTable(), " "));
+        fflush(stdout);
     }
 
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
@@ -544,8 +525,6 @@ private:
         m_repetition.remove();
         m_ply--;
     }
-
-    FileLogger& m_logger;
 
     uint64_t m_nodes {};
     uint8_t m_ply;

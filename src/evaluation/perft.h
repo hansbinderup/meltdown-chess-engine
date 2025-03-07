@@ -3,14 +3,15 @@
 #include "src/bit_board.h"
 #include "src/engine/move_handling.h"
 #include <chrono>
-#include <iostream>
+
+#include "fmt/base.h"
 
 class Perft {
 public:
     constexpr static void run(const BitBoard& board, uint8_t depth)
     {
         reset();
-        std::cout << std::format("*** Starting perft - depth {} ***\n", depth);
+        fmt::print("*** Starting perft - depth {} ***\n", depth);
 
         using namespace std::chrono;
         const auto startTime = system_clock::now();
@@ -24,16 +25,17 @@ public:
         const auto endTime = system_clock::now();
         const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
 
-        std::cout << "\nnodes: " << s_nodes;
-        std::cout << "\ncaptures: " << s_captures;
-        std::cout << "\ncastles: " << s_castles;
-        std::cout << "\nenPessants: " << s_enPessants;
-        std::cout << "\npromotions " << s_promotions;
-        std::cout << "\nchecks: " << s_checks;
-        std::cout << "\ncheckMates: " << s_checkMates;
-        std::cout << "\ntime: " << timeDiff << "ms";
-
-        std::cout << std::endl;
+        fmt::print("\n*** result ***\n"
+                   "nodes:       {}\n"
+                   "captures:    {}\n"
+                   "castles:     {}\n"
+                   "enpessants:  {}\n"
+                   "promotions:  {}\n"
+                   "checks:      {}\n"
+                   "checkmates:  {}\n"
+                   "nps:         {}\n"
+                   "time:        {}ms\n",
+            s_nodes, s_captures, s_castles, s_enPessants, s_promotions, s_checks, s_checkMates, s_nodes / timeDiff * 1000, timeDiff);
     }
 
 private:
@@ -94,7 +96,7 @@ private:
             search(newBoard, depth - 1);
 
             if (printMove) {
-                std::cout << move.toString().data() << " " << s_nodes - s_prevNodes << std::endl;
+                fmt::println("{}: {}", move, s_nodes - s_prevNodes);
                 s_prevNodes = s_nodes;
             }
         }

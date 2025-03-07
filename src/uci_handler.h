@@ -2,7 +2,6 @@
 
 #include "src/evaluation/evaluator.h"
 #include "src/evaluation/perft.h"
-#include "src/file_logger.h"
 #include "src/parsing/fen_parser.h"
 #include "src/parsing/input_parsing.h"
 
@@ -17,7 +16,6 @@ public:
 
     static void run()
     {
-        s_fileLogger.log("\n\n*** Running UciHandler! ***\n");
         s_isRunning = true;
 
         s_board.reset();
@@ -49,6 +47,8 @@ private:
             return handleDebug(args);
         } else if (command == "perft") {
             return handlePerft(args);
+        } else if (command == "help") {
+            return handleHelp();
         } else if (command == "quit") {
             s_isRunning = false;
         } else {
@@ -56,21 +56,24 @@ private:
             return false;
         }
 
+        /* ensure responses are printed immediately */
+        fflush(stdout);
+
         return true;
     }
 
     static bool handleUci()
     {
-        std::cout << "id engine Meltdown\n"
-                  << "id author Hans Binderup\n"
-                  << "uciok\n";
+        fmt::println("id engine Meltdown\n"
+                     "id author Hans Binderup\n"
+                     "uciok");
 
         return true;
     }
 
     static bool handleIsReady()
     {
-        std::cout << "readyok\n";
+        fmt::println("readyok");
 
         return true;
     }
@@ -120,7 +123,7 @@ private:
                     iterateMovesFnc(args);
                 }
             } else {
-                s_fileLogger.log("Fen parsing failed: {}", args);
+                fmt::println("Fen parsing failed: {}", args);
             }
         }
 
@@ -165,7 +168,8 @@ private:
 
         const auto bestMove = s_evaluator.getBestMove(s_board, depth);
 
-        std::cout << "bestmove " << bestMove.toString().data() << "\n";
+        fmt::println("bestmove {}", bestMove);
+
         return true;
     }
 
@@ -173,8 +177,13 @@ private:
     {
         auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "position") {
-            engine::printBoardDebug(s_fileLogger, s_board);
-            s_evaluator.printEvaluation(s_board);
+            engine::printPositionDebug(s_board);
+        } else if (command == "eval") {
+            const auto depth = parsing::to_number(args);
+            s_evaluator.printEvaluation(s_board, depth);
+        } else if (command == "clear") {
+            s_evaluator.reset();
+            engine::TtHashTable::clear();
         }
 
         return true;
@@ -186,16 +195,30 @@ private:
         if (depth.has_value()) {
             Perft::run(s_board, depth.value());
         } else {
-            std::cout << "invalid input: " << args << std::endl;
+            fmt::println("invalid input: {}", args);
         }
 
         return true;
     }
 
+    static bool handleHelp()
+    {
+        fmt::print("\nMeltdown communicates over UCI protocol.\n"
+                   "Most common handles are implemented.\n\n"
+                   "Additional Meltdown options:\n"
+                   "============================================================================\n"
+                   "debug eval <depth>  :  print evaluation - seen from player to move\n"
+                   "debug position      :  print the current position\n"
+                   "debug clear         :  clear all scoring tables\n"
+                   "version             :  print version information\n"
+                   "quit                :  stop the engine\n");
+
+        return true;
+    }
+
     static inline bool s_isRunning = false;
-    static inline FileLogger s_fileLogger { "/tmp/uci.log" };
     static inline BitBoard s_board {};
-    static inline evaluation::Evaluator s_evaluator { s_fileLogger };
+    static inline evaluation::Evaluator s_evaluator;
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };

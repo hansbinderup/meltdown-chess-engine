@@ -1,10 +1,10 @@
 #pragma once
 
+#include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
 #include "src/attack_generation.h"
 #include "src/bit_board.h"
 #include "src/engine/zobrist_hashing.h"
-#include "src/file_logger.h"
 #include "src/movement/move_generation.h"
 #include "src/movement/move_types.h"
 #include <cstring>
@@ -289,48 +289,47 @@ constexpr static inline std::string pieceToStr(Piece piece)
     return "##";
 }
 
-constexpr void printBoardDebug(FileLogger& logger, const BitBoard& board)
+constexpr void printPositionDebug(const BitBoard& board)
 {
-    logger.log("\n******* BitBoard debug: *******\n");
+    fmt::println("");
 
     for (uint8_t row = 8; row > 0; row--) {
-        logger << std::format("-{}- ", row);
+        fmt::print("-{}- ", row);
 
         for (uint8_t column = 0; column < 8; column++) {
             uint64_t square = 1ULL << (((row - 1) * 8) + column);
             const auto piece = board.getPieceAtSquare(square);
-            if (piece.has_value()) {
-                logger << pieceToStr(piece.value()) << " ";
-            } else {
-                logger << "## ";
-            }
+            fmt::print("{} ", piece ? pieceToStr(*piece) : "##");
         }
 
-        logger << "\n";
+        fmt::print("\n");
     }
 
-    logger << "    A  B  C  D  E  F  G  H";
-    logger << "\n\n";
+    fmt::print("    A  B  C  D  E  F  G  H\n\n");
 
     const auto allMoves = getAllMoves(board);
-    logger << "Player: " << magic_enum::enum_name(board.player);
-    logger << "\nFullMoves: " << std::to_string(board.fullMoves);
-    logger << "\nHalfMoves: " << std::to_string(board.halfMoves);
-    logger << "\nEnPessant: " << (board.enPessant.has_value() ? magic_enum::enum_name(board.enPessant.value()) : "none");
-    logger << "\nHash: " << std::to_string(generateHashKey(board));
-    logger << "\nCastle: ";
+
+    fmt::print(
+        "Player: {}\n"
+        "FullMoves: {}\n"
+        "HalfMoves: {}\n"
+        "EnPessant: {}\n"
+        "Hash: {}\n",
+        magic_enum::enum_name(board.player),
+        board.fullMoves,
+        board.halfMoves,
+        board.enPessant ? magic_enum::enum_name(*board.enPessant) : "none",
+        generateHashKey(board));
+
+    // Print castling moves
+    fmt::print("Castle: ");
     for (const auto& move : allMoves) {
         if (move.isCastleMove()) {
-            logger << move.toString().data() << " ";
+            fmt::print("{} ", move.toString());
         }
     }
 
-    logger << "\n\nMoves[" << allMoves.count() << "]:\n";
-    for (const auto& move : allMoves) {
-        logger << move.toString().data() << " ";
-    }
-
-    logger << "\n";
-    logger.flush();
+    fmt::println("\nMoves[{}]: {}\n", allMoves.count(), fmt::join(allMoves, ", "));
 }
+
 }

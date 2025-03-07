@@ -1,29 +1,27 @@
 #pragma once
 
-#include "src/file_logger.h"
+#include "fmt/format.h"
+#include <cstdint>
 
 namespace {
 
-constexpr void printBitboard(FileLogger& logger, uint64_t board)
+constexpr void printBitboard(uint64_t board)
 {
+    std::string output;
+
     for (uint8_t row = 8; row > 0; row--) {
-        logger << std::format("-{}- ", row);
+        output += fmt::format("-{}- ", row);
 
         for (uint8_t column = 0; column < 8; column++) {
             uint64_t square = 1ULL << (((row - 1) * 8) + column);
-            if (square & board) {
-                logger << "1 ";
-            } else {
-                logger << "0 ";
-            }
+            output += (square & board) ? "1 " : "0 ";
         }
 
-        logger << "\n";
+        output += '\n';
     }
 
-    logger << "    A B C D E F G H";
-    logger << "\n\n";
-    logger.flush();
+    output += "    A B C D E F G H\n\n";
+    fmt::print("{}", output);
 }
 
 }
