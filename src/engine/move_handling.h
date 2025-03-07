@@ -212,12 +212,11 @@ constexpr BitBoard performMove(const BitBoard& board, const movement::Move& move
     } else if (move.isPromotionMove()) {
         performPromotionMove(newBoard, move, hash);
     } else {
-        /* TODO: add this check - not sure how well it is for now? */
-        /* if (move.isCapture()) { */
-        if (const auto victim = board.getPieceAtSquare(move.toSquare())) {
-            clearPiece(newBoard.pieces[victim.value()], move.toValue(), victim.value(), hash);
+        if (move.isCapture()) {
+            if (const auto victim = board.getPieceAtSquare(move.toSquare())) {
+                clearPiece(newBoard.pieces[victim.value()], move.toValue(), victim.value(), hash);
+            }
         }
-        /* } */
 
         const auto pieceType = move.piece();
         movePiece(newBoard.pieces[pieceType], fromPos, toPos, pieceType, hash);
