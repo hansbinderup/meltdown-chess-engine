@@ -26,7 +26,6 @@ meson compile -C "$BUILD_DIR"
 
 # Run the executable (if -r is passed)
 if $RUN; then
-    echo "Running release build"
     "$BUILD_DIR/meltdown-chess-engine"
 fi
 
