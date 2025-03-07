@@ -273,15 +273,21 @@ private:
 
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
+        std::optional<movement::Move> ttMove;
+
         if (m_ply) {
             if (m_repetition.isRepetition(m_hash)) {
                 return 0; /* draw score */
             }
 
-            const bool isPvNode = (beta - alpha) > 1;
-            const auto hashScore = engine::TtHashTable::readEntry(m_hash, alpha, beta, depth, m_ply);
-            if (!isPvNode && hashScore.has_value()) {
-                return hashScore.value();
+            const auto hashProbe = engine::TtHashTable::probe(m_hash, alpha, beta, depth, m_ply);
+            if (hashProbe.has_value()) {
+                const bool isPvNode = (beta - alpha) > 1;
+                if (!isPvNode) {
+                    return hashProbe->first;
+                }
+
+                ttMove = hashProbe->second;
             }
         }
 
@@ -300,7 +306,10 @@ private:
 
         m_nodes++;
 
+        /* entries for the TT hash */
         engine::TtHashFlag hashFlag = engine::TtHashAlpha;
+        movement::Move alphaMove {};
+
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
         const bool isChecked = engine::isKingAttacked(board);
@@ -312,9 +321,6 @@ private:
 
         if (depth > s_nullMoveReduction && !isChecked && m_ply) {
             if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
-                if (m_isStopped)
-                    return 0;
-
                 return nullMoveScore.value();
             }
         }
@@ -324,7 +330,7 @@ private:
             m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
         }
 
-        sortMoves(board, allMoves, m_ply);
+        sortMoves(board, allMoves, m_ply, ttMove);
         for (const auto& move : allMoves) {
             const auto moveRes = makeMove(board, move);
             if (!moveRes.has_value()) {
@@ -371,10 +377,10 @@ private:
             undoMove(moveRes->hash);
 
             if (m_isStopped)
-                return 0;
+                return score;
 
             if (score >= beta) {
-                engine::TtHashTable::writeEntry(m_hash, score, depth, m_ply, engine::TtHashBeta);
+                engine::TtHashTable::writeEntry(m_hash, score, move, depth, m_ply, engine::TtHashBeta);
                 m_scoring.killerMoves().update(move, m_ply);
                 return beta;
             }
@@ -382,7 +388,9 @@ private:
             movesSearched++;
             if (score > alpha) {
                 alpha = score;
+
                 hashFlag = engine::TtHashExact;
+                alphaMove = move;
 
                 m_scoring.historyMoves().update(board, move, m_ply);
                 m_scoring.pvTable().updateTable(move, m_ply);
@@ -400,7 +408,7 @@ private:
             }
         }
 
-        engine::TtHashTable::writeEntry(m_hash, alpha, depth, m_ply, hashFlag);
+        engine::TtHashTable::writeEntry(m_hash, alpha, alphaMove, depth, m_ply, hashFlag);
         return alpha;
     }
 
@@ -439,7 +447,7 @@ private:
             undoMove(moveRes->hash);
 
             if (m_isStopped)
-                return 0;
+                return score;
 
             if (score >= beta)
                 // change to beta for hard cutoff
@@ -489,12 +497,12 @@ private:
         return std::nullopt;
     }
 
-    constexpr void sortMoves(const BitBoard& board, movement::ValidMoves& moves, uint8_t ply)
+    constexpr void sortMoves(const BitBoard& board, movement::ValidMoves& moves, uint8_t ply, std::optional<movement::Move> ttMove = std::nullopt)
     {
         /* use stable sort to keep determinism
          * TODO: consider if there's a better way to sort */
         std::stable_sort(moves.begin(), moves.end(), [&, this](const auto& a, const auto& b) {
-            return m_scoring.score(board, a, ply) > m_scoring.score(board, b, ply);
+            return m_scoring.score(board, a, ply, ttMove) > m_scoring.score(board, b, ply, ttMove);
         });
 
         m_scoring.pvTable().setIsScoring(false);
