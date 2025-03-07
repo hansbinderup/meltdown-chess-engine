@@ -35,11 +35,14 @@ public:
         return m_historyMoves;
     }
 
-    // NOTE: MUST BE CONST - STL SORTING ALGORTIHMS WILL MESS WITH THE STACK IF NOT
-    constexpr int32_t score(const BitBoard& board, const movement::Move& move, uint8_t ply) const
+    // NOTE: SCORING MUST BE CONSISTENT DURING A SORT - STL SORTING ALGORTIHMS WILL MESS WITH THE STACK IF NOT
+    constexpr int32_t score(const BitBoard& board, const movement::Move& move, uint8_t ply, std::optional<movement::Move> ttMove = std::nullopt) const
     {
+        if (ttMove.has_value() && move == ttMove.value()) {
+            return 25000;
+        }
+
         if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
-            // return highest value if move is PV
             return 20000;
         }
 

@@ -19,11 +19,14 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
     uint64_t key = 0x123456789ABCDEF;
     int32_t score = 42;
 
-    TtHashTable::writeEntry(key, score, depth, ply, TtHashExact);
-    auto retrieved = TtHashTable::TtHashTable::readEntry(key, alpha, beta, depth, ply);
+    const auto move = movement::Move::create(A2, A4, WhitePawn, false);
+
+    TtHashTable::writeEntry(key, score, move, depth, ply, TtHashExact);
+    auto retrieved = TtHashTable::TtHashTable::probe(key, alpha, beta, depth, ply);
 
     REQUIRE(retrieved.has_value());
-    REQUIRE(retrieved.value() == score);
+    REQUIRE(retrieved->first == score);
+    REQUIRE(retrieved->second == move);
 }
 
 TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
@@ -34,12 +37,16 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
     int32_t oldScore = 10;
     int32_t newScore = 50;
 
-    TtHashTable::writeEntry(key, oldScore, 3, ply, TtHashExact);
-    TtHashTable::writeEntry(key, newScore, 6, ply, TtHashExact); // Deeper depth
+    const auto move1 = movement::Move::create(A2, A4, WhitePawn, false);
+    const auto move2 = movement::Move::create(D7, D7, BlackPawn, false);
 
-    auto retrieved = TtHashTable::readEntry(key, alpha, beta, 4, ply);
+    TtHashTable::writeEntry(key, oldScore, move1, 3, ply, TtHashExact);
+    TtHashTable::writeEntry(key, newScore, move2, 6, ply, TtHashExact); // Deeper depth
+
+    auto retrieved = TtHashTable::probe(key, alpha, beta, 4, ply);
     REQUIRE(retrieved.has_value());
-    REQUIRE(retrieved.value() == newScore);
+    REQUIRE(retrieved->first == newScore);
+    REQUIRE(retrieved->second == move2);
 }
 
 TEST_CASE("Transposition Table - Collision Handling", "[TT]")
@@ -49,16 +56,20 @@ TEST_CASE("Transposition Table - Collision Handling", "[TT]")
     uint64_t key1 = 0x1111111111111111;
     uint64_t key2 = key1 + TtHashTable::s_ttHashSize; // Forces collision
 
-    TtHashTable::writeEntry(key1, 30, depth, ply, TtHashExact);
-    TtHashTable::writeEntry(key2, 99, depth, ply, TtHashExact);
+    const auto move1 = movement::Move::create(A2, A4, WhitePawn, false);
+    const auto move2 = movement::Move::create(D7, D7, BlackPawn, false);
 
-    auto retrieved1 = TtHashTable::readEntry(key1, alpha, beta, depth, ply);
-    auto retrieved2 = TtHashTable::readEntry(key2, alpha, beta, depth, ply);
+    TtHashTable::writeEntry(key1, 30, move1, depth, ply, TtHashExact);
+    TtHashTable::writeEntry(key2, 99, move2, depth, ply, TtHashExact);
+
+    auto retrieved1 = TtHashTable::probe(key1, alpha, beta, depth, ply);
+    auto retrieved2 = TtHashTable::probe(key2, alpha, beta, depth, ply);
 
     REQUIRE_FALSE(retrieved1.has_value());
 
     REQUIRE(retrieved2.has_value());
-    REQUIRE(retrieved2.value() == 99);
+    REQUIRE(retrieved2->first == 99);
+    REQUIRE(retrieved2->second == move2);
 }
 
 TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
@@ -69,32 +80,37 @@ TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
 
     uint64_t key = 0xCAFEBABEDEADBEEF;
 
-    TtHashTable::writeEntry(key, nearMate, depth, ply, TtHashExact);
+    const auto move = movement::Move::create(A2, A4, WhitePawn, false);
+    TtHashTable::writeEntry(key, nearMate, move, depth, ply, TtHashExact);
 
     SECTION("From same ply")
     {
-        auto retrieved = TtHashTable::readEntry(key, alpha, beta, depth, ply);
+        auto retrieved = TtHashTable::probe(key, alpha, beta, depth, ply);
 
         REQUIRE(retrieved.has_value());
-        REQUIRE(retrieved.value() == nearMate); // same score
+        REQUIRE(retrieved->first == nearMate); // same score
+        REQUIRE(retrieved->second == move);
     }
 
     SECTION("From higher ply")
     {
         uint8_t plyOffset = 5;
-        auto retrieved = TtHashTable::readEntry(key, alpha, beta, depth, ply + plyOffset);
+        auto retrieved = TtHashTable::probe(key, alpha, beta, depth, ply + plyOffset);
 
         REQUIRE(retrieved.has_value());
-        REQUIRE(retrieved.value() == nearMate - plyOffset); // lower score
+        REQUIRE(retrieved->first == nearMate - plyOffset); // lower score
+        REQUIRE(retrieved->second == move);
     }
 
     SECTION("From lower ply")
     {
         uint8_t plyOffset = 1;
-        auto retrieved = TtHashTable::readEntry(key, alpha, beta, depth, ply - plyOffset);
+
+        auto retrieved = TtHashTable::probe(key, alpha, beta, depth, ply - plyOffset);
 
         REQUIRE(retrieved.has_value());
-        REQUIRE(retrieved.value() == nearMate + plyOffset); // higher score
+        REQUIRE(retrieved->first == nearMate + plyOffset); // higher score
+        REQUIRE(retrieved->second == move);
     }
 }
 
@@ -103,11 +119,12 @@ TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
     TtHashTable::clear();
 
     uint64_t key = 0xF00DBABE12345678;
-    TtHashTable::writeEntry(key, 77, depth, ply, TtHashExact);
+    const auto move = movement::Move::create(A2, A4, WhitePawn, false);
+    TtHashTable::writeEntry(key, 77, move, depth, ply, TtHashExact);
 
     TtHashTable::clear();
 
-    auto retrieved = TtHashTable::readEntry(key, alpha, beta, depth, ply);
+    auto retrieved = TtHashTable::probe(key, alpha, beta, depth, ply);
     REQUIRE_FALSE(retrieved.has_value()); // Should be cleared
 }
 

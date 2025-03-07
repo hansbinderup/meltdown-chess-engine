@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/board_defs.h"
+#include "src/movement/move_types.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -19,6 +20,7 @@ struct TtHashEntry {
     TtHashFlag flag = TtHashExact;
     int32_t score = 0;
     uint8_t generation = 0;
+    movement::Move move {};
 };
 
 class TtHashTable {
@@ -41,7 +43,8 @@ public:
         return std::min((1000 * s_hashCount) / s_ttHashSize, 1000UL);
     }
 
-    constexpr static std::optional<int32_t> readEntry(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
+    using ProbeResult = std::pair<int32_t, movement::Move>;
+    constexpr static std::optional<ProbeResult> probe(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -68,22 +71,22 @@ public:
                 score -= ply;
 
             if (entry.flag == TtHashExact) {
-                return score;
+                return std::make_pair(score, entry.move);
             }
 
             if ((entry.flag == TtHashAlpha) && (score <= alpha)) {
-                return alpha;
+                return std::make_pair(alpha, entry.move);
             }
 
             if ((entry.flag == TtHashBeta) && (score >= beta)) {
-                return beta;
+                return std::make_pair(beta, entry.move);
             }
         }
 
         return std::nullopt;
     }
 
-    constexpr static void writeEntry(uint64_t key, int32_t score, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, int32_t score, const movement::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -102,6 +105,7 @@ public:
         entry.flag = flag;
         entry.depth = depth;
         entry.generation = s_currentGeneration;
+        entry.move = move;
     }
 
 private:
