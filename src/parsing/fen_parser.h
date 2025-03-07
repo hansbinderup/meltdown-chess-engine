@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <src/parsing/input_parsing.h>
 
 namespace parsing {
@@ -30,24 +29,43 @@ public:
             if (!success)
                 break;
 
+            auto input = sv_next_split(sv);
+            if (!input.has_value()) {
+                /* if there's no more words left or the next one is "moves" it means
+                 * that we've received a partial FEN string.
+                 * This can be alright, if we've already parsed PiecePlacement and SideToMove */
+                if (sv == "moves" || sv.empty()) {
+                    success &= part < SideToMove;
+                    break;
+                }
+
+                /* there was no space found - the string might still not be empty though, so check for that first! */
+                input = sv;
+            }
+
             switch (part) {
             case Parts::PiecePlacement:
-                success &= parsePiecePlacement(sv, board);
+                success &= parsePiecePlacement(*input, board);
                 break;
             case Parts::SideToMove:
-                success &= parseSideToMove(sv, board);
+                success &= parseSideToMove(*input, board);
                 break;
             case Parts::CastlingAbility:
-                success &= parseCastlingAbility(sv, board);
+                success &= parseCastlingAbility(*input, board);
                 break;
             case Parts::EnPassantTargetSquare:
-                success &= parseEnPassantTargetSquare(sv, board);
+                success &= parseEnPassantTargetSquare(*input, board);
                 break;
             case Parts::HalfMoveClock:
-                success &= parseHalfMoveClock(sv, board);
+                success &= parseHalfMoveClock(*input, board);
                 break;
             case Parts::FullMoveCounter:
-                success &= parseFullMoveCounter(sv, board);
+                success &= parseFullMoveCounter(*input, board);
+                break;
+            }
+
+            /* make sure to break out if we're dealing with the last piece of data */
+            if (*input == sv) {
                 break;
             }
         }
@@ -55,20 +73,17 @@ public:
         if (success)
             return board;
 
-        std::cerr << "invalid fen string" << std::endl;
+        fmt::println("Invalid FEN string");
+
         return std::nullopt;
     }
 
-    static inline bool parsePiecePlacement(std::string_view& sv, BitBoard& board)
+    static inline bool parsePiecePlacement(std::string_view input, BitBoard& board)
     {
-        const auto input = sv_next_split(sv);
-        if (!input.has_value())
-            return false;
-
         uint8_t row = 7;
         uint8_t column = 0;
 
-        for (const auto c : input.value()) {
+        for (const auto c : input) {
             if (c == '/') {
                 row--;
                 column = 0;
@@ -99,13 +114,9 @@ public:
         return true;
     }
 
-    static inline bool parseSideToMove(std::string_view& sv, BitBoard& board)
+    static inline bool parseSideToMove(std::string_view input, BitBoard& board)
     {
-        const auto input = sv_next_split(sv);
-        if (!input.has_value())
-            return false;
-
-        for (const auto c : input.value()) {
+        for (const auto c : input) {
             if (c == 'w') {
                 board.player = PlayerWhite;
                 return true;
@@ -118,13 +129,9 @@ public:
         return false;
     }
 
-    static inline bool parseCastlingAbility(std::string_view& sv, BitBoard& board)
+    static inline bool parseCastlingAbility(std::string_view input, BitBoard& board)
     {
-        const auto input = sv_next_split(sv);
-        if (!input.has_value())
-            return false;
-
-        for (const auto c : input.value()) {
+        for (const auto c : input) {
             const auto castle = castleFromChar(c);
             if (castle.has_value()) {
                 board.castlingRights |= castle.value();
@@ -134,28 +141,22 @@ public:
         return true;
     }
 
-    static inline bool parseEnPassantTargetSquare(std::string_view& sv, BitBoard& board)
+    static inline bool parseEnPassantTargetSquare(std::string_view input, BitBoard& board)
     {
-        const auto input = sv_next_split(sv);
-        if (!input.has_value())
+        if (input.size() == 0)
             return false;
 
-        if (input.value().size() == 0)
-            return false;
-
-        if (input.value().at(0) == '-') {
+        if (input.at(0) == '-') {
             board.enPessant.reset();
             return true;
         }
 
-        if (input.value().size() < 2)
+        if (input.size() < 2)
             return false;
 
-        const uint8_t column = input.value().at(0) - 'a';
-        const uint8_t row = input.value().at(1) - '1';
+        const uint8_t column = input.at(0) - 'a';
+        const uint8_t row = input.at(1) - '1';
         const BoardPosition pos = static_cast<BoardPosition>((row * 8) + column);
-
-        std::cout << input.value() << " " << std::to_string(row) << " " << std::to_string(column) << " " << std::to_string(pos) << std::endl;
 
         if (pos > 63) {
             return false;
@@ -165,13 +166,9 @@ public:
         return true;
     }
 
-    static inline bool parseHalfMoveClock(std::string_view& sv, BitBoard& board)
+    static inline bool parseHalfMoveClock(std::string_view input, BitBoard& board)
     {
-        const auto input = sv_next_split(sv);
-        if (!input.has_value())
-            return false;
-
-        if (const auto moveCounter = parsing::to_number(input.value())) {
+        if (const auto moveCounter = parsing::to_number(input)) {
             board.halfMoves = moveCounter.value();
             return true;
         }
@@ -179,11 +176,10 @@ public:
         return false;
     }
 
-    static inline bool parseFullMoveCounter(std::string_view& sv, BitBoard& board)
+    static inline bool parseFullMoveCounter(std::string_view input, BitBoard& board)
     {
         /* last entry - there might still be data in the string */
-        const auto input = sv_next_split(sv);
-        if (const auto moveCounter = parsing::to_number(input.value_or(sv))) {
+        if (const auto moveCounter = parsing::to_number(input)) {
             board.fullMoves = moveCounter.value();
             return true;
         }

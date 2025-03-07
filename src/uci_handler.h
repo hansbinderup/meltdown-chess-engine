@@ -122,8 +122,6 @@ private:
                     args = args.substr(movesPos + "moves "sv.size());
                     iterateMovesFnc(args);
                 }
-            } else {
-                fmt::println("Fen parsing failed: {}", args);
             }
         }
 
