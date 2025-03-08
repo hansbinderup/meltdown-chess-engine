@@ -1,5 +1,6 @@
 #pragma once
 
+#include "parsing/piece_parsing.h"
 #include <src/parsing/input_parsing.h>
 
 namespace parsing {
@@ -92,7 +93,7 @@ public:
                     return false;
                 }
 
-                const auto piece = pieceFromChar(c);
+                const auto piece = parsing::pieceFromChar(c);
                 if (piece.has_value()) {
                     const uint8_t square = (row * 8) + column;
                     board.pieces[piece.value()] |= 1ULL << square;
@@ -132,7 +133,7 @@ public:
     static inline bool parseCastlingAbility(std::string_view input, BitBoard& board)
     {
         for (const auto c : input) {
-            const auto castle = castleFromChar(c);
+            const auto castle = parsing::castleFromChar(c);
             if (castle.has_value()) {
                 board.castlingRights |= castle.value();
             }
@@ -186,56 +187,6 @@ public:
 
         return false;
     }
-
-private:
-    constexpr static inline std::optional<Piece> pieceFromChar(char c)
-    {
-        switch (c) {
-        case 'P':
-            return Piece::WhitePawn;
-        case 'N':
-            return Piece::WhiteKnight;
-        case 'B':
-            return Piece::WhiteBishop;
-        case 'R':
-            return Piece::WhiteRook;
-        case 'Q':
-            return Piece::WhiteQueen;
-        case 'K':
-            return Piece::WhiteKing;
-        case 'p':
-            return Piece::BlackPawn;
-        case 'n':
-            return Piece::BlackKnight;
-        case 'b':
-            return Piece::BlackBishop;
-        case 'r':
-            return Piece::BlackRook;
-        case 'q':
-            return Piece::BlackQueen;
-        case 'k':
-            return Piece::BlackKing;
-        };
-
-        return std::nullopt;
-    }
-
-    constexpr static inline std::optional<CastleType> castleFromChar(char c)
-    {
-        switch (c) {
-        case 'K':
-            return CastleWhiteKingSide;
-        case 'Q':
-            return CastleWhiteQueenSide;
-        case 'k':
-            return CastleBlackKingSide;
-        case 'q':
-            return CastleBlackQueenSide;
-        case '-':
-            return CastleNone;
-        }
-
-        return std::nullopt;
-    }
 };
+
 }

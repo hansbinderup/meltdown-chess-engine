@@ -2,6 +2,7 @@
 
 #include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
+#include "parsing/piece_parsing.h"
 #include "src/attack_generation.h"
 #include "src/bit_board.h"
 #include "src/engine/zobrist_hashing.h"
@@ -257,55 +258,23 @@ constexpr BitBoard performMove(const BitBoard& board, const movement::Move& move
     return newBoard;
 }
 
-constexpr static inline std::string pieceToStr(Piece piece)
-{
-    switch (piece) {
-    case WhitePawn:
-        return "WP";
-    case WhiteKnight:
-        return "WN";
-    case WhiteBishop:
-        return "WB";
-    case WhiteRook:
-        return "WR";
-    case WhiteQueen:
-        return "WQ";
-    case WhiteKing:
-        return "WK";
-    case BlackPawn:
-        return "BP";
-    case BlackKnight:
-        return "BN";
-    case BlackBishop:
-        return "BB";
-    case BlackRook:
-        return "BR";
-    case BlackQueen:
-        return "BQ";
-    case BlackKing:
-        return "BK";
-    }
-
-    return "##";
-}
-
 constexpr void printPositionDebug(const BitBoard& board)
 {
     fmt::println("");
 
     for (uint8_t row = 8; row > 0; row--) {
-        fmt::print("-{}- ", row);
+        fmt::print("{} ", row);
 
         for (uint8_t column = 0; column < 8; column++) {
             uint64_t square = 1ULL << (((row - 1) * 8) + column);
             const auto piece = board.getPieceAtSquare(square);
-            fmt::print("{} ", piece ? pieceToStr(*piece) : "##");
+            fmt::print("{} ", piece ? parsing::pieceToUnicode(*piece) : "·");
         }
 
         fmt::print("\n");
     }
 
-    fmt::print("    A  B  C  D  E  F  G  H\n\n");
+    fmt::print("  A B C D E F G H\n\n");
 
     const auto allMoves = getAllMoves(board);
 
