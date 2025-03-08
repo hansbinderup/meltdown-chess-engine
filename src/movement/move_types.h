@@ -1,7 +1,7 @@
 #pragma once
 
+#include "board_defs.h"
 #include "fmt/base.h"
-#include "src/board_defs.h"
 
 #include <cstdint>
 #include <string_view>

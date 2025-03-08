@@ -2,9 +2,9 @@
 
 #include "magic_enum/magic_enum.hpp"
 #include <array>
+#include <board_defs.h>
 #include <cstdint>
 #include <optional>
-#include <src/board_defs.h>
 
 enum Occupation {
     White,

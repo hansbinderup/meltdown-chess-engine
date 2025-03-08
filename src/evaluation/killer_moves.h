@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/movement/move_types.h"
+#include "movement/move_types.h"
 #include <algorithm>
 #include <utility>
 

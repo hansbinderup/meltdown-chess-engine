@@ -1,8 +1,8 @@
-#include "src/parsing/fen_parser.h"
+#include "parsing/fen_parser.h"
 #include <catch2/catch_test_macros.hpp>
 
 #define private public
-#include <src/evaluation/perft.h>
+#include <evaluation/perft.h>
 
 /* results found here: https://www.chessprogramming.org/Perft_Results */
 

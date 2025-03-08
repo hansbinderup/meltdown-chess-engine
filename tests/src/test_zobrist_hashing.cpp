@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include <src/engine/zobrist_hashing.h>
+#include <engine/zobrist_hashing.h>
 
 uint32_t countOccurenciesInAllTables(uint64_t hash)
 {

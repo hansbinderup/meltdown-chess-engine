@@ -1,5 +1,5 @@
-#include "src/evaluation/pv_table.h"
-#include "src/movement/move_types.h"
+#include "evaluation/pv_table.h"
+#include "movement/move_types.h"
 
 #include <catch2/catch_test_macros.hpp>
 

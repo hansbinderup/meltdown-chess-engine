@@ -1,6 +1,6 @@
-#include "src/bit_board.h"
-#include "src/evaluation/history_moves.h"
-#include "src/movement/move_types.h"
+#include "bit_board.h"
+#include "evaluation/history_moves.h"
+#include "movement/move_types.h"
 
 #include <catch2/catch_test_macros.hpp>
 

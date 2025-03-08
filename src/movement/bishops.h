@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/magics/magics.h"
+#include "magics/magics.h"
 #include <array>
 #include <cstdint>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/board_defs.h"
+#include "board_defs.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>

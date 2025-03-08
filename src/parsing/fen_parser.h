@@ -1,7 +1,7 @@
 #pragma once
 
+#include "parsing/input_parsing.h"
 #include "parsing/piece_parsing.h"
-#include <src/parsing/input_parsing.h>
 
 namespace parsing {
 

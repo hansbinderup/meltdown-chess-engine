@@ -1,7 +1,7 @@
 #pragma once
 
 #include "magic_enum/magic_enum.hpp"
-#include <src/board_defs.h>
+#include <board_defs.h>
 
 namespace evaluation {
 

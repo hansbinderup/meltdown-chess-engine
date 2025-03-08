@@ -1,11 +1,11 @@
 #pragma once
 
-#include "src/attack_generation.h"
-#include "src/bit_board.h"
-#include "src/evaluation/history_moves.h"
-#include "src/evaluation/killer_moves.h"
-#include "src/evaluation/pv_table.h"
-#include "src/movement/move_types.h"
+#include "attack_generation.h"
+#include "bit_board.h"
+#include "evaluation/history_moves.h"
+#include "evaluation/killer_moves.h"
+#include "evaluation/pv_table.h"
+#include "movement/move_types.h"
 
 #include <cstdint>
 

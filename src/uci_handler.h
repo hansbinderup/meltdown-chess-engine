@@ -1,9 +1,9 @@
 #pragma once
 
-#include "src/evaluation/evaluator.h"
-#include "src/evaluation/perft.h"
-#include "src/parsing/fen_parser.h"
-#include "src/parsing/input_parsing.h"
+#include "evaluation/evaluator.h"
+#include "evaluation/perft.h"
+#include "parsing/fen_parser.h"
+#include "parsing/input_parsing.h"
 
 #include <iostream>
 #include <string_view>

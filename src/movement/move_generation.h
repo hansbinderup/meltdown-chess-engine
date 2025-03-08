@@ -6,8 +6,8 @@
 #include "pawns.h"
 #include "rooks.h"
 
-#include "src/bit_board.h"
-#include "src/board_defs.h"
+#include "bit_board.h"
+#include "board_defs.h"
 
 namespace gen {
 

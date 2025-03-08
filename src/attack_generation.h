@@ -2,11 +2,11 @@
 
 #include "board_defs.h"
 
-#include "src/bit_board.h"
-#include "src/movement/bishops.h"
-#include "src/movement/kings.h"
-#include "src/movement/knights.h"
-#include "src/movement/rooks.h"
+#include "bit_board.h"
+#include "movement/bishops.h"
+#include "movement/kings.h"
+#include "movement/knights.h"
+#include "movement/rooks.h"
 
 #include <bit>
 #include <cstdint>
