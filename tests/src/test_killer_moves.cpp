@@ -1,5 +1,5 @@
-#include "src/evaluation/killer_moves.h"
-#include "src/movement/move_types.h"
+#include "evaluation/killer_moves.h"
+#include "movement/move_types.h"
 
 #include <catch2/catch_test_macros.hpp>
 

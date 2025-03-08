@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/bit_board.h"
-#include "src/engine/move_handling.h"
+#include "bit_board.h"
+#include "engine/move_handling.h"
 #include <chrono>
 
 #include "fmt/base.h"

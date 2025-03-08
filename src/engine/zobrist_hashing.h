@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bit_board.h"
+#include "board_defs.h"
 #include "magic_enum/magic_enum.hpp"
-#include "src/bit_board.h"
-#include "src/board_defs.h"
 #include <array>
 
 namespace engine {

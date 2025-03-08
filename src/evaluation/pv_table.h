@@ -1,7 +1,7 @@
 #pragma once
 
-#include "src/board_defs.h"
-#include "src/movement/move_types.h"
+#include "board_defs.h"
+#include "movement/move_types.h"
 
 #include <algorithm>
 #include <array>

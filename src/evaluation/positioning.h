@@ -1,15 +1,15 @@
 #pragma once
 
-#include "src/bit_board.h"
-#include "src/board_defs.h"
+#include "bit_board.h"
+#include "board_defs.h"
 #include <array>
 #include <cstdint>
 
-#include "src/evaluation/position_tables.h"
-#include "src/helpers/bit_operations.h"
-#include "src/movement/bishops.h"
-#include "src/movement/kings.h"
-#include "src/movement/rooks.h"
+#include "evaluation/position_tables.h"
+#include "helpers/bit_operations.h"
+#include "movement/bishops.h"
+#include "movement/kings.h"
+#include "movement/rooks.h"
 
 namespace evaluation {
 

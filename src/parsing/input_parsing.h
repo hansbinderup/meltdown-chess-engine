@@ -1,8 +1,8 @@
 #pragma once
 
-#include "src/bit_board.h"
-#include "src/engine/move_handling.h"
-#include "src/movement/move_types.h"
+#include "bit_board.h"
+#include "engine/move_handling.h"
+#include "movement/move_types.h"
 #include <charconv>
 #include <optional>
 #include <string_view>

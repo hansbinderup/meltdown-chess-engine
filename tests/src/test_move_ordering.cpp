@@ -1,12 +1,11 @@
 
 
-#include "src/bit_board.h"
-#include "src/parsing/fen_parser.h"
+#include "parsing/fen_parser.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 #define private public
-#include <src/evaluation/evaluator.h>
+#include <evaluation/evaluator.h>
 
 TEST_CASE("Movegen Hashing", "[move ordering]")
 {

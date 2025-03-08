@@ -1,8 +1,8 @@
 #pragma once
 
-#include "src/bit_board.h"
-#include "src/evaluation/pesto_tables.h"
-#include "src/evaluation/positioning.h"
+#include "bit_board.h"
+#include "evaluation/pesto_tables.h"
+#include "evaluation/positioning.h"
 
 #include <cstdint>
 

@@ -1,13 +1,13 @@
 #pragma once
 
+#include "attack_generation.h"
+#include "bit_board.h"
+#include "engine/zobrist_hashing.h"
 #include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
+#include "movement/move_generation.h"
+#include "movement/move_types.h"
 #include "parsing/piece_parsing.h"
-#include "src/attack_generation.h"
-#include "src/bit_board.h"
-#include "src/engine/zobrist_hashing.h"
-#include "src/movement/move_generation.h"
-#include "src/movement/move_types.h"
 #include <cstring>
 
 namespace engine {

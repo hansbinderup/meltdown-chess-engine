@@ -1,9 +1,9 @@
 #pragma once
 
+#include "bit_board.h"
+#include "board_defs.h"
+#include "helpers/bit_operations.h"
 #include "magic_enum/magic_enum.hpp"
-#include "src/bit_board.h"
-#include "src/board_defs.h"
-#include "src/helpers/bit_operations.h"
 #include <array>
 #include <cstdint>
 

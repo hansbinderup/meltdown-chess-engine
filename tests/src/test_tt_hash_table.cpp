@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 
 #define private public
-#include <src/engine/tt_hash_table.h>
+#include <engine/tt_hash_table.h>
 
 using namespace engine;
 

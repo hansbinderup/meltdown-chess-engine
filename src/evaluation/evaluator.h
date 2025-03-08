@@ -1,14 +1,14 @@
 #pragma once
 
+#include "engine/move_handling.h"
+#include "engine/tt_hash_table.h"
+#include "evaluation/material_scoring.h"
+#include "evaluation/move_scoring.h"
+#include "evaluation/pv_table.h"
+#include "evaluation/repetition.h"
 #include "fmt/ranges.h"
-#include "src/engine/move_handling.h"
-#include "src/engine/tt_hash_table.h"
-#include "src/evaluation/material_scoring.h"
-#include "src/evaluation/move_scoring.h"
-#include "src/evaluation/pv_table.h"
-#include "src/evaluation/repetition.h"
-#include "src/movement/move_types.h"
-#include <src/engine/zobrist_hashing.h>
+#include "movement/move_types.h"
+#include <engine/zobrist_hashing.h>
 
 #include <chrono>
 

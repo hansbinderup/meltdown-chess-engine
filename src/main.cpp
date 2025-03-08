@@ -1,5 +1,5 @@
 
-#include "src/uci_handler.h"
+#include "uci_handler.h"
 #include "version/version.h"
 
 #include "fmt/base.h"

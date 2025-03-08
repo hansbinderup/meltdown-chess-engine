@@ -1,7 +1,7 @@
 
-#include "src/bit_board.h"
-#include "src/engine/move_handling.h"
-#include "src/parsing/fen_parser.h"
+#include "bit_board.h"
+#include "engine/move_handling.h"
+#include "parsing/fen_parser.h"
 #include <catch2/catch_test_macros.hpp>
 
 constexpr uint8_t s_defaultSearchDepth = 3;
