@@ -8,9 +8,12 @@
 #include "evaluation/repetition.h"
 #include "fmt/ranges.h"
 #include "movement/move_types.h"
+#include <atomic>
 #include <engine/zobrist_hashing.h>
 
 #include <chrono>
+#include <mutex>
+#include <thread>
 
 namespace evaluation {
 
@@ -18,21 +21,35 @@ class Evaluator {
 public:
     constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        const auto startTime = std::chrono::system_clock::now();
+        m_startTime = std::chrono::system_clock::now();
 
         /*
          * if a depth has been provided then make sure that we search to that depth
          * timeout will be 10 minutes
          */
         if (depthInput.has_value()) {
-            m_endTime = startTime + std::chrono::minutes(10);
+            m_endTime = m_startTime + std::chrono::minutes(10);
         } else {
-            setupTimeControls(startTime, board);
+            setupTimeControls(m_startTime, board);
         }
 
         m_hash = engine::generateHashKey(board);
 
-        return scanForBestMove(startTime, depthInput.value_or(s_maxSearchDepth), board);
+        return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
+    }
+
+    constexpr std::optional<movement::Move> getPonderMove() const
+    {
+        if (m_scoring.pvTable().size() > 1) {
+            return m_scoring.pvTable()[1];
+        }
+
+        return std::nullopt;
+    }
+
+    constexpr void stop()
+    {
+        m_isStopped = true;
     }
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
@@ -114,7 +131,6 @@ public:
         m_moveTime.reset();
         m_whiteMoveInc = 0;
         m_blackMoveInc = 0;
-        m_isStopped = false;
         m_nodes = 0;
         m_selDepth = 0;
     }
@@ -131,9 +147,16 @@ public:
         m_repetition.add(hash);
     }
 
-private:
-    constexpr void setupTimeControls(std::chrono::time_point<std::chrono::system_clock> start, const BitBoard& board)
+    void ponderhit(const BitBoard& board)
     {
+        setupTimeControls(m_startTime, board);
+    }
+
+private:
+    constexpr void setupTimeControls(TimePoint start, const BitBoard& board)
+    {
+        std::scoped_lock lock(m_timeHandleMutex);
+
         using namespace std::chrono;
 
         /* allow some extra time for processing etc */
@@ -171,8 +194,9 @@ private:
         }
     };
 
-    constexpr movement::Move scanForBestMove(std::chrono::time_point<std::chrono::system_clock> startTime, uint8_t depth, const BitBoard& board)
+    constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
+        startTimeHandler();
 
         int32_t alpha = s_minScore;
         int32_t beta = s_maxScore;
@@ -191,7 +215,7 @@ private:
             if (board.fullMoves > 0) {
                 const auto now = std::chrono::system_clock::now();
                 const auto timeLeft = m_endTime - now;
-                const auto timeSpent = now - startTime;
+                const auto timeSpent = now - m_startTime;
 
                 /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
                  * might need tweaking - will do when game phases are implemented */
@@ -225,7 +249,7 @@ private:
             alpha = score - s_aspirationWindow;
             beta = score + s_aspirationWindow;
 
-            printScoreInfo(startTime, score, d);
+            printScoreInfo(score, d);
 
             /* only increment depth, if we didn't fall out of the window */
             d++;
@@ -234,12 +258,12 @@ private:
         return m_scoring.pvTable().bestMove();
     }
 
-    constexpr void printScoreInfo(std::chrono::time_point<std::chrono::system_clock> startTime, int32_t score, uint8_t currentDepth)
+    constexpr void printScoreInfo(int32_t score, uint8_t currentDepth)
     {
         using namespace std::chrono;
 
         const auto endTime = system_clock::now();
-        const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
+        const auto timeDiff = duration_cast<milliseconds>(endTime - m_startTime).count();
 
         if (score > -s_mateValue && score < -s_mateScore)
             fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes);
@@ -267,8 +291,6 @@ private:
         } else {
             m_ttMove.reset();
         }
-
-        checkIfStopped();
 
         // Engine is not designed to search deeper than this! Make sure to stop before it's too late
         if (m_ply >= s_maxSearchDepth) {
@@ -392,7 +414,6 @@ private:
     constexpr int32_t quiesence(const BitBoard& board, int32_t alpha, int32_t beta)
     {
         using namespace std::chrono;
-        checkIfStopped();
 
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
@@ -485,17 +506,6 @@ private:
         m_scoring.pvTable().setIsScoring(false);
     }
 
-    constexpr void checkIfStopped()
-    {
-        /* only check every 2048 nodes */
-        if ((m_nodes & 2047) != 0)
-            return;
-
-        if (std::chrono::system_clock::now() > m_endTime) {
-            m_isStopped = true;
-        }
-    }
-
     struct MoveResult {
         uint64_t hash;
         BitBoard board;
@@ -526,9 +536,35 @@ private:
         m_ply--;
     }
 
+    void startTimeHandler()
+    {
+        bool wasStopped = m_isStopped.exchange(false);
+        if (!wasStopped) {
+            return; /* nothing to do here */
+        }
+
+        std::thread timeHandler([this] {
+            while (!m_isStopped) {
+                {
+                    std::scoped_lock lock(m_timeHandleMutex);
+                    if (m_isStopped)
+                        return; /* stopped elsewhere */
+
+                    if (std::chrono::system_clock::now() > m_endTime) {
+                        m_isStopped = true;
+                    }
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        });
+
+        timeHandler.detach();
+    }
+
     uint64_t m_nodes {};
     uint8_t m_ply;
-    bool m_isStopped;
+    std::atomic_bool m_isStopped { true };
     uint64_t m_hash {};
     uint8_t m_selDepth {};
     std::optional<movement::Move> m_ttMove;
@@ -543,7 +579,9 @@ private:
     uint64_t m_whiteMoveInc {};
     uint64_t m_blackMoveInc {};
 
-    std::chrono::time_point<std::chrono::system_clock> m_endTime;
+    TimePoint m_startTime;
+    TimePoint m_endTime;
+    std::mutex m_timeHandleMutex;
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };

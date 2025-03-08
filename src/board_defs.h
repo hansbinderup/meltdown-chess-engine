@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <limits>
 
@@ -106,3 +107,4 @@ constexpr static inline int32_t s_minScore = -s_maxScore; // num limit is +1 hig
 constexpr static inline int32_t s_mateValue { s_maxScore - 1000 };
 constexpr static inline int32_t s_mateScore { s_maxScore - 2000 };
 
+using TimePoint = std::chrono::time_point<std::chrono::system_clock>;

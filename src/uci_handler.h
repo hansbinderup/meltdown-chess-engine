@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string_view>
+#include <thread>
 
 class UciHandler {
 public:
@@ -16,19 +17,28 @@ public:
 
     static void run()
     {
-        s_isRunning = true;
-
         s_board.reset();
         engine::TtHashTable::clear();
         s_evaluator.reset();
 
-        std::array<char, s_inputBufferSize> buffer;
-        while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
-            processInput(std::string_view(buffer.data()));
-        }
+        startInputThread();
     }
 
 private:
+    static void startInputThread()
+    {
+        s_isRunning = true;
+
+        std::thread inputThread([] {
+            std::array<char, s_inputBufferSize> buffer;
+            while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
+                processInput(std::string_view(buffer.data()));
+            }
+        });
+
+        inputThread.join();
+    }
+
     static bool processInput(std::string_view input)
     {
         const auto [command, args] = parsing::split_sv_by_space(input);
@@ -43,13 +53,19 @@ private:
             return handleUcinewgame();
         } else if (command == "go") {
             return handleGo(args);
+        } else if (command == "ponderhit") {
+            return handlePonderhit();
+        } else if (command == "stop") {
+            return handleStop();
+        } else if (command == "setoption") {
+            return handleSetOption(args);
         } else if (command == "debug") {
             return handleDebug(args);
         } else if (command == "perft") {
             return handlePerft(args);
         } else if (command == "help") {
             return handleHelp();
-        } else if (command == "quit") {
+        } else if (command == "quit" || command == "exit") {
             s_isRunning = false;
         } else {
             // invalid input
@@ -66,6 +82,7 @@ private:
     {
         fmt::println("id engine Meltdown\n"
                      "id author Hans Binderup\n"
+                     "option name Ponder type check default false\n"
                      "uciok");
 
         return true;
@@ -137,6 +154,13 @@ private:
         return true;
     }
 
+    static bool handlePonderhit()
+    {
+        s_evaluator.ponderhit(s_board);
+
+        return true;
+    }
+
     static bool handleGo(std::string_view args)
     {
         std::optional<uint8_t> depth;
@@ -144,6 +168,13 @@ private:
         s_evaluator.resetTiming();
 
         while (const auto setting = parsing::sv_next_split(args)) {
+            /* single word settings first */
+            if (setting == "ponder") {
+                depth = s_maxSearchDepth; /* continue searching until told to stop */
+                continue;
+            }
+
+            /* settings with values */
             const auto value = parsing::sv_next_split(args);
             const auto valNum = parsing::to_number(value.value_or(args));
 
@@ -164,9 +195,50 @@ private:
             }
         }
 
-        const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+        std::thread searchThread([depth] {
+            const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+            fmt::print("bestmove {}", bestMove);
+            if (s_ponderingEnabled) {
+                const auto ponderMove = s_evaluator.getPonderMove();
+                if (ponderMove.has_value()) {
+                    fmt::print(" ponder {}", *ponderMove);
+                }
+            }
 
-        fmt::println("bestmove {}", bestMove);
+            fmt::print("\n");
+            fflush(stdout);
+        });
+
+        searchThread.detach();
+
+        return true;
+    }
+
+    static bool handleStop()
+    {
+        s_evaluator.stop();
+
+        return true;
+    }
+
+    static bool handleSetOption(std::string_view input)
+    {
+        /* one option is set at a time */
+        const auto type = parsing::sv_next_split(input);
+        if (type == "name") {
+            const auto option = parsing::sv_next_split(input);
+            if (option == "Ponder") {
+                const auto value = parsing::sv_next_split(input);
+                if (value == "value") {
+                    const auto optionValue = parsing::sv_next_split(input).value_or(input);
+                    if (optionValue == "true") {
+                        s_ponderingEnabled = true;
+                    } else if (optionValue == "false") {
+                        s_ponderingEnabled = false;
+                    }
+                }
+            }
+        }
 
         return true;
     }
@@ -179,6 +251,8 @@ private:
         } else if (command == "eval") {
             const auto depth = parsing::to_number(args);
             s_evaluator.printEvaluation(s_board, depth);
+        } else if (command == "options") {
+            fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
@@ -208,6 +282,7 @@ private:
                    "debug eval <depth>  :  print evaluation - seen from player to move\n"
                    "debug position      :  print the current position\n"
                    "debug clear         :  clear all scoring tables\n"
+                   "debug options       :  print all options\n"
                    "version             :  print version information\n"
                    "quit                :  stop the engine\n");
 
@@ -217,6 +292,9 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
+
+    /* options */
+    static inline bool s_ponderingEnabled { false };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };
