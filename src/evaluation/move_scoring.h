@@ -25,6 +25,11 @@ public:
         return m_pvTable;
     }
 
+    constexpr const heuristic::PVTable& pvTable() const
+    {
+        return m_pvTable;
+    }
+
     constexpr heuristic::KillerMoves& killerMoves()
     {
         return m_killerMoves;
