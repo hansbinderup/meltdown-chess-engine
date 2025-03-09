@@ -130,44 +130,32 @@ constexpr void updateCastlingRights(BitBoard& board, BoardPosition pos)
 
 }
 
+template<movement::MoveType type>
 constexpr movement::ValidMoves getAllMoves(const BitBoard& board)
 {
     movement::ValidMoves validMoves;
 
     if (board.player == PlayerWhite) {
         const uint64_t attacks = board.attacks[PlayerBlack];
-        gen::getKingMoves(validMoves, board, attacks);
-        gen::getPawnMoves(validMoves, board);
-        gen::getKnightMoves(validMoves, board);
-        gen::getRookMoves(validMoves, board);
-        gen::getBishopMoves(validMoves, board);
-        gen::getQueenMoves(validMoves, board);
-        gen::getCastlingMoves(validMoves, board, attacks);
+        gen::getKingMoves<PlayerWhite, type>(validMoves, board, attacks);
+        gen::getPawnMoves<PlayerWhite, type>(validMoves, board);
+        gen::getKnightMoves<PlayerWhite, type>(validMoves, board);
+        gen::getRookMoves<PlayerWhite, type>(validMoves, board);
+        gen::getBishopMoves<PlayerWhite, type>(validMoves, board);
+        gen::getQueenMoves<PlayerWhite, type>(validMoves, board);
+        gen::getCastlingMoves<PlayerWhite, type>(validMoves, board, attacks);
     } else {
         const uint64_t attacks = board.attacks[PlayerWhite];
-        gen::getKingMoves(validMoves, board, attacks);
-        gen::getPawnMoves(validMoves, board);
-        gen::getKnightMoves(validMoves, board);
-        gen::getRookMoves(validMoves, board);
-        gen::getBishopMoves(validMoves, board);
-        gen::getQueenMoves(validMoves, board);
-        gen::getCastlingMoves(validMoves, board, attacks);
+        gen::getKingMoves<PlayerBlack, type>(validMoves, board, attacks);
+        gen::getPawnMoves<PlayerBlack, type>(validMoves, board);
+        gen::getKnightMoves<PlayerBlack, type>(validMoves, board);
+        gen::getRookMoves<PlayerBlack, type>(validMoves, board);
+        gen::getBishopMoves<PlayerBlack, type>(validMoves, board);
+        gen::getQueenMoves<PlayerBlack, type>(validMoves, board);
+        gen::getCastlingMoves<PlayerBlack, type>(validMoves, board, attacks);
     }
 
     return validMoves;
-}
-
-constexpr movement::ValidMoves getAllCaptures(const BitBoard& board)
-{
-    movement::ValidMoves captures;
-    const auto allMoves = getAllMoves(board);
-
-    for (const auto& move : allMoves) {
-        if (move.isCapture())
-            captures.addMove(move);
-    }
-
-    return captures;
 }
 
 constexpr static inline bool isKingAttacked(const BitBoard& board, Player player)
@@ -276,7 +264,7 @@ constexpr void printPositionDebug(const BitBoard& board)
 
     fmt::print("  A B C D E F G H\n\n");
 
-    const auto allMoves = getAllMoves(board);
+    const auto allMoves = getAllMoves<movement::MovePseudoLegal>(board);
 
     fmt::print(
         "Player: {}\n"
@@ -294,7 +282,7 @@ constexpr void printPositionDebug(const BitBoard& board)
     fmt::print("Castle: ");
     for (const auto& move : allMoves) {
         if (move.isCastleMove()) {
-            fmt::print("{} ", move.toString());
+            fmt::print("{} ", move);
         }
     }
 

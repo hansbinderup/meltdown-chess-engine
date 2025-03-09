@@ -60,7 +60,7 @@ public:
 
         fmt::println("");
 
-        auto captures = engine::getAllCaptures(board);
+        auto captures = engine::getAllMoves<movement::MoveCapture>(board);
         if (captures.count()) {
             sortMoves(board, captures, m_ply);
 
@@ -73,7 +73,7 @@ public:
 
         m_endTime = std::chrono::system_clock::now() + std::chrono::minutes(10);
 
-        auto allMoves = engine::getAllMoves(board);
+        auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board);
         sortMoves(board, allMoves, m_ply);
         const int32_t score = negamax(depth, board);
 
@@ -324,7 +324,7 @@ private:
             }
         }
 
-        auto allMoves = engine::getAllMoves(board);
+        auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board);
         if (m_scoring.pvTable().isFollowing()) {
             m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
         }
@@ -432,7 +432,7 @@ private:
             alpha = evaluation;
         }
 
-        auto allMoves = engine::getAllCaptures(board);
+        auto allMoves = engine::getAllMoves<movement::MoveCapture>(board);
         sortMoves(board, allMoves, m_ply);
 
         for (const auto& move : allMoves) {

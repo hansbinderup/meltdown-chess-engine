@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bishops.h"
+#include "helpers/bit_operations.h"
 #include "kings.h"
 #include "knights.h"
 #include "pawns.h"
@@ -12,83 +13,87 @@
 namespace gen {
 
 namespace {
+
+template<movement::MoveType type>
 constexpr static inline void generateKnightMoves(movement::ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
-    while (knights) {
-        const int from = std::countr_zero(knights);
-        knights &= knights - 1;
-
+    helper::bitIterate(knights, [&](BoardPosition from) {
         uint64_t moves = movement::s_knightsTable.at(from) & ~ownOccupation;
 
-        while (moves) {
-            const int to = std::countr_zero(moves);
-            const bool isCapture = (1ULL << to) & theirOccupation;
-            moves &= moves - 1;
-
-            validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
-        }
-    }
+        helper::bitIterate(moves, [&](BoardPosition pos) {
+            const bool isCapture = (1ULL << pos) & theirOccupation;
+            if constexpr (type == movement::MovePseudoLegal) {
+                validMoves.addMove(movement::Move::create(from, pos, piece, isCapture));
+            } else if constexpr (type == movement::MoveCapture) {
+                if (isCapture)
+                    validMoves.addMove(movement::Move::create(from, pos, piece, isCapture));
+            }
+        });
+    });
 }
 
+template<movement::MoveType type>
 constexpr static inline void generateRookMoves(movement::ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
-    while (rooks) {
-        const int from = std::countr_zero(rooks);
-        rooks &= rooks - 1;
-
+    helper::bitIterate(rooks, [&](BoardPosition from) {
         uint64_t moves = movement::getRookAttacks(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
-        while (moves) {
-            const int to = std::countr_zero(moves);
+        helper::bitIterate(moves, [&](BoardPosition to) {
             const bool isCapture = (1ULL << to) & theirOccupation;
-            moves &= moves - 1;
 
-            validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
-        }
-    }
+            if constexpr (type == movement::MovePseudoLegal) {
+                validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
+            } else if constexpr (type == movement::MoveCapture) {
+                if (isCapture)
+                    validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
+            }
+        });
+    });
 }
 
+template<movement::MoveType type>
 constexpr static inline void generateBishopMoves(movement::ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
-    while (bishops) {
-        const int from = std::countr_zero(bishops);
-        bishops &= bishops - 1;
-
+    helper::bitIterate(bishops, [&](BoardPosition from) {
         uint64_t moves = movement::getBishopAttacks(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
-        while (moves) {
-            const int to = std::countr_zero(moves);
+        helper::bitIterate(moves, [&](BoardPosition to) {
             const bool isCapture = (1ULL << to) & theirOccupation;
-            moves &= moves - 1;
 
-            validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
-        }
-    }
+            if constexpr (type == movement::MovePseudoLegal) {
+                validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
+            } else if constexpr (type == movement::MoveCapture) {
+                if (isCapture)
+                    validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
+            }
+        });
+    });
 }
 
+template<movement::MoveType type>
 constexpr static inline void generateQueenMoves(movement::ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
 {
-    generateRookMoves(validMoves, queens, ownOccupation, theirOccupation, piece);
-    generateBishopMoves(validMoves, queens, ownOccupation, theirOccupation, piece);
+    generateRookMoves<type>(validMoves, queens, ownOccupation, theirOccupation, piece);
+    generateBishopMoves<type>(validMoves, queens, ownOccupation, theirOccupation, piece);
 }
 
+template<movement::MoveType type>
 constexpr static inline void generateKingMoves(movement::ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece, uint64_t attacks)
 {
-    if (king == 0)
-        return;
+    helper::bitIterate(king, [&](BoardPosition from) {
+        uint64_t moves = movement::s_kingsTable.at(from) & ~ownOccupation & ~attacks;
 
-    const int from = std::countr_zero(king);
-    king &= king - 1;
+        helper::bitIterate(moves, [&](BoardPosition to) {
+            const bool isCapture = (1ULL << to) & theirOccupation;
 
-    uint64_t moves = movement::s_kingsTable.at(from) & ~ownOccupation & ~attacks;
-
-    while (moves) {
-        const int to = std::countr_zero(moves);
-        const bool isCapture = (1ULL << to) & theirOccupation;
-        moves &= moves - 1;
-
-        validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
-    }
+            if constexpr (type == movement::MovePseudoLegal) {
+                validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
+            } else if constexpr (type == movement::MoveCapture) {
+                if (isCapture)
+                    validMoves.addMove(movement::Move::create(from, to, piece, isCapture));
+            }
+        });
+    });
 }
 
 constexpr static inline void generateCastlingMovesWhite(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
@@ -145,75 +150,80 @@ constexpr static inline void generateCastlingMovesBlack(movement::ValidMoves& va
 
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getKnightMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    generateKnightMoves(
-        validMoves,
-        board.player == PlayerWhite ? board.pieces[WhiteKnight] : board.pieces[BlackKnight],
-        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
-        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
-        board.player == PlayerWhite ? Piece::WhiteKnight : Piece::BlackKnight);
+    if constexpr (player == PlayerWhite) {
+        generateKnightMoves<type>(validMoves, board.pieces[WhiteKnight], board.occupation[White], board.occupation[Black], Piece::WhiteKnight);
+    } else {
+        generateKnightMoves<type>(validMoves, board.pieces[BlackKnight], board.occupation[Black], board.occupation[White], Piece::BlackKnight);
+    }
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getRookMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    generateRookMoves(
-        validMoves,
-        board.player == PlayerWhite ? board.pieces[WhiteRook] : board.pieces[BlackRook],
-        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
-        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
-        board.player == PlayerWhite ? Piece::WhiteRook : Piece::BlackRook);
+    if constexpr (player == PlayerWhite) {
+        generateRookMoves<type>(validMoves, board.pieces[WhiteRook], board.occupation[White], board.occupation[Black], Piece::WhiteRook);
+    } else {
+        generateRookMoves<type>(validMoves, board.pieces[BlackRook], board.occupation[Black], board.occupation[White], Piece::BlackRook);
+    }
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getBishopMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    generateBishopMoves(
-        validMoves,
-        board.player == PlayerWhite ? board.pieces[WhiteBishop] : board.pieces[BlackBishop],
-        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
-        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
-        board.player == PlayerWhite ? Piece::WhiteBishop : Piece::BlackBishop);
+    if constexpr (player == PlayerWhite) {
+        generateBishopMoves<type>(validMoves, board.pieces[WhiteBishop], board.occupation[White], board.occupation[Black], Piece::WhiteBishop);
+    } else {
+        generateBishopMoves<type>(validMoves, board.pieces[BlackBishop], board.occupation[Black], board.occupation[White], Piece::BlackBishop);
+    }
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getQueenMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    generateQueenMoves(
-        validMoves,
-        board.player == PlayerWhite ? board.pieces[WhiteQueen] : board.pieces[BlackQueen],
-        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
-        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
-        board.player == PlayerWhite ? Piece::WhiteQueen : Piece::BlackQueen);
+    if constexpr (player == PlayerWhite) {
+        generateQueenMoves<type>(validMoves, board.pieces[WhiteQueen], board.occupation[White], board.occupation[Black], Piece::WhiteQueen);
+    } else {
+        generateQueenMoves<type>(validMoves, board.pieces[BlackQueen], board.occupation[Black], board.occupation[White], Piece::BlackQueen);
+    }
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getKingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    generateKingMoves(
-        validMoves,
-        board.player == PlayerWhite ? board.pieces[WhiteKing] : board.pieces[BlackKing],
-        board.player == PlayerWhite ? board.occupation[White] : board.occupation[Black],
-        board.player == PlayerWhite ? board.occupation[Black] : board.occupation[White],
-        board.player == PlayerWhite ? Piece::WhiteKing : Piece::BlackKing,
-        attacks);
+    if constexpr (player == PlayerWhite) {
+        generateKingMoves<type>(validMoves, board.pieces[WhiteKing], board.occupation[White], board.occupation[Black], Piece::WhiteKing, attacks);
+    } else {
+        generateKingMoves<type>(validMoves, board.pieces[BlackKing], board.occupation[Black], board.occupation[White], Piece::BlackKing, attacks);
+    }
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getPawnMoves(movement::ValidMoves& validMoves, const BitBoard& board)
 {
-    if (board.player == PlayerWhite) {
-        movement::getWhitePawnMoves(validMoves, board.pieces[WhitePawn], board.occupation[White], board.occupation[Black]);
+    if constexpr (player == PlayerWhite) {
+        movement::getWhitePawnMoves<type>(validMoves, board.pieces[WhitePawn], board.occupation[White], board.occupation[Black]);
         if (board.enPessant.has_value()) {
             movement::getWhiteEnPessantMoves(validMoves, board.pieces[WhitePawn], board.enPessant.value(), board.occupation[Both]);
         }
     } else {
-        movement::getBlackPawnMoves(validMoves, board.pieces[BlackPawn], board.occupation[Black], board.occupation[White]);
+        movement::getBlackPawnMoves<type>(validMoves, board.pieces[BlackPawn], board.occupation[Black], board.occupation[White]);
         if (board.enPessant.has_value()) {
             movement::getBlackEnPessantMoves(validMoves, board.pieces[BlackPawn], board.enPessant.value(), board.occupation[Both]);
         }
     }
 }
 
+template<Player player, movement::MoveType type>
 constexpr static inline void getCastlingMoves(movement::ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    if (board.player == PlayerWhite) {
+    if constexpr (type == movement::MoveCapture) {
+        return;
+    }
+
+    if constexpr (player == PlayerWhite) {
         generateCastlingMovesWhite(validMoves, board, attacks);
     } else {
         generateCastlingMovesBlack(validMoves, board, attacks);
