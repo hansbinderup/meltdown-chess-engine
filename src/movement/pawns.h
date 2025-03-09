@@ -1,5 +1,6 @@
 #pragma once
 
+#include "helpers/bit_operations.h"
 #include "movement/move_types.h"
 
 #include <cstdint>
@@ -10,37 +11,33 @@ namespace {
 
 constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
 {
-    while (moves) {
-        int to = std::countr_zero(moves); // Find first set bit
-        moves &= moves - 1; // Clear bit
-        int from = to - bitCnt; // Backtrack the pawn's original position
+
+    helper::bitIterate(moves, [&](BoardPosition to) {
+        const int from = to - bitCnt; // Backtrack the pawn's original position
         validMoves.addMove(movement::Move::create(from, to, piece, capture));
-    }
+    });
 }
 
 constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool enable)
 {
-    while (moves) {
-        int to = std::countr_zero(moves); // Find first set bit
-        moves &= moves - 1; // Clear bit
-        int from = to - bitCnt; // Backtrack the pawn's original position
+
+    helper::bitIterate(moves, [&](BoardPosition to) {
+        const int from = to - bitCnt; // Backtrack the pawn's original position
         validMoves.addMove(movement::Move::createEnPessant(from, to, piece, enable, !enable));
-    }
+    });
 }
 
 constexpr void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
 {
-    while (moves) {
-        int to = std::countr_zero(moves); // Find first set bit
-        moves &= moves - 1; // Clear bit
-        int from = to - bitCnt; // Backtrack the pawn's original position
+    helper::bitIterate(moves, [&](BoardPosition to) {
+        const int from = to - bitCnt; // Backtrack the pawn's original position
 
         /* add queen first - is usually the preferred piece */
         validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionQueen, capture));
         validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionKnight, capture));
         validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionBishop, capture));
         validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionRook, capture));
-    }
+    });
 }
 
 }

@@ -228,8 +228,8 @@ constexpr BitBoard performMove(const BitBoard& board, const movement::Move& move
 
     newBoard.updateOccupation();
 
-    newBoard.attacks[PlayerWhite] = gen::getAllAttacks(newBoard, PlayerWhite);
-    newBoard.attacks[PlayerBlack] = gen::getAllAttacks(newBoard, PlayerBlack);
+    newBoard.attacks[PlayerWhite] = gen::getAllAttacks<PlayerWhite>(newBoard);
+    newBoard.attacks[PlayerBlack] = gen::getAllAttacks<PlayerBlack>(newBoard);
 
     /* player making the move is black -> inc full moves */
     if (board.player == PlayerBlack)
