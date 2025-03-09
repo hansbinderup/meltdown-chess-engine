@@ -1,12 +1,18 @@
 #pragma once
 
 #include "board_defs.h"
-#include "fmt/base.h"
 
 #include <cstdint>
 #include <string_view>
 
+#include "fmt/format.h"
+
 namespace movement {
+
+enum MoveType {
+    MovePseudoLegal,
+    MoveCapture,
+};
 
 /*
  * Moves are encoded as:
