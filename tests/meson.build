@@ -10,6 +10,7 @@ unit_test_sources = files(
   'src/test_history_moves.cpp',
   'src/test_pv_table.cpp',
   'src/test_see_swap.cpp',
+  'src/test_scoring.cpp',
 )
 
 exe = executable(
