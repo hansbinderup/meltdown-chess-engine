@@ -87,7 +87,7 @@ constexpr static inline int32_t getRookScore(const BitBoard& board, const uint64
                 score += s_semiOpenFileScore;
 
         } else {
-            if ((blackPawns & s_isolationMaskTable[pos]) == 0)
+            if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 score += s_semiOpenFileScore;
         }
     });
