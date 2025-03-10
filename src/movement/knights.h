@@ -45,5 +45,10 @@ constexpr std::array<uint64_t, 64> generateKnightsTable()
 
 constexpr auto s_knightsTable = generateKnightsTable();
 
+static inline uint64_t getKnightAttacks(int square)
+{
+    return s_knightsTable[square];
+}
+
 }
 
