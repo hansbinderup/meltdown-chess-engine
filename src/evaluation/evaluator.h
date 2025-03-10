@@ -47,6 +47,7 @@ public:
         return std::nullopt;
     }
 
+    /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
     constexpr void stop()
     {
         m_isStopped = true;
@@ -160,7 +161,7 @@ private:
         using namespace std::chrono;
 
         /* allow some extra time for processing etc */
-        constexpr auto buffer = 5ms;
+        constexpr auto buffer = 50ms;
 
         const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
         const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
@@ -254,6 +255,9 @@ private:
             /* only increment depth, if we didn't fall out of the window */
             d++;
         }
+
+        /* in case we're scanning to a certain depth we need to ensure that we're stopping the time handler */
+        stop();
 
         return m_scoring.pvTable().bestMove();
     }
