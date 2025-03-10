@@ -6,10 +6,10 @@ unit_test_sources = files(
   'src/test_zobrist_hashing.cpp',
   'src/test_tt_hash_table.cpp',
   'src/test_move_gen_hashing.cpp',
-  'src/test_move_ordering.cpp',
   'src/test_killer_moves.cpp',
   'src/test_history_moves.cpp',
   'src/test_pv_table.cpp',
+  'src/test_see_swap.cpp',
 )
 
 exe = executable(

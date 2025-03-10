@@ -5,6 +5,7 @@
 #include "evaluation/history_moves.h"
 #include "evaluation/killer_moves.h"
 #include "evaluation/pv_table.h"
+#include "evaluation/see_swap.h"
 #include "movement/move_types.h"
 
 #include <cstdint>
@@ -68,8 +69,12 @@ public:
         const auto victim = board.getPieceAtSquare(move.toSquare());
 
         if (move.isCapture()) {
-            if (attacker.has_value() && victim.has_value()) {
-                return gen::getMvvLvaScore(attacker.value(), victim.value()) + 10000;
+            int32_t seeScore = evaluation::SeeSwap::run(board, move);
+
+            if (seeScore >= 0) {
+                return ScoreGoodCapture + seeScore;
+            } else {
+                return ScoreBadCapture + seeScore;
             }
         } else {
             const auto killerMoves = m_killerMoves.get(ply);

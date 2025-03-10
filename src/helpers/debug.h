@@ -3,7 +3,7 @@
 #include "fmt/format.h"
 #include <cstdint>
 
-namespace {
+namespace helper {
 
 constexpr void printBitboard(uint64_t board)
 {
