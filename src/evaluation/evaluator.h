@@ -286,9 +286,10 @@ private:
             return 0; /* draw score */
         }
 
+        const bool isPv = beta - alpha > 1;
         const auto hashProbe = engine::TtHashTable::probe(m_hash, alpha, beta, depth, m_ply);
         if (hashProbe.has_value()) {
-            if (m_ply)
+            if (m_ply && !isPv)
                 return hashProbe->first;
 
             m_ttMove = hashProbe->second;
