@@ -1,5 +1,6 @@
 #pragma once
 
+#include "board_defs.h"
 #include "magics/magics.h"
 
 #include <array>
@@ -104,14 +105,14 @@ constexpr auto s_rookAttackTable = generateRookAttackTable();
 
 }
 
-static inline uint64_t getRookMoves(int square, uint64_t occupancy)
+/* https://www.chessprogramming.org/Magic_Bitboards */
+static inline uint64_t getRookMoves(BoardPosition pos, uint64_t occupancy)
 {
-    // https://www.chessprogramming.org/Magic_Bitboards
-    occupancy &= s_rookMasksTable[square];
-    occupancy *= magic::s_rooksMagic[square];
-    occupancy >>= 64 - magic::s_rookRelevantBits[square];
+    occupancy &= s_rookMasksTable[pos];
+    occupancy *= magic::s_rooksMagic[pos];
+    occupancy >>= 64 - magic::s_rookRelevantBits[pos];
 
-    return s_rookAttackTable[square][occupancy];
+    return s_rookAttackTable[pos][occupancy];
 }
 
 }

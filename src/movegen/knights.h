@@ -1,5 +1,6 @@
 #pragma once
 
+#include "board_defs.h"
 #include <array>
 #include <cstdint>
 
@@ -45,9 +46,9 @@ constexpr auto s_knightsTable = generateKnightsTable();
 
 }
 
-static inline uint64_t getKnightMoves(int square)
+static inline uint64_t getKnightMoves(BoardPosition pos)
 {
-    return s_knightsTable[square];
+    return s_knightsTable[pos];
 }
 
 }
