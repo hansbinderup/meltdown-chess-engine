@@ -1,22 +1,28 @@
 catch2 = subproject('catch2')
 catch2_dep = catch2.get_variable('catch2_with_main_dep')
 
-unit_test_sources = files(
-  'src/test_perft.cpp',
-  'src/test_zobrist_hashing.cpp',
-  'src/test_tt_hash_table.cpp',
-  'src/test_move_gen_hashing.cpp',
-  'src/test_killer_moves.cpp',
-  'src/test_history_moves.cpp',
-  'src/test_pv_table.cpp',
-  'src/test_see_swap.cpp',
-  'src/test_scoring.cpp',
-)
+# NOTE: must be named test_*** to be picked up by the runner
+unit_test_names = [
+  'test_perft',
+  'test_zobrist_hashing',
+  'test_tt_hash_table',
+  'test_move_gen_hashing',
+  'test_killer_moves',
+  'test_history_moves',
+  'test_pv_table',
+  'test_see_swap',
+  'test_scoring',
+]
 
-exe = executable(
-  'unit-tests',
-  unit_test_sources,
-  dependencies: [catch2_dep, meltdown_dep],
-)
+foreach test_name : unit_test_names
+  test_src = 'src/' + test_name + '.cpp'  # Construct file path
 
-test('unit-tests', exe)
+  exe = executable(
+    'meltdown_' + test_name,
+    test_src,
+    dependencies: [catch2_dep, meltdown_dep]
+  )
+
+  test('meltdown_' + test_name, exe)
+endforeach
+
