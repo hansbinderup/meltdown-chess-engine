@@ -6,13 +6,17 @@
 
 namespace helper {
 
+[[nodiscard]] constexpr BoardPosition lsbToPosition(uint64_t piece) noexcept
+{
+    return static_cast<BoardPosition>(std::countr_zero(piece));
+}
+
 template<typename Func>
-constexpr static inline void bitIterate(uint64_t data, Func&& fnc)
+constexpr void bitIterate(uint64_t data, Func&& fnc) noexcept
     requires std::is_invocable_v<Func, BoardPosition>
 {
     while (data) {
-        int pos = std::countr_zero(data);
-        fnc(static_cast<BoardPosition>(pos));
+        fnc(lsbToPosition(data));
         data &= data - 1;
     }
 }
