@@ -116,16 +116,16 @@ private:
     {
         if constexpr (player == PlayerWhite) {
             return s_whitePawnTable[target]
-                | (movegen::getKnightAttacks(target) & board.pieces[WhiteKnight])
-                | (movegen::getBishopAttacks(target, occ) & (board.pieces[WhiteBishop] | board.pieces[WhiteQueen]))
-                | (movegen::getRookAttacks(target, occ) & (board.pieces[WhiteRook] | board.pieces[WhiteQueen]))
-                | (movegen::getKingAttacks(target) & board.pieces[WhiteKing]);
+                | (movegen::getKnightMoves(target) & board.pieces[WhiteKnight])
+                | (movegen::getBishopMoves(target, occ) & (board.pieces[WhiteBishop] | board.pieces[WhiteQueen]))
+                | (movegen::getRookMoves(target, occ) & (board.pieces[WhiteRook] | board.pieces[WhiteQueen]))
+                | (movegen::getKingMoves(target) & board.pieces[WhiteKing]);
         } else {
             return s_blackPawnTable[target]
-                | (movegen::getKnightAttacks(target) & board.pieces[BlackKnight])
-                | (movegen::getBishopAttacks(target, occ) & (board.pieces[BlackBishop] | board.pieces[BlackQueen]))
-                | (movegen::getRookAttacks(target, occ) & (board.pieces[BlackRook] | board.pieces[BlackQueen]))
-                | (movegen::getKingAttacks(target) & board.pieces[BlackKing]);
+                | (movegen::getKnightMoves(target) & board.pieces[BlackKnight])
+                | (movegen::getBishopMoves(target, occ) & (board.pieces[BlackBishop] | board.pieces[BlackQueen]))
+                | (movegen::getRookMoves(target, occ) & (board.pieces[BlackRook] | board.pieces[BlackQueen]))
+                | (movegen::getKingMoves(target) & board.pieces[BlackKing]);
         }
     }
 

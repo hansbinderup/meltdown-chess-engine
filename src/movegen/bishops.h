@@ -111,7 +111,7 @@ constexpr auto s_bishopAttackTable = generateBishopAttackTable();
 
 }
 
-static inline uint64_t getBishopAttacks(int square, uint64_t occupancy)
+static inline uint64_t getBishopMoves(int square, uint64_t occupancy)
 {
     occupancy &= s_bishopMasksTable[square];
     occupancy *= magic::s_bishopsMagic[square];

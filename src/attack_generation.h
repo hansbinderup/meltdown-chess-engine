@@ -12,7 +12,7 @@
 #include <bit>
 #include <cstdint>
 
-namespace gen {
+namespace attackgen {
 
 template<Player player>
 constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
@@ -27,7 +27,7 @@ constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(knights, [&](BoardPosition from) {
-        attacks |= movegen::getKnightAttacks(from);
+        attacks |= movegen::getKnightMoves(from);
     });
 
     return attacks;
@@ -47,7 +47,7 @@ constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(rooks, [&](BoardPosition from) {
-        attacks |= movegen::getRookAttacks(from, occupancy);
+        attacks |= movegen::getRookMoves(from, occupancy);
     });
 
     return attacks;
@@ -67,7 +67,7 @@ constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(bishops, [&](BoardPosition from) {
-        attacks |= movegen::getBishopAttacks(from, occupancy);
+        attacks |= movegen::getBishopMoves(from, occupancy);
     });
 
     return attacks;
@@ -87,8 +87,8 @@ constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(queens, [&](BoardPosition from) {
-        attacks |= movegen::getRookAttacks(from, occupancy);
-        attacks |= movegen::getBishopAttacks(from, occupancy);
+        attacks |= movegen::getRookMoves(from, occupancy);
+        attacks |= movegen::getBishopMoves(from, occupancy);
     });
 
     return attacks;
@@ -110,7 +110,7 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
     }
 
     const int from = std::countr_zero(king);
-    return movegen::getKingAttacks(from);
+    return movegen::getKingMoves(from);
 }
 
 constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)
@@ -137,16 +137,16 @@ constexpr uint64_t getAllAttacks(const BitBoard& board)
     uint64_t attacks {};
 
     if constexpr (player == PlayerWhite) {
-        attacks |= gen::getWhitePawnAttacks(board);
+        attacks |= getWhitePawnAttacks(board);
     } else {
-        attacks |= gen::getBlackPawnAttacks(board);
+        attacks |= getBlackPawnAttacks(board);
     }
 
-    attacks |= gen::getKnightAttacks<player>(board);
-    attacks |= gen::getRookAttacks<player>(board);
-    attacks |= gen::getBishopAttacks<player>(board);
-    attacks |= gen::getQueenAttacks<player>(board);
-    attacks |= gen::getKingAttacks<player>(board);
+    attacks |= getKnightAttacks<player>(board);
+    attacks |= getRookAttacks<player>(board);
+    attacks |= getBishopAttacks<player>(board);
+    attacks |= getQueenAttacks<player>(board);
+    attacks |= getKingAttacks<player>(board);
 
     return attacks;
 }

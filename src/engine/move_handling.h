@@ -137,22 +137,22 @@ constexpr movegen::ValidMoves getAllMoves(const BitBoard& board)
 
     if (board.player == PlayerWhite) {
         const uint64_t attacks = board.attacks[PlayerBlack];
-        gen::getKingMoves<PlayerWhite, type>(validMoves, board, attacks);
-        gen::getPawnMoves<PlayerWhite, type>(validMoves, board);
-        gen::getKnightMoves<PlayerWhite, type>(validMoves, board);
-        gen::getRookMoves<PlayerWhite, type>(validMoves, board);
-        gen::getBishopMoves<PlayerWhite, type>(validMoves, board);
-        gen::getQueenMoves<PlayerWhite, type>(validMoves, board);
-        gen::getCastlingMoves<PlayerWhite, type>(validMoves, board, attacks);
+        movegen::getKingMoves<PlayerWhite, type>(validMoves, board, attacks);
+        movegen::getPawnMoves<PlayerWhite, type>(validMoves, board);
+        movegen::getKnightMoves<PlayerWhite, type>(validMoves, board);
+        movegen::getRookMoves<PlayerWhite, type>(validMoves, board);
+        movegen::getBishopMoves<PlayerWhite, type>(validMoves, board);
+        movegen::getQueenMoves<PlayerWhite, type>(validMoves, board);
+        movegen::getCastlingMoves<PlayerWhite, type>(validMoves, board, attacks);
     } else {
         const uint64_t attacks = board.attacks[PlayerWhite];
-        gen::getKingMoves<PlayerBlack, type>(validMoves, board, attacks);
-        gen::getPawnMoves<PlayerBlack, type>(validMoves, board);
-        gen::getKnightMoves<PlayerBlack, type>(validMoves, board);
-        gen::getRookMoves<PlayerBlack, type>(validMoves, board);
-        gen::getBishopMoves<PlayerBlack, type>(validMoves, board);
-        gen::getQueenMoves<PlayerBlack, type>(validMoves, board);
-        gen::getCastlingMoves<PlayerBlack, type>(validMoves, board, attacks);
+        movegen::getKingMoves<PlayerBlack, type>(validMoves, board, attacks);
+        movegen::getPawnMoves<PlayerBlack, type>(validMoves, board);
+        movegen::getKnightMoves<PlayerBlack, type>(validMoves, board);
+        movegen::getRookMoves<PlayerBlack, type>(validMoves, board);
+        movegen::getBishopMoves<PlayerBlack, type>(validMoves, board);
+        movegen::getQueenMoves<PlayerBlack, type>(validMoves, board);
+        movegen::getCastlingMoves<PlayerBlack, type>(validMoves, board, attacks);
     }
 
     return validMoves;
@@ -228,8 +228,8 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
 
     newBoard.updateOccupation();
 
-    newBoard.attacks[PlayerWhite] = gen::getAllAttacks<PlayerWhite>(newBoard);
-    newBoard.attacks[PlayerBlack] = gen::getAllAttacks<PlayerBlack>(newBoard);
+    newBoard.attacks[PlayerWhite] = attackgen::getAllAttacks<PlayerWhite>(newBoard);
+    newBoard.attacks[PlayerBlack] = attackgen::getAllAttacks<PlayerBlack>(newBoard);
 
     /* player making the move is black -> inc full moves */
     if (board.player == PlayerBlack)
