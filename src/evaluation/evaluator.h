@@ -72,11 +72,12 @@ public:
             fmt::print("\n\n");
         }
 
-        m_endTime = std::chrono::system_clock::now() + std::chrono::minutes(10);
-
+        /* no need for time management here - just control the start/stop ourselves */
+        m_isStopped = false;
         auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
         m_moveOrdering.sortMoves(board, allMoves, m_ply);
         const int32_t score = negamax(depth, board);
+        stop();
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : allMoves) {
@@ -511,8 +512,8 @@ private:
 
         if (engine::isKingAttacked(res.board, board.player)) {
             m_hash = res.hash;
-            // invalid move
 
+            // invalid move
             return std::nullopt;
         }
 
@@ -557,7 +558,7 @@ private:
     }
 
     uint64_t m_nodes {};
-    uint8_t m_ply;
+    uint8_t m_ply {};
     std::atomic_bool m_isStopped { true };
     uint64_t m_hash {};
     uint8_t m_selDepth {};
