@@ -3,7 +3,7 @@
 #include "engine/move_handling.h"
 #include "engine/tt_hash_table.h"
 #include "evaluation/material_scoring.h"
-#include "evaluation/move_scoring.h"
+#include "evaluation/move_ordering.h"
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "fmt/ranges.h"
@@ -40,8 +40,8 @@ public:
 
     constexpr std::optional<movegen::Move> getPonderMove() const
     {
-        if (m_scoring.pvTable().size() > 1) {
-            return m_scoring.pvTable()[1];
+        if (m_moveOrdering.pvTable().size() > 1) {
+            return m_moveOrdering.pvTable()[1];
         }
 
         return std::nullopt;
@@ -63,11 +63,11 @@ public:
 
         auto captures = engine::getAllMoves<movegen::MoveCapture>(board);
         if (captures.count()) {
-            sortMoves(board, captures, m_ply);
+            m_moveOrdering.sortMoves(board, captures, m_ply);
 
             fmt::print("Captures[{}]: ", captures.count());
             for (const auto& move : captures) {
-                fmt::print("{} [{}]  ", move, m_scoring.score(board, move, 0));
+                fmt::print("{} [{}]  ", move, m_moveOrdering.moveScore(board, move, 0));
             }
             fmt::print("\n\n");
         }
@@ -75,19 +75,19 @@ public:
         m_endTime = std::chrono::system_clock::now() + std::chrono::minutes(10);
 
         auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
-        sortMoves(board, allMoves, m_ply);
+        m_moveOrdering.sortMoves(board, allMoves, m_ply);
         const int32_t score = negamax(depth, board);
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : allMoves) {
-            fmt::println("  {}: {}", move, m_scoring.score(board, move, 0));
+            fmt::println("  {}: {}", move, m_moveOrdering.moveScore(board, move, 0));
         }
 
         fmt::println("\nTotal nodes:     {}\n"
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
                      "Material score:  {}\n",
-            m_nodes, score, fmt::join(m_scoring.pvTable(), " "), materialScore(board));
+            m_nodes, score, fmt::join(m_moveOrdering.pvTable(), " "), materialScore(board));
     }
 
     void setWhiteTime(uint64_t time)
@@ -139,7 +139,7 @@ public:
     void reset()
     {
         resetTiming(); // full reset required
-        m_scoring.reset();
+        m_moveOrdering.reset();
         m_repetition.reset();
     }
 
@@ -235,7 +235,7 @@ private:
                 }
             }
 
-            m_scoring.pvTable().setIsFollowing(true);
+            m_moveOrdering.pvTable().setIsFollowing(true);
             int32_t score = negamax(d, board, alpha, beta);
 
             /* the search fell outside the window - we need to retry a full search */
@@ -259,7 +259,7 @@ private:
         /* in case we're scanning to a certain depth we need to ensure that we're stopping the time handler */
         stop();
 
-        return m_scoring.pvTable().bestMove();
+        return m_moveOrdering.pvTable().bestMove();
     }
 
     constexpr void printScoreInfo(int32_t score, uint8_t currentDepth)
@@ -276,7 +276,7 @@ private:
         else
             fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull());
 
-        fmt::println("{}", fmt::join(m_scoring.pvTable(), " "));
+        fmt::println("{}", fmt::join(m_moveOrdering.pvTable(), " "));
         fflush(stdout);
     }
 
@@ -302,7 +302,7 @@ private:
             return materialScore(board);
         }
 
-        m_scoring.pvTable().updateLength(m_ply);
+        m_moveOrdering.pvTable().updateLength(m_ply);
 
         if (depth == 0) {
             return quiesence(board, alpha, beta);
@@ -330,11 +330,11 @@ private:
         }
 
         auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
-        if (m_scoring.pvTable().isFollowing()) {
-            m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
+        if (m_moveOrdering.pvTable().isFollowing()) {
+            m_moveOrdering.pvTable().updatePvScoring(allMoves, m_ply);
         }
 
-        sortMoves(board, allMoves, m_ply, m_ttMove);
+        m_moveOrdering.sortMoves(board, allMoves, m_ply, m_ttMove);
         for (const auto& move : allMoves) {
             const auto moveRes = makeMove(board, move);
             if (!moveRes.has_value()) {
@@ -385,7 +385,7 @@ private:
 
             if (score >= beta) {
                 engine::TtHashTable::writeEntry(m_hash, score, move, depth, m_ply, engine::TtHashBeta);
-                m_scoring.killerMoves().update(move, m_ply);
+                m_moveOrdering.killerMoves().update(move, m_ply);
                 return beta;
             }
 
@@ -396,8 +396,8 @@ private:
                 hashFlag = engine::TtHashExact;
                 alphaMove = move;
 
-                m_scoring.historyMoves().update(board, move, m_ply);
-                m_scoring.pvTable().updateTable(move, m_ply);
+                m_moveOrdering.historyMoves().update(board, move, m_ply);
+                m_moveOrdering.pvTable().updateTable(move, m_ply);
             }
         }
 
@@ -438,7 +438,7 @@ private:
         }
 
         auto allMoves = engine::getAllMoves<movegen::MoveCapture>(board);
-        sortMoves(board, allMoves, m_ply);
+        m_moveOrdering.sortMoves(board, allMoves, m_ply);
 
         for (const auto& move : allMoves) {
             const auto moveRes = makeMove(board, move);
@@ -498,17 +498,6 @@ private:
         }
 
         return std::nullopt;
-    }
-
-    constexpr void sortMoves(const BitBoard& board, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
-    {
-        /* use stable sort to keep determinism
-         * TODO: consider if there's a better way to sort */
-        std::stable_sort(moves.begin(), moves.end(), [&, this](const auto& a, const auto& b) {
-            return m_scoring.score(board, a, ply, ttMove) > m_scoring.score(board, b, ply, ttMove);
-        });
-
-        m_scoring.pvTable().setIsScoring(false);
     }
 
     struct MoveResult {
@@ -574,7 +563,7 @@ private:
     uint8_t m_selDepth {};
     std::optional<movegen::Move> m_ttMove;
 
-    MoveScoring m_scoring {};
+    MoveOrdering m_moveOrdering {};
     Repetition m_repetition;
 
     uint64_t m_whiteTime {};

@@ -26,7 +26,7 @@ enum ScoringOffsets : int32_t {
 
 }
 
-class MoveScoring {
+class MoveOrdering {
 public:
     constexpr void reset()
     {
@@ -55,8 +55,18 @@ public:
         return m_historyMoves;
     }
 
+    constexpr void sortMoves(const BitBoard& board, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
+    {
+        /* use stable sort to keep determinism */
+        std::stable_sort(moves.begin(), moves.end(), [&, this](const auto& a, const auto& b) {
+            return moveScore(board, a, ply, ttMove) > moveScore(board, b, ply, ttMove);
+        });
+
+        m_pvTable.setIsScoring(false);
+    }
+
     // NOTE: SCORING MUST BE CONSISTENT DURING A SORT - STL SORTING ALGORTIHMS WILL MESS WITH THE STACK IF NOT
-    constexpr int32_t score(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
+    constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (ttMove.has_value() && move == *ttMove) {
             return ScoreTtHashMove;

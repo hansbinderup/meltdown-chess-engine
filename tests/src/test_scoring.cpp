@@ -46,7 +46,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(board.has_value());
 
             auto allMoves = engine::getAllMoves<movegen::MoveCapture>(board.value());
-            s_evaluator.sortMoves(board.value(), allMoves, 0);
+            s_evaluator.m_moveOrdering.sortMoves(board.value(), allMoves, 0);
 
             REQUIRE(allMoves.count() == 3);
             REQUIRE(allMoves[0].piece() == WhitePawn);
@@ -63,7 +63,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(board.has_value());
 
             auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board.value());
-            s_evaluator.sortMoves(board.value(), allMoves, 0);
+            s_evaluator.m_moveOrdering.sortMoves(board.value(), allMoves, 0);
 
             REQUIRE(allMoves[0].piece() == WhitePawn);
             REQUIRE(allMoves[1].piece() == WhiteKing);
