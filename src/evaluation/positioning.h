@@ -63,7 +63,7 @@ constexpr static inline int32_t getBishopScore(const BitBoard& board, const uint
     int32_t score = 0;
 
     helper::bitIterate(bishops, [&score, &board](BoardPosition pos) {
-        const uint64_t moves = movegen::getBishopAttacks(pos, board.occupation[Both]);
+        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
         score += std::popcount(moves) * s_bishopMobilityScore;
     });
 
@@ -101,8 +101,8 @@ constexpr static inline int32_t getQueenScore(const BitBoard& board, const uint6
 
     helper::bitIterate(queens, [&board, &score](BoardPosition pos) {
         const uint64_t moves
-            = movegen::getBishopAttacks(pos, board.occupation[Both])
-            | movegen::getRookAttacks(pos, board.occupation[Both]);
+            = movegen::getBishopMoves(pos, board.occupation[Both])
+            | movegen::getRookMoves(pos, board.occupation[Both]);
 
         score += std::popcount(moves) * s_queenMobilityScore;
     });
@@ -127,13 +127,13 @@ constexpr static inline int32_t getKingScore(const BitBoard& board, const uint64
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 score -= s_semiOpenFileScore;
 
-            const uint64_t kingShields = movegen::getKingAttacks(pos) & board.occupation[PlayerWhite];
+            const uint64_t kingShields = movegen::getKingMoves(pos) & board.occupation[PlayerWhite];
             score += std::popcount(kingShields) * s_kingShieldScore;
         } else {
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 score -= s_semiOpenFileScore;
 
-            const uint64_t kingShields = movegen::getKingAttacks(pos) & board.occupation[PlayerBlack];
+            const uint64_t kingShields = movegen::getKingMoves(pos) & board.occupation[PlayerBlack];
             score += std::popcount(kingShields) * s_kingShieldScore;
         }
     });

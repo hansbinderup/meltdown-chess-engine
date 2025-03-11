@@ -41,11 +41,11 @@ constexpr std::array<uint64_t, 64> generateKnightsTable()
     return table;
 }
 
-}
-
 constexpr auto s_knightsTable = generateKnightsTable();
 
-static inline uint64_t getKnightAttacks(int square)
+}
+
+static inline uint64_t getKnightMoves(int square)
 {
     return s_knightsTable[square];
 }

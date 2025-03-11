@@ -104,7 +104,7 @@ constexpr auto s_rookAttackTable = generateRookAttackTable();
 
 }
 
-static inline uint64_t getRookAttacks(int square, uint64_t occupancy)
+static inline uint64_t getRookMoves(int square, uint64_t occupancy)
 {
     // https://www.chessprogramming.org/Magic_Bitboards
     occupancy &= s_rookMasksTable[square];
