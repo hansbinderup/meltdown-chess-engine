@@ -95,8 +95,8 @@ public:
 
                 const auto piece = parsing::pieceFromChar(c);
                 if (piece.has_value()) {
-                    const uint8_t square = (row * 8) + column;
-                    board.pieces[piece.value()] |= 1ULL << square;
+                    const auto pos = intToBoardPosition((row * 8) + column);
+                    board.pieces[piece.value()] |= helper::positionToSquare(pos);
                     column++;
                 } else {
                     const uint8_t skip = c - '0';
@@ -157,7 +157,7 @@ public:
 
         const uint8_t column = input.at(0) - 'a';
         const uint8_t row = input.at(1) - '1';
-        const BoardPosition pos = static_cast<BoardPosition>((row * 8) + column);
+        const auto pos = intToBoardPosition((row * 8) + column);
 
         if (pos > 63) {
             return false;
