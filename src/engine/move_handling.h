@@ -34,8 +34,8 @@ constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, B
 
 constexpr void performCastleMove(BitBoard& board, const movegen::Move& move, uint64_t& hash)
 {
-    const BoardPosition fromPos = move.fromValue();
-    const BoardPosition toPos = move.toValue();
+    const BoardPosition fromPos = move.fromPos();
+    const BoardPosition toPos = move.toPos();
 
     switch (move.castleType()) {
     case CastleWhiteKingSide: {
@@ -67,12 +67,12 @@ constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, 
 
     // first clear to be promoted pawn
     uint64_t& pawns = isWhite ? board.pieces[WhitePawn] : board.pieces[BlackPawn];
-    clearPiece(pawns, move.fromValue(), type, hash);
+    clearPiece(pawns, move.fromPos(), type, hash);
 
     /* clear piece that will be taken if capture */
     if (move.isCapture()) {
         if (const auto victim = board.getPieceAtSquare(move.toSquare())) {
-            clearPiece(board.pieces[victim.value()], move.toValue(), victim.value(), hash);
+            clearPiece(board.pieces[victim.value()], move.toPos(), victim.value(), hash);
         }
     }
 
@@ -81,19 +81,19 @@ constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, 
         return;
     case PromotionQueen: {
         const auto type = isWhite ? WhiteQueen : BlackQueen;
-        setPiece(board.pieces[type], move.toValue(), type, hash);
+        setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     case PromotionKnight: {
         const auto type = isWhite ? WhiteKnight : BlackKnight;
-        setPiece(board.pieces[type], move.toValue(), type, hash);
+        setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     case PromotionBishop: {
         const auto type = isWhite ? WhiteBishop : BlackBishop;
-        setPiece(board.pieces[type], move.toValue(), type, hash);
+        setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     case PromotionRook: {
         const auto type = isWhite ? WhiteRook : BlackRook;
-        setPiece(board.pieces[type], move.toValue(), type, hash);
+        setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     }
 }
@@ -185,8 +185,8 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
 {
     BitBoard newBoard = board;
 
-    const auto fromPos = move.fromValue();
-    const auto toPos = move.toValue();
+    const auto fromPos = move.fromPos();
+    const auto toPos = move.toPos();
 
     if (move.isCastleMove()) {
         performCastleMove(newBoard, move, hash);
@@ -203,7 +203,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     } else {
         if (move.isCapture()) {
             if (const auto victim = board.getPieceAtSquare(move.toSquare())) {
-                clearPiece(newBoard.pieces[victim.value()], move.toValue(), victim.value(), hash);
+                clearPiece(newBoard.pieces[victim.value()], move.toPos(), victim.value(), hash);
             }
         }
 
