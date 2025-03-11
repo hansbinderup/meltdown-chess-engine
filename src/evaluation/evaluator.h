@@ -7,7 +7,7 @@
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "fmt/ranges.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 #include <atomic>
 #include <engine/zobrist_hashing.h>
 
@@ -19,7 +19,7 @@ namespace evaluation {
 
 class Evaluator {
 public:
-    constexpr movement::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr movegen::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         m_startTime = std::chrono::system_clock::now();
 
@@ -38,7 +38,7 @@ public:
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
     }
 
-    constexpr std::optional<movement::Move> getPonderMove() const
+    constexpr std::optional<movegen::Move> getPonderMove() const
     {
         if (m_scoring.pvTable().size() > 1) {
             return m_scoring.pvTable()[1];
@@ -61,7 +61,7 @@ public:
 
         fmt::println("");
 
-        auto captures = engine::getAllMoves<movement::MoveCapture>(board);
+        auto captures = engine::getAllMoves<movegen::MoveCapture>(board);
         if (captures.count()) {
             sortMoves(board, captures, m_ply);
 
@@ -74,7 +74,7 @@ public:
 
         m_endTime = std::chrono::system_clock::now() + std::chrono::minutes(10);
 
-        auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board);
+        auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
         sortMoves(board, allMoves, m_ply);
         const int32_t score = negamax(depth, board);
 
@@ -195,7 +195,7 @@ private:
         }
     };
 
-    constexpr movement::Move scanForBestMove(uint8_t depth, const BitBoard& board)
+    constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
         startTimeHandler();
 
@@ -312,7 +312,7 @@ private:
 
         /* entries for the TT hash */
         engine::TtHashFlag hashFlag = engine::TtHashAlpha;
-        movement::Move alphaMove {};
+        movegen::Move alphaMove {};
 
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
@@ -329,7 +329,7 @@ private:
             }
         }
 
-        auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board);
+        auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
         if (m_scoring.pvTable().isFollowing()) {
             m_scoring.pvTable().updatePvScoring(allMoves, m_ply);
         }
@@ -437,7 +437,7 @@ private:
             alpha = evaluation;
         }
 
-        auto allMoves = engine::getAllMoves<movement::MoveCapture>(board);
+        auto allMoves = engine::getAllMoves<movegen::MoveCapture>(board);
         sortMoves(board, allMoves, m_ply);
 
         for (const auto& move : allMoves) {
@@ -500,7 +500,7 @@ private:
         return std::nullopt;
     }
 
-    constexpr void sortMoves(const BitBoard& board, movement::ValidMoves& moves, uint8_t ply, std::optional<movement::Move> ttMove = std::nullopt)
+    constexpr void sortMoves(const BitBoard& board, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
     {
         /* use stable sort to keep determinism
          * TODO: consider if there's a better way to sort */
@@ -516,7 +516,7 @@ private:
         BitBoard board;
     };
 
-    std::optional<MoveResult> makeMove(const BitBoard& board, const movement::Move& move)
+    std::optional<MoveResult> makeMove(const BitBoard& board, const movegen::Move& move)
     {
         const MoveResult res { m_hash, engine::performMove(board, move, m_hash) };
 
@@ -572,7 +572,7 @@ private:
     std::atomic_bool m_isStopped { true };
     uint64_t m_hash {};
     uint8_t m_selDepth {};
-    std::optional<movement::Move> m_ttMove;
+    std::optional<movegen::Move> m_ttMove;
 
     MoveScoring m_scoring {};
     Repetition m_repetition;

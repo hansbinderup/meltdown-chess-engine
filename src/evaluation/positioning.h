@@ -7,9 +7,9 @@
 
 #include "evaluation/position_tables.h"
 #include "helpers/bit_operations.h"
-#include "movement/bishops.h"
-#include "movement/kings.h"
-#include "movement/rooks.h"
+#include "movegen/bishops.h"
+#include "movegen/kings.h"
+#include "movegen/rooks.h"
 
 namespace evaluation {
 
@@ -63,7 +63,7 @@ constexpr static inline int32_t getBishopScore(const BitBoard& board, const uint
     int32_t score = 0;
 
     helper::bitIterate(bishops, [&score, &board](BoardPosition pos) {
-        const uint64_t moves = movement::getBishopAttacks(pos, board.occupation[Both]);
+        const uint64_t moves = movegen::getBishopAttacks(pos, board.occupation[Both]);
         score += std::popcount(moves) * s_bishopMobilityScore;
     });
 
@@ -101,8 +101,8 @@ constexpr static inline int32_t getQueenScore(const BitBoard& board, const uint6
 
     helper::bitIterate(queens, [&board, &score](BoardPosition pos) {
         const uint64_t moves
-            = movement::getBishopAttacks(pos, board.occupation[Both])
-            | movement::getRookAttacks(pos, board.occupation[Both]);
+            = movegen::getBishopAttacks(pos, board.occupation[Both])
+            | movegen::getRookAttacks(pos, board.occupation[Both]);
 
         score += std::popcount(moves) * s_queenMobilityScore;
     });
@@ -127,13 +127,13 @@ constexpr static inline int32_t getKingScore(const BitBoard& board, const uint64
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 score -= s_semiOpenFileScore;
 
-            const uint64_t kingShields = movement::getKingAttacks(pos) & board.occupation[PlayerWhite];
+            const uint64_t kingShields = movegen::getKingAttacks(pos) & board.occupation[PlayerWhite];
             score += std::popcount(kingShields) * s_kingShieldScore;
         } else {
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 score -= s_semiOpenFileScore;
 
-            const uint64_t kingShields = movement::getKingAttacks(pos) & board.occupation[PlayerBlack];
+            const uint64_t kingShields = movegen::getKingAttacks(pos) & board.occupation[PlayerBlack];
             score += std::popcount(kingShields) * s_kingShieldScore;
         }
     });

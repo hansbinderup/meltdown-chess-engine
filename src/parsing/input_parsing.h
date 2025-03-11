@@ -2,7 +2,7 @@
 
 #include "bit_board.h"
 #include "engine/move_handling.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 #include <charconv>
 #include <optional>
 #include <string_view>
@@ -52,7 +52,7 @@ constexpr std::optional<std::string_view> sv_next_split(std::string_view& sv)
  * Compare moves by only looking at positioning
  * We need to apply the same masks as the bitboard uses to emulate their moves
  */
-constexpr static inline bool compareMove(const movement::Move& a, uint8_t from, uint8_t to, PromotionType promotion)
+constexpr static inline bool compareMove(const movegen::Move& a, uint8_t from, uint8_t to, PromotionType promotion)
 {
     if (promotion == PromotionNone)
         return (a.fromValue() == from) && (a.toValue() == to);
@@ -62,7 +62,7 @@ constexpr static inline bool compareMove(const movement::Move& a, uint8_t from, 
 
 }
 
-static inline std::optional<movement::Move> moveFromString(const BitBoard& board, std::string_view sv)
+static inline std::optional<movegen::Move> moveFromString(const BitBoard& board, std::string_view sv)
 {
     if (sv.size() < 4) {
         return std::nullopt;
@@ -85,7 +85,7 @@ static inline std::optional<movement::Move> moveFromString(const BitBoard& board
             promotion = PromotionQueen;
     }
 
-    const auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board);
+    const auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
     for (const auto& move : allMoves) {
         if (compareMove(move, fromIndex, toIndex, promotion)) {
             return move;

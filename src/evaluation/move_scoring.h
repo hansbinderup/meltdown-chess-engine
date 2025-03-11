@@ -5,7 +5,7 @@
 #include "evaluation/killer_moves.h"
 #include "evaluation/pv_table.h"
 #include "evaluation/see_swap.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 
 #include <cstdint>
 
@@ -56,7 +56,7 @@ public:
     }
 
     // NOTE: SCORING MUST BE CONSISTENT DURING A SORT - STL SORTING ALGORTIHMS WILL MESS WITH THE STACK IF NOT
-    constexpr int32_t score(const BitBoard& board, const movement::Move& move, uint8_t ply, std::optional<movement::Move> ttMove = std::nullopt) const
+    constexpr int32_t score(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (ttMove.has_value() && move == *ttMove) {
             return ScoreTtHashMove;

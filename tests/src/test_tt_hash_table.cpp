@@ -19,7 +19,7 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
     uint64_t key = 0x123456789ABCDEF;
     int32_t score = 42;
 
-    const auto move = movement::Move::create(A2, A4, WhitePawn, false);
+    const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
 
     TtHashTable::writeEntry(key, score, move, depth, ply, TtHashExact);
     auto retrieved = TtHashTable::TtHashTable::probe(key, alpha, beta, depth, ply);
@@ -37,8 +37,8 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
     int32_t oldScore = 10;
     int32_t newScore = 50;
 
-    const auto move1 = movement::Move::create(A2, A4, WhitePawn, false);
-    const auto move2 = movement::Move::create(D7, D7, BlackPawn, false);
+    const auto move1 = movegen::Move::create(A2, A4, WhitePawn, false);
+    const auto move2 = movegen::Move::create(D7, D7, BlackPawn, false);
 
     TtHashTable::writeEntry(key, oldScore, move1, 3, ply, TtHashExact);
     TtHashTable::writeEntry(key, newScore, move2, 6, ply, TtHashExact); // Deeper depth
@@ -56,8 +56,8 @@ TEST_CASE("Transposition Table - Collision Handling", "[TT]")
     uint64_t key1 = 0x1111111111111111;
     uint64_t key2 = key1 + TtHashTable::s_ttHashSize; // Forces collision
 
-    const auto move1 = movement::Move::create(A2, A4, WhitePawn, false);
-    const auto move2 = movement::Move::create(D7, D7, BlackPawn, false);
+    const auto move1 = movegen::Move::create(A2, A4, WhitePawn, false);
+    const auto move2 = movegen::Move::create(D7, D7, BlackPawn, false);
 
     TtHashTable::writeEntry(key1, 30, move1, depth, ply, TtHashExact);
     TtHashTable::writeEntry(key2, 99, move2, depth, ply, TtHashExact);
@@ -80,7 +80,7 @@ TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
 
     uint64_t key = 0xCAFEBABEDEADBEEF;
 
-    const auto move = movement::Move::create(A2, A4, WhitePawn, false);
+    const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
     TtHashTable::writeEntry(key, nearMate, move, depth, ply, TtHashExact);
 
     SECTION("From same ply")
@@ -119,7 +119,7 @@ TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
     TtHashTable::clear();
 
     uint64_t key = 0xF00DBABE12345678;
-    const auto move = movement::Move::create(A2, A4, WhitePawn, false);
+    const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
     TtHashTable::writeEntry(key, 77, move, depth, ply, TtHashExact);
 
     TtHashTable::clear();

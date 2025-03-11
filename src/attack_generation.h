@@ -4,10 +4,10 @@
 
 #include "bit_board.h"
 #include "helpers/bit_operations.h"
-#include "movement/bishops.h"
-#include "movement/kings.h"
-#include "movement/knights.h"
-#include "movement/rooks.h"
+#include "movegen/bishops.h"
+#include "movegen/kings.h"
+#include "movegen/knights.h"
+#include "movegen/rooks.h"
 
 #include <bit>
 #include <cstdint>
@@ -27,7 +27,7 @@ constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(knights, [&](BoardPosition from) {
-        attacks |= movement::getKnightAttacks(from);
+        attacks |= movegen::getKnightAttacks(from);
     });
 
     return attacks;
@@ -47,7 +47,7 @@ constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(rooks, [&](BoardPosition from) {
-        attacks |= movement::getRookAttacks(from, occupancy);
+        attacks |= movegen::getRookAttacks(from, occupancy);
     });
 
     return attacks;
@@ -67,7 +67,7 @@ constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(bishops, [&](BoardPosition from) {
-        attacks |= movement::getBishopAttacks(from, occupancy);
+        attacks |= movegen::getBishopAttacks(from, occupancy);
     });
 
     return attacks;
@@ -87,8 +87,8 @@ constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
     }
 
     helper::bitIterate(queens, [&](BoardPosition from) {
-        attacks |= movement::getRookAttacks(from, occupancy);
-        attacks |= movement::getBishopAttacks(from, occupancy);
+        attacks |= movegen::getRookAttacks(from, occupancy);
+        attacks |= movegen::getBishopAttacks(from, occupancy);
     });
 
     return attacks;
@@ -110,7 +110,7 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
     }
 
     const int from = std::countr_zero(king);
-    return movement::getKingAttacks(from);
+    return movegen::getKingAttacks(from);
 }
 
 constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)

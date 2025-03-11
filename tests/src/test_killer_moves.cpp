@@ -1,10 +1,10 @@
 #include "evaluation/killer_moves.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace movement;
 using namespace evaluation;
+using namespace movegen;
 
 constexpr uint8_t g_testPly = 5;
 

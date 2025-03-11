@@ -2,8 +2,8 @@
 #include <iostream>
 #include <vector>
 
-#include "../src/movement/bishops.h"
-#include "../src/movement/rooks.h"
+#include "../src/movegen/bishops.h"
+#include "../src/movegen/rooks.h"
 
 constexpr uint64_t generate_magic_candidate()
 {
@@ -12,7 +12,7 @@ constexpr uint64_t generate_magic_candidate()
 
 constexpr bool test_magic(uint64_t magic, int sq, bool is_rook)
 {
-    const uint64_t mask = is_rook ? movement::s_rooksTable[sq] : movement::s_bishopsTable[sq];
+    const uint64_t mask = is_rook ? movegen::s_rooksTable[sq] : movegen::s_bishopsTable[sq];
     const int bits = __builtin_popcountll(mask);
     const int size = 1 << bits;
 

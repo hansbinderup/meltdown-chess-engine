@@ -3,11 +3,11 @@
 #include "bit_board.h"
 #include "board_defs.h"
 
-#include "movement/bishops.h"
-#include "movement/kings.h"
-#include "movement/knights.h"
-#include "movement/move_types.h"
-#include "movement/rooks.h"
+#include "movegen/bishops.h"
+#include "movegen/kings.h"
+#include "movegen/knights.h"
+#include "movegen/move_types.h"
+#include "movegen/rooks.h"
 
 #include <cstdint>
 
@@ -55,7 +55,7 @@ constexpr auto generatePawnTable()
 
 class SeeSwap {
 public:
-    static inline int32_t run(const BitBoard& board, const movement::Move& move)
+    static inline int32_t run(const BitBoard& board, const movegen::Move& move)
     {
         if (move.isCastleMove()) {
             return 0;
@@ -116,16 +116,16 @@ private:
     {
         if constexpr (player == PlayerWhite) {
             return s_whitePawnTable[target]
-                | (movement::getKnightAttacks(target) & board.pieces[WhiteKnight])
-                | (movement::getBishopAttacks(target, occ) & (board.pieces[WhiteBishop] | board.pieces[WhiteQueen]))
-                | (movement::getRookAttacks(target, occ) & (board.pieces[WhiteRook] | board.pieces[WhiteQueen]))
-                | (movement::getKingAttacks(target) & board.pieces[WhiteKing]);
+                | (movegen::getKnightAttacks(target) & board.pieces[WhiteKnight])
+                | (movegen::getBishopAttacks(target, occ) & (board.pieces[WhiteBishop] | board.pieces[WhiteQueen]))
+                | (movegen::getRookAttacks(target, occ) & (board.pieces[WhiteRook] | board.pieces[WhiteQueen]))
+                | (movegen::getKingAttacks(target) & board.pieces[WhiteKing]);
         } else {
             return s_blackPawnTable[target]
-                | (movement::getKnightAttacks(target) & board.pieces[BlackKnight])
-                | (movement::getBishopAttacks(target, occ) & (board.pieces[BlackBishop] | board.pieces[BlackQueen]))
-                | (movement::getRookAttacks(target, occ) & (board.pieces[BlackRook] | board.pieces[BlackQueen]))
-                | (movement::getKingAttacks(target) & board.pieces[BlackKing]);
+                | (movegen::getKnightAttacks(target) & board.pieces[BlackKnight])
+                | (movegen::getBishopAttacks(target, occ) & (board.pieces[BlackBishop] | board.pieces[BlackQueen]))
+                | (movegen::getRookAttacks(target, occ) & (board.pieces[BlackRook] | board.pieces[BlackQueen]))
+                | (movegen::getKingAttacks(target) & board.pieces[BlackKing]);
         }
     }
 

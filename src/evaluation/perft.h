@@ -41,7 +41,7 @@ public:
 private:
     constexpr static void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {
-        const auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board);
+        const auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
         uint64_t legalMoves = 0;
 
         if (depth == 0) {

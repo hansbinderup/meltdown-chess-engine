@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-namespace movement {
+namespace movegen {
 
 namespace {
 
