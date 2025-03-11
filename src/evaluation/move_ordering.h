@@ -105,7 +105,7 @@ public:
             else if (move == killerMoves.second)
                 return ScoreKillerMove - 1000;
             else if (attacker.has_value()) {
-                return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toValue());
+                return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
             }
         }
 

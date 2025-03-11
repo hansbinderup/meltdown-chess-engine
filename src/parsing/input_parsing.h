@@ -55,9 +55,9 @@ constexpr std::optional<std::string_view> sv_next_split(std::string_view& sv)
 constexpr static inline bool compareMove(const movegen::Move& a, uint8_t from, uint8_t to, PromotionType promotion)
 {
     if (promotion == PromotionNone)
-        return (a.fromValue() == from) && (a.toValue() == to);
+        return (a.fromPos() == from) && (a.toPos() == to);
     else
-        return (a.fromValue() == from) && (a.toValue() == to) && a.promotionType() == promotion;
+        return (a.fromPos() == from) && (a.toPos() == to) && a.promotionType() == promotion;
 }
 
 }

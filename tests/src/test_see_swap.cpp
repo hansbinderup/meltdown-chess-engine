@@ -5,7 +5,7 @@
 std::optional<movegen::Move> findMoveToTarget(const movegen::ValidMoves& moves, Piece piece, BoardPosition target)
 {
     for (const auto move : moves) {
-        if (move.piece() == piece && move.toValue() == target)
+        if (move.piece() == piece && move.toPos() == target)
             return move;
     }
 
@@ -39,7 +39,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
 
         REQUIRE(move.has_value());
         REQUIRE(move->piece() == WhiteKnight);
-        REQUIRE(move->toValue() == E5);
+        REQUIRE(move->toPos() == E5);
 
         int32_t score = evaluation::SeeSwap::run(*board, *move);
         REQUIRE(score == -322);

@@ -67,7 +67,7 @@ public:
         uint64_t occ = board.occupation[Both] & ~(move.fromSquare());
 
         /* the position we are operation on - all attacks will be targeted here */
-        const BoardPosition target = move.toValue();
+        const BoardPosition target = move.toPos();
 
         /* intial attack mask based on our "new board occupation" */
         uint64_t attackers = getAttackers<PlayerWhite>(board, target, occ) | getAttackers<PlayerBlack>(board, target, occ);

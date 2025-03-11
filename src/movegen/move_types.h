@@ -69,24 +69,24 @@ public:
 
     friend bool operator<=>(const Move& a, const Move& b) = default;
 
-    constexpr inline BoardPosition fromValue() const
+    constexpr inline BoardPosition fromPos() const
     {
         return intToBoardPosition(data & s_toFromMask);
     }
 
-    constexpr inline BoardPosition toValue() const
+    constexpr inline BoardPosition toPos() const
     {
         return intToBoardPosition((data >> s_toShift) & s_toFromMask);
     }
 
     constexpr inline uint64_t fromSquare() const
     {
-        return helper::positionToSquare(fromValue());
+        return helper::positionToSquare(fromPos());
     }
 
     constexpr inline uint64_t toSquare() const
     {
-        return helper::positionToSquare(toValue());
+        return helper::positionToSquare(toPos());
     }
 
     constexpr inline Piece piece() const
@@ -136,10 +136,10 @@ public:
     {
         std::array<char, 6> buffer {};
 
-        buffer[0] = 'a' + (fromValue() % 8); // Column
-        buffer[1] = '1' + (fromValue() / 8); // Row
-        buffer[2] = 'a' + (toValue() % 8); // Column
-        buffer[3] = '1' + (toValue() / 8); // Row
+        buffer[0] = 'a' + (fromPos() % 8); // Column
+        buffer[1] = '1' + (fromPos() / 8); // Row
+        buffer[2] = 'a' + (toPos() % 8); // Column
+        buffer[3] = '1' + (toPos() / 8); // Row
 
         const auto p = promotionType();
         if (p != PromotionNone) {
@@ -220,10 +220,10 @@ struct fmt::formatter<movegen::Move> : fmt::formatter<std::string_view> {
     template<typename FormatContext>
     auto format(const movegen::Move& m, FormatContext& ctx) const
     {
-        char fromC = 'a' + (m.fromValue() % 8); // Column
-        char fromR = '1' + (m.fromValue() / 8); // Row
-        char toC = 'a' + (m.toValue() % 8); // Column
-        char toR = '1' + (m.toValue() / 8); // Row
+        char fromC = 'a' + (m.fromPos() % 8); // Column
+        char fromR = '1' + (m.fromPos() / 8); // Row
+        char toC = 'a' + (m.toPos() % 8); // Column
+        char toR = '1' + (m.toPos() / 8); // Row
 
         if (m.promotionType() != PromotionNone) {
             return fmt::format_to(ctx.out(), "{}{}{}{}{}", fromC, fromR, toC, toR, promotionToString(m.promotionType()));

@@ -26,7 +26,7 @@ public:
         if (!movePiece.has_value())
             return; // nothing to do
 
-        m_historyMoves.at(move.toValue()).at(movePiece.value()) += ply;
+        m_historyMoves.at(move.toPos()).at(movePiece.value()) += ply;
     }
 
     void reset()
