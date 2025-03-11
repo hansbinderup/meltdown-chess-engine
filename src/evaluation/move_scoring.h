@@ -15,6 +15,7 @@ namespace {
 
 enum ScoringOffsets : int32_t {
     ScoreTtHashMove = 25000,
+    ScorePvLine = 20000,
     ScoreGoodCapture = 10000,
     ScoreBadCapture = -10000,
     ScoreGoodPromotion = 8000,
@@ -59,6 +60,10 @@ public:
     {
         if (ttMove.has_value() && move == *ttMove) {
             return ScoreTtHashMove;
+        }
+
+        if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
+            return ScorePvLine;
         }
 
         if (move.isCapture()) {
