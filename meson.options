@@ -1,2 +1,2 @@
 option('unit-tests', type: 'boolean', value: false, description: 'Build the unit tests')
-option('meltdown-version', type: 'string', value: '0.0.0', description: 'Meltdown version')
+option('meltdown-version', type: 'string', value: '0.0.0-dev', description: 'Meltdown version')
