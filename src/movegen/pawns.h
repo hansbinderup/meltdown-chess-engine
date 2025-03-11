@@ -1,11 +1,11 @@
 #pragma once
 
 #include "helpers/bit_operations.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 
 #include <cstdint>
 
-namespace movement {
+namespace movegen {
 
 namespace {
 
@@ -14,7 +14,7 @@ constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t
 
     helper::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove(movement::Move::create(from, to, piece, capture));
+        validMoves.addMove(movegen::Move::create(from, to, piece, capture));
     });
 }
 
@@ -23,7 +23,7 @@ constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t move
 
     helper::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove(movement::Move::createEnPessant(from, to, piece, enable, !enable));
+        validMoves.addMove(movegen::Move::createEnPessant(from, to, piece, enable, !enable));
     });
 }
 
@@ -33,16 +33,16 @@ constexpr void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, i
         const int from = to - bitCnt; // Backtrack the pawn's original position
 
         /* add queen first - is usually the preferred piece */
-        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionQueen, capture));
-        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionKnight, capture));
-        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionBishop, capture));
-        validMoves.addMove(movement::Move::createPromotion(from, to, piece, PromotionRook, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionQueen, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionKnight, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionBishop, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionRook, capture));
     });
 }
 
 }
 
-template<movement::MoveType type>
+template<movegen::MoveType type>
 constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     const uint64_t allOccupation = ownOccupation | theirOccupation;
@@ -80,7 +80,7 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnPromotions(validMoves, promoteAttackRight, 9, Piece::WhitePawn, true);
 }
 
-template<movement::MoveType type>
+template<movegen::MoveType type>
 constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t pawns, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     const uint64_t allOccupation = theirOccupation | ownOccupation;

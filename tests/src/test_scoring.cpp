@@ -45,7 +45,7 @@ TEST_CASE("Scoring", "[scoring]")
             const auto board = parsing::FenParser::parse("1k6/8/8/4q3/3P4/8/n5n1/R6K w - - 0 0");
             REQUIRE(board.has_value());
 
-            auto allMoves = engine::getAllMoves<movement::MoveCapture>(board.value());
+            auto allMoves = engine::getAllMoves<movegen::MoveCapture>(board.value());
             s_evaluator.sortMoves(board.value(), allMoves, 0);
 
             REQUIRE(allMoves.count() == 3);
@@ -62,7 +62,7 @@ TEST_CASE("Scoring", "[scoring]")
             const auto board = parsing::FenParser::parse("1k6/6p1/7Q/4q3/3P4/8/n5n1/R6K w - - 0 0");
             REQUIRE(board.has_value());
 
-            auto allMoves = engine::getAllMoves<movement::MovePseudoLegal>(board.value());
+            auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board.value());
             s_evaluator.sortMoves(board.value(), allMoves, 0);
 
             REQUIRE(allMoves[0].piece() == WhitePawn);

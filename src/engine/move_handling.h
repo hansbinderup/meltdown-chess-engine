@@ -5,8 +5,8 @@
 #include "engine/zobrist_hashing.h"
 #include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
-#include "movement/move_generation.h"
-#include "movement/move_types.h"
+#include "movegen/move_generation.h"
+#include "movegen/move_types.h"
 #include "parsing/piece_parsing.h"
 #include <cstring>
 
@@ -32,7 +32,7 @@ constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, B
     setPiece(piece, toPos, type, hash);
 }
 
-constexpr void performCastleMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
+constexpr void performCastleMove(BitBoard& board, const movegen::Move& move, uint64_t& hash)
 {
     const BoardPosition fromPos = move.fromValue();
     const BoardPosition toPos = move.toValue();
@@ -60,7 +60,7 @@ constexpr void performCastleMove(BitBoard& board, const movement::Move& move, ui
     }
 }
 
-constexpr void performPromotionMove(BitBoard& board, const movement::Move& move, uint64_t& hash)
+constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, uint64_t& hash)
 {
     const bool isWhite = board.player == PlayerWhite;
     const auto type = isWhite ? WhitePawn : BlackPawn;
@@ -130,10 +130,10 @@ constexpr void updateCastlingRights(BitBoard& board, BoardPosition pos)
 
 }
 
-template<movement::MoveType type>
-constexpr movement::ValidMoves getAllMoves(const BitBoard& board)
+template<movegen::MoveType type>
+constexpr movegen::ValidMoves getAllMoves(const BitBoard& board)
 {
-    movement::ValidMoves validMoves;
+    movegen::ValidMoves validMoves;
 
     if (board.player == PlayerWhite) {
         const uint64_t attacks = board.attacks[PlayerBlack];
@@ -181,7 +181,7 @@ constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos
     }
 }
 
-constexpr BitBoard performMove(const BitBoard& board, const movement::Move& move, uint64_t& hash)
+constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move, uint64_t& hash)
 {
     BitBoard newBoard = board;
 
@@ -264,7 +264,7 @@ constexpr void printPositionDebug(const BitBoard& board)
 
     fmt::print("  A B C D E F G H\n\n");
 
-    const auto allMoves = getAllMoves<movement::MovePseudoLegal>(board);
+    const auto allMoves = getAllMoves<movegen::MovePseudoLegal>(board);
 
     fmt::print(
         "Player: {}\n"

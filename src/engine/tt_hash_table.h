@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board_defs.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -20,7 +20,7 @@ struct TtHashEntry {
     TtHashFlag flag = TtHashExact;
     int32_t score = 0;
     uint8_t generation = 0;
-    movement::Move move {};
+    movegen::Move move {};
 };
 
 class TtHashTable {
@@ -43,7 +43,7 @@ public:
         return std::min((1000 * s_hashCount) / s_ttHashSize, 1000UL);
     }
 
-    using ProbeResult = std::pair<int32_t, movement::Move>;
+    using ProbeResult = std::pair<int32_t, movegen::Move>;
     constexpr static std::optional<ProbeResult> probe(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
@@ -86,7 +86,7 @@ public:
         return std::nullopt;
     }
 
-    constexpr static void writeEntry(uint64_t key, int32_t score, const movement::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, int32_t score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 

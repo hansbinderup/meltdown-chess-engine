@@ -7,7 +7,7 @@
 
 #include "fmt/format.h"
 
-namespace movement {
+namespace movegen {
 
 enum MoveType {
     MovePseudoLegal,
@@ -215,9 +215,9 @@ private:
 }
 
 template<>
-struct fmt::formatter<movement::Move> : fmt::formatter<std::string_view> {
+struct fmt::formatter<movegen::Move> : fmt::formatter<std::string_view> {
     template<typename FormatContext>
-    auto format(const movement::Move& m, FormatContext& ctx) const
+    auto format(const movegen::Move& m, FormatContext& ctx) const
     {
         char fromC = 'a' + (m.fromValue() % 8); // Column
         char fromR = '1' + (m.fromValue() / 8); // Row

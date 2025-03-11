@@ -1,10 +1,10 @@
 #include "evaluation/pv_table.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace movement;
 using namespace evaluation;
+using namespace movegen;
 
 void prepareTableLength(PVTable& table, uint8_t ply)
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 #include <algorithm>
 #include <utility>
 
@@ -8,8 +8,8 @@ namespace evaluation {
 
 class KillerMoves {
 public:
-    using KillerMove = std::pair<movement::Move, movement::Move>;
-    void update(const movement::Move& move, uint8_t ply)
+    using KillerMove = std::pair<movegen::Move, movegen::Move>;
+    void update(const movegen::Move& move, uint8_t ply)
     {
         /* only quiet moves */
         if (move.isCapture()) {

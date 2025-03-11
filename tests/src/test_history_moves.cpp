@@ -1,11 +1,11 @@
 #include "bit_board.h"
 #include "evaluation/history_moves.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace movement;
 using namespace evaluation;
+using namespace movegen;
 
 constexpr inline void setPieceAtSquare(BitBoard& board, Piece type, BoardPosition pos)
 {

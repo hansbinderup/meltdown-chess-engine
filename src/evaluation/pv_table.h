@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board_defs.h"
-#include "movement/move_types.h"
+#include "movegen/move_types.h"
 
 #include <algorithm>
 #include <array>
@@ -29,7 +29,7 @@ public:
         m_isScoring = false;
     }
 
-    movement::Move bestMove() const
+    movegen::Move bestMove() const
     {
         return m_pvTable.at(0).at(0);
     }
@@ -39,7 +39,7 @@ public:
         m_pvLength.at(ply) = ply;
     }
 
-    void updateTable(const movement::Move& move, uint8_t ply)
+    void updateTable(const movegen::Move& move, uint8_t ply)
     {
         auto& currentRow = m_pvTable.at(ply);
         currentRow.at(ply) = move;
@@ -70,12 +70,12 @@ public:
         return m_isScoring;
     }
 
-    bool isPvMove(const movement::Move& move, uint8_t ply) const
+    bool isPvMove(const movegen::Move& move, uint8_t ply) const
     {
         return m_pvTable.at(0).at(ply) == move;
     }
 
-    void updatePvScoring(const movement::ValidMoves& moves, uint8_t ply)
+    void updatePvScoring(const movegen::ValidMoves& moves, uint8_t ply)
     {
         m_isFollowing = false;
 
@@ -92,25 +92,25 @@ public:
         return m_pvLength.at(0);
     }
 
-    const movement::Move* begin() const
+    const movegen::Move* begin() const
     {
         return m_pvTable.at(0).begin();
     }
 
-    const movement::Move* end() const
+    const movegen::Move* end() const
     {
         return m_pvTable.at(0).begin() + size();
     }
 
-    movement::Move operator[](int i) const { return m_pvTable.at(0).at(i); }
-    movement::Move& operator[](int i) { return m_pvTable.at(0).at(i); }
+    movegen::Move operator[](int i) const { return m_pvTable.at(0).at(i); }
+    movegen::Move& operator[](int i) { return m_pvTable.at(0).at(i); }
 
 private:
     /* NOTE: tables are +1 as we'll need space to copy next layer of ply -
      * EVEN if we're at the max level */
     constexpr static inline std::size_t s_pvTableSize { s_maxSearchDepth + 1 };
 
-    using PVNode = std::array<movement::Move, s_pvTableSize>;
+    using PVNode = std::array<movegen::Move, s_pvTableSize>;
     std::array<PVNode, s_pvTableSize> m_pvTable {};
     std::array<uint8_t, s_pvTableSize> m_pvLength {};
 
