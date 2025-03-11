@@ -5,7 +5,7 @@
 #include "movement/move_types.h"
 #include <algorithm>
 
-namespace heuristic {
+namespace evaluation {
 
 class HistoryMoves {
 public:

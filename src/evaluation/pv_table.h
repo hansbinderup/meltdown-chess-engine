@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <ranges>
 
-namespace heuristic {
+namespace evaluation {
 
 /*
  * This class implements a triangular PV table.
