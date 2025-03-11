@@ -23,7 +23,8 @@ public:
         }
 
         const auto endTime = system_clock::now();
-        const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
+        /* time in seconds reflected as a double */
+        const auto timeDiff = duration_cast<duration<double>>(endTime - startTime).count();
 
         fmt::print("\n*** result ***\n"
                    "nodes:       {}\n"
@@ -33,9 +34,9 @@ public:
                    "promotions:  {}\n"
                    "checks:      {}\n"
                    "checkmates:  {}\n"
-                   "nps:         {}\n"
-                   "time:        {}ms\n",
-            s_nodes, s_captures, s_castles, s_enPessants, s_promotions, s_checks, s_checkMates, s_nodes / timeDiff * 1000, timeDiff);
+                   "nps:         {:.0f}\n"
+                   "time:        {:.2f}ms\n",
+            s_nodes, s_captures, s_castles, s_enPessants, s_promotions, s_checks, s_checkMates, s_nodes / timeDiff, timeDiff * 1000);
     }
 
 private:
