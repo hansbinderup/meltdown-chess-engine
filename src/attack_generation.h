@@ -9,7 +9,6 @@
 #include "movegen/knights.h"
 #include "movegen/rooks.h"
 
-#include <bit>
 #include <cstdint>
 
 namespace attackgen {
@@ -109,8 +108,7 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
         return 0;
     }
 
-    const int from = std::countr_zero(king);
-    return movegen::getKingMoves(from);
+    return movegen::getKingMoves(helper::lsbToPosition(king));
 }
 
 constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)

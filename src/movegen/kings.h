@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "board_defs.h"
 #include <array>
 #include <cstdint>
 
@@ -42,13 +43,13 @@ constexpr std::array<uint64_t, 64> generateKingsTable()
     return table;
 }
 
-}
-
 constexpr auto s_kingsTable = generateKingsTable();
 
-static inline uint64_t getKingMoves(uint8_t square)
+}
+
+static inline uint64_t getKingMoves(BoardPosition pos)
 {
-    return s_kingsTable[square];
+    return s_kingsTable[pos];
 }
 
 }

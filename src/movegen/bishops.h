@@ -1,5 +1,6 @@
 #pragma once
 
+#include "board_defs.h"
 #include "magics/magics.h"
 #include <array>
 #include <cstdint>
@@ -111,13 +112,14 @@ constexpr auto s_bishopAttackTable = generateBishopAttackTable();
 
 }
 
-static inline uint64_t getBishopMoves(int square, uint64_t occupancy)
+/* https://www.chessprogramming.org/Magic_Bitboards */
+static inline uint64_t getBishopMoves(BoardPosition pos, uint64_t occupancy)
 {
-    occupancy &= s_bishopMasksTable[square];
-    occupancy *= magic::s_bishopsMagic[square];
-    occupancy >>= 64 - magic::s_bishopRelevantBits[square];
+    occupancy &= s_bishopMasksTable[pos];
+    occupancy *= magic::s_bishopsMagic[pos];
+    occupancy >>= 64 - magic::s_bishopRelevantBits[pos];
 
-    return s_bishopAttackTable[square][occupancy];
+    return s_bishopAttackTable[pos][occupancy];
 }
 
 }
