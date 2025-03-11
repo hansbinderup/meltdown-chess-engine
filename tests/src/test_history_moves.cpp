@@ -4,8 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace heuristic;
 using namespace movement;
+using namespace evaluation;
 
 constexpr inline void setPieceAtSquare(BitBoard& board, Piece type, BoardPosition pos)
 {

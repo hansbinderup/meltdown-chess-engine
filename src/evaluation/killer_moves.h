@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace heuristic {
+namespace evaluation {
 
 class KillerMoves {
 public:

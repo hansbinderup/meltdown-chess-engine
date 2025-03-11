@@ -35,22 +35,22 @@ public:
         m_pvTable.reset();
     }
 
-    constexpr heuristic::PVTable& pvTable()
+    constexpr PVTable& pvTable()
     {
         return m_pvTable;
     }
 
-    constexpr const heuristic::PVTable& pvTable() const
+    constexpr const PVTable& pvTable() const
     {
         return m_pvTable;
     }
 
-    constexpr heuristic::KillerMoves& killerMoves()
+    constexpr KillerMoves& killerMoves()
     {
         return m_killerMoves;
     }
 
-    constexpr heuristic::HistoryMoves& historyMoves()
+    constexpr HistoryMoves& historyMoves()
     {
         return m_historyMoves;
     }
@@ -103,9 +103,9 @@ public:
     }
 
 private:
-    heuristic::KillerMoves m_killerMoves {};
-    heuristic::HistoryMoves m_historyMoves {};
-    heuristic::PVTable m_pvTable {};
+    KillerMoves m_killerMoves {};
+    HistoryMoves m_historyMoves {};
+    PVTable m_pvTable {};
 };
 
 }

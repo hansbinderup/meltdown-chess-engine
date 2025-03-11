@@ -3,8 +3,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace heuristic;
 using namespace movement;
+using namespace evaluation;
 
 constexpr uint8_t g_testPly = 5;
 
