@@ -16,13 +16,13 @@ namespace {
 
 constexpr static inline void clearPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
-    piece &= ~(1ULL << pos);
+    piece &= ~helper::positionToSquare(pos);
     engine::hashPiece(type, pos, hash); // remove from hash
 }
 
 constexpr static inline void setPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
-    piece |= (1ULL << pos);
+    piece |= helper::positionToSquare(pos);
     engine::hashPiece(type, pos, hash); // add to hash
 }
 
@@ -175,9 +175,9 @@ constexpr static inline bool isKingAttacked(const BitBoard& board)
 constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos, Player player)
 {
     if (player == PlayerWhite) {
-        return static_cast<BoardPosition>(pos - 8);
+        return intToBoardPosition(pos - 8);
     } else {
-        return static_cast<BoardPosition>(pos + 8);
+        return intToBoardPosition(pos + 8);
     }
 }
 
@@ -254,7 +254,8 @@ constexpr void printPositionDebug(const BitBoard& board)
         fmt::print("{} ", row);
 
         for (uint8_t column = 0; column < 8; column++) {
-            uint64_t square = 1ULL << (((row - 1) * 8) + column);
+            const auto pos = intToBoardPosition((row - 1) * 8 + column);
+            uint64_t square = helper::positionToSquare(pos);
             const auto piece = board.getPieceAtSquare(square);
             fmt::print("{} ", piece ? parsing::pieceToUnicode(*piece) : "·");
         }

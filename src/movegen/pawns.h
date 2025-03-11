@@ -114,7 +114,7 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
 
 constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, BoardPosition enPessant, uint64_t occupation)
 {
-    const uint64_t enPessantSquare = 1ULL << enPessant;
+    const uint64_t enPessantSquare = helper::positionToSquare(enPessant);
 
     // TODO: masks row 5?
     uint64_t moveLeft = ((pawns & ~s_aFileMask) << 7) & enPessantSquare & ~occupation;
@@ -126,7 +126,7 @@ constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint
 
 constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, BoardPosition enPessant, uint64_t occupation)
 {
-    const uint64_t enPessantSquare = 1ULL << enPessant;
+    const uint64_t enPessantSquare = helper::positionToSquare(enPessant);
 
     // TODO: masks row 4?
     uint64_t moveLeft = ((pawns & ~s_aFileMask) >> 9) & enPessantSquare & ~occupation;

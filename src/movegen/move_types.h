@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "fmt/format.h"
+#include "helpers/bit_operations.h"
 
 namespace movegen {
 
@@ -70,22 +71,22 @@ public:
 
     constexpr inline BoardPosition fromValue() const
     {
-        return static_cast<BoardPosition>(data & s_toFromMask);
+        return intToBoardPosition(data & s_toFromMask);
     }
 
     constexpr inline BoardPosition toValue() const
     {
-        return static_cast<BoardPosition>((data >> s_toShift) & s_toFromMask);
+        return intToBoardPosition((data >> s_toShift) & s_toFromMask);
     }
 
     constexpr inline uint64_t fromSquare() const
     {
-        return 1ULL << fromValue();
+        return helper::positionToSquare(fromValue());
     }
 
     constexpr inline uint64_t toSquare() const
     {
-        return 1ULL << toValue();
+        return helper::positionToSquare(toValue());
     }
 
     constexpr inline Piece piece() const

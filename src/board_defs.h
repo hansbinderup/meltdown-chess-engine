@@ -47,6 +47,13 @@ enum BoardPosition : uint8_t {
 };
 // clang-format on
 
+template<typename T>
+[[nodiscard]] constexpr BoardPosition intToBoardPosition(T val) noexcept
+    requires std::integral<T>
+{
+    return static_cast<BoardPosition>(val);
+}
+
 constexpr static inline auto s_whitePieces = std::to_array<Piece>({ WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing });
 constexpr static inline auto s_blackPieces = std::to_array<Piece>({ BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing });
 

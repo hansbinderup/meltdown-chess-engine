@@ -21,7 +21,7 @@ constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_
         uint64_t moves = getKnightMoves(from) & ~ownOccupation;
 
         helper::bitIterate(moves, [&](BoardPosition pos) {
-            const bool isCapture = (1ULL << pos) & theirOccupation;
+            const bool isCapture = helper::positionToSquare(pos) & theirOccupation;
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, pos, piece, isCapture));
             } else if constexpr (type == MoveCapture) {
@@ -39,7 +39,7 @@ constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t 
         uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
         helper::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = (1ULL << to) & theirOccupation;
+            const bool isCapture = helper::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, to, piece, isCapture));
@@ -58,7 +58,7 @@ constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_
         uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
         helper::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = (1ULL << to) & theirOccupation;
+            const bool isCapture = helper::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, to, piece, isCapture));
@@ -84,7 +84,7 @@ constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t 
         uint64_t moves = s_kingsTable.at(from) & ~ownOccupation & ~attacks;
 
         helper::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = (1ULL << to) & theirOccupation;
+            const bool isCapture = helper::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, to, piece, isCapture));

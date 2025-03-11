@@ -2,6 +2,7 @@
 
 #include "bit_board.h"
 #include "board_defs.h"
+#include "helpers/bit_operations.h"
 #include "magic_enum/magic_enum.hpp"
 #include <array>
 
@@ -98,11 +99,9 @@ constexpr uint64_t generateHashKey(const BitBoard& board)
     for (const auto pieceEnum : magic_enum::enum_values<Piece>()) {
         uint64_t piece = board.pieces[pieceEnum];
 
-        while (piece) {
-            const int square = std::countr_zero(piece);
-            piece &= piece - 1;
-            key ^= s_pieceHashTable[pieceEnum][square];
-        }
+        helper::bitIterate(piece, [&](BoardPosition pos) {
+            key ^= s_pieceHashTable[pieceEnum][pos];
+        });
     }
 
     key ^= s_castlingHashTable[board.castlingRights];
