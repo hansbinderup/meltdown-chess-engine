@@ -22,7 +22,7 @@ magic_enum = subproject('magic_enum', default_options: ['test=false'])
 magic_enum_dep = magic_enum.get_variable('magic_enum_dep')
 
 # fmt
-fmt = subproject('fmt')
+fmt = subproject('fmt', default_options: ['default_library=static'])
 fmt_dep = fmt.get_variable('fmt_dep')
 
 meltdown_dep = declare_dependency(include_directories: 'src', dependencies: [magic_enum_dep, fmt_dep])
