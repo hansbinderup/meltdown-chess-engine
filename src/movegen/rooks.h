@@ -6,6 +6,12 @@
 #include <array>
 #include <cstdint>
 
+#ifdef __BMI2__
+#include <immintrin.h>
+#else
+#include "magics/hashing.h"
+#endif
+
 namespace movegen {
 
 namespace {
@@ -92,8 +98,19 @@ constexpr auto generateRookAttackTable()
 
         for (int index = 0; index < occupancyIndicies; index++) {
             const uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
-            const int magicIndex = (occupancy * magic::s_rooksMagic[square]) >> (64 - magic::s_rookRelevantBits[square]);
 
+#ifdef __BMI2__
+            // pext_u64 is not available at compile time
+            int magicIndex = 0, bit = 1;
+            for (uint64_t m = attackMask; m; m &= (m - 1)) {
+                if (occupancy & (m & -m)) {
+                    magicIndex |= bit;
+                }
+                bit <<= 1;
+            }
+#else
+            const int magicIndex = (occupancy * magic::hashing::rooks::s_magic[square]) >> (64 - magic::hashing::rooks::s_relevantBits[square]);
+#endif
             attacks[square][magicIndex] = rookAttacksWithBlock(square, occupancy);
         }
     }
@@ -102,17 +119,20 @@ constexpr auto generateRookAttackTable()
 }
 
 constexpr auto s_rookAttackTable = generateRookAttackTable();
+} // end namespace
 
-}
-
-/* https://www.chessprogramming.org/Magic_Bitboards */
 static inline uint64_t getRookMoves(BoardPosition pos, uint64_t occupancy)
 {
+#ifdef __BMI2__
+    // https://www.chessprogramming.org/BMI2#PEXT_Bitboards
+    occupancy = _pext_u64(occupancy, s_rookMasksTable[pos]);
+#else
+    /* https://www.chessprogramming.org/Magic_Bitboards */
     occupancy &= s_rookMasksTable[pos];
-    occupancy *= magic::s_rooksMagic[pos];
-    occupancy >>= 64 - magic::s_rookRelevantBits[pos];
-
+    occupancy *= magic::hashing::rooks::s_magic[pos];
+    occupancy >>= 64 - magic::hashing::rooks::s_relevantBits[pos];
+#endif
     return s_rookAttackTable[pos][occupancy];
 }
 
-}
+} // end namespace movegen
