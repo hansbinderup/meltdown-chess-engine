@@ -30,3 +30,13 @@ Comments:
     * For release/optimized build: `./scripts/build.sh -r` (-r is optional and will run the compiled executable)
     * For debugging in gdb: `./scripts/debug.sh`
     * Compile and run unit-tests: `./scripts/unit_test.sh`
+
+## Nightly builds
+
+Every night at 23:30 a nightly build will be triggered by the github actions scheduler.
+This build will be untagged (pre-release draft) to not polute actual releases.
+
+A test server will scan for nightly builds and pick them up when they notice that a new one has been built.
+The server will then run matchmaking on Lichess to test the engine's current state.
+
+A manual nightly build can also be triggered using the [workflow's dispatch](https://github.com/hansbinderup/meltdown-chess-engine/actions/workflows/nightly.yml).
