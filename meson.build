@@ -9,6 +9,14 @@ subdir('version')
 add_project_arguments('-fconstexpr-loop-limit=2147483647', language: 'cpp')
 add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
 
+cc = meson.get_compiler('cpp')
+bmi2_supported = cc.get_supported_arguments('-mbmi2').length() == 1
+
+if bmi2_supported
+    add_project_arguments('-mbmi2', language: 'cpp')
+    add_project_arguments('-DUSE_BMI2', language: 'cpp')
+endif
+
 # default compile with native cpu instructions
 # TODO: make an option to allow for better cross compilation
 add_project_arguments('-march=native', language: 'cpp')

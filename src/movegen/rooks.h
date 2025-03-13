@@ -6,6 +6,9 @@
 #include <array>
 #include <cstdint>
 
+#include "magics/hashing.h"
+#include "magics/pext.h"
+
 namespace movegen {
 
 namespace {
@@ -80,7 +83,7 @@ constexpr uint64_t rookAttacksWithBlock(int square, uint64_t block)
     return attacks;
 }
 
-constexpr auto generateRookAttackTable()
+constexpr auto generateRookAttackTablePext()
 {
     std::array<magic::SliderAttackTable, 64> attacks;
 
@@ -92,8 +95,7 @@ constexpr auto generateRookAttackTable()
 
         for (int index = 0; index < occupancyIndicies; index++) {
             const uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
-            const int magicIndex = (occupancy * magic::s_rooksMagic[square]) >> (64 - magic::s_rookRelevantBits[square]);
-
+            const int magicIndex = magics::pext::magicIndex(occupancy, attackMask, true);
             attacks[square][magicIndex] = rookAttacksWithBlock(square, occupancy);
         }
     }
@@ -101,18 +103,64 @@ constexpr auto generateRookAttackTable()
     return attacks;
 }
 
-constexpr auto s_rookAttackTable = generateRookAttackTable();
+constexpr std::array<magic::SliderAttackTable, 64> generateRookAttackTableHashing()
+{
+    std::array<magic::SliderAttackTable, 64> attacks;
 
+    for (int square = 0; square < 64; square++) {
+
+        const uint64_t attackMask = s_rookMasksTable[square];
+        const int relevantBitsCount = std::popcount(attackMask);
+        const int occupancyIndicies = (1 << relevantBitsCount);
+
+        for (int index = 0; index < occupancyIndicies; index++) {
+            const uint64_t occupancy = magic::set_occupancy(index, relevantBitsCount, attackMask);
+            // TODO here, magicIndex is applying the attack mask after already applied.
+            // Happens at compile time, do we care?
+            const int magicIndex = magics::hashing::magicIndex(occupancy, attackMask, square);
+            attacks[square][magicIndex] = rookAttacksWithBlock(square, occupancy);
+        }
+    }
+
+    return attacks;
 }
 
-/* https://www.chessprogramming.org/Magic_Bitboards */
-static inline uint64_t getRookMoves(BoardPosition pos, uint64_t occupancy)
+constexpr std::array<magic::SliderAttackTable, 64> generateRookAttackTable()
 {
-    occupancy &= s_rookMasksTable[pos];
-    occupancy *= magic::s_rooksMagic[pos];
-    occupancy >>= 64 - magic::s_rookRelevantBits[pos];
+
+#ifdef USE_BMI2
+    return generateRookAttackTablePext();
+#else
+    return generateRookAttackTableHashing();
+#endif
+}
+
+constexpr auto s_rookAttackTable = generateRookAttackTable();
+} // end namespace
+
+// https://www.chessprogramming.org/BMI2#PEXT_Bitboards
+static inline uint64_t getRookMovesPext(BoardPosition pos, uint64_t occupancy)
+{
+    occupancy = magics::pext::magicIndex(occupancy, s_rookMasksTable[pos]);
 
     return s_rookAttackTable[pos][occupancy];
 }
 
+/* https://www.chessprogramming.org/Magic_Bitboards */
+static inline uint64_t getRookMovesHashing(BoardPosition pos, uint64_t occupancy)
+{
+    occupancy = magics::hashing::magicIndex(occupancy, s_rookMasksTable[pos], pos);
+
+    return s_rookAttackTable[pos][occupancy];
 }
+
+static inline uint64_t getRookMoves(BoardPosition pos, uint64_t occupancy)
+{
+#ifdef USE_BMI2
+    return getRookMovesPext(pos, occupancy);
+#else
+    return getRookMovesHashing(pos, occupancy);
+#endif
+}
+
+} // end namespace movegen
