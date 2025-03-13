@@ -22,7 +22,7 @@ jobs:
           clean: true
     - name: Safe directory
       run: git config --global --add safe.directory '*'
-    - name: Build release
+    - name: Build Meltdown
       run: scripts/build.sh
 
   unit-tests:
