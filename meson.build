@@ -9,14 +9,6 @@ subdir('version')
 add_project_arguments('-fconstexpr-loop-limit=2147483647', language: 'cpp')
 add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
 
-cc = meson.get_compiler('cpp')
-bmi2_supported = cc.get_supported_arguments('-mbmi2').length() == 1
-
-if bmi2_supported
-    add_project_arguments('-mbmi2', language: 'cpp')
-    add_project_arguments('-DUSE_BMI2', language: 'cpp')
-endif
-
 # default compile with native cpu instructions
 # TODO: make an option to allow for better cross compilation
 add_project_arguments('-march=native', language: 'cpp')
@@ -25,6 +17,10 @@ if get_option('buildtype') != 'debug'
   add_project_arguments('-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 endif
 
+if get_option('use-bmi2')
+    add_project_arguments('-mbmi2', language: 'cpp')
+    add_project_arguments('-DUSE_BMI2', language: 'cpp')
+endif
 # magic_enum
 magic_enum = subproject('magic_enum', default_options: ['test=false'])
 magic_enum_dep = magic_enum.get_variable('magic_enum_dep')

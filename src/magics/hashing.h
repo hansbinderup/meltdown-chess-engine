@@ -4,8 +4,7 @@
 #include <array>
 #include <cstdint>
 
-namespace magics {
-namespace hashing {
+namespace magic::hashing {
 
 constexpr auto s_rookRelevantBits = std::to_array<uint8_t>(
     { 12, 11, 11, 11, 11, 11, 11, 12,
@@ -93,5 +92,4 @@ constexpr uint64_t magicIndex(uint64_t occupancy, uint64_t mask, uint64_t pos)
     return occupancy;
 }
 
-} // end namespace hashing
-} // end namespace magics
+} // end namespace magic::hashing
