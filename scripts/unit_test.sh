@@ -6,7 +6,7 @@ BUILD_DIR=".build-tests"
 
 
 if [ ! -d "$BUILD_DIR" ]; then
-    meson setup "$BUILD_DIR" -Dunit-tests=true
+    meson setup "$BUILD_DIR" -Dunit-tests=true -Duse-bmi2=true
 fi
 
 ln -sf "$BUILD_DIR"/compile_commands.json .
