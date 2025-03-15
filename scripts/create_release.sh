@@ -23,7 +23,7 @@ rm -rf $RELEASE_DIR || true
 mkdir $RELEASE_DIR
 
 # NOTE: we always want a clean build when building a release
-meson setup "$BUILD_DIR" --wipe --buildtype=release -Dmeltdown-version=$VERSION
+meson setup "$BUILD_DIR" --wipe --buildtype=release -Dmeltdown-version=$VERSION -Dci=true
 meson compile -C "$BUILD_DIR"
 
 # no need to store "chess engine" in our release name - rename and append version

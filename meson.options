@@ -1,2 +1,3 @@
 option('unit-tests', type: 'boolean', value: false, description: 'Build the unit tests')
+option('ci', type: 'boolean', value: false, description: 'Build is from the CI')
 option('meltdown-version', type: 'string', value: '0.0.0-dev', description: 'Meltdown version')
