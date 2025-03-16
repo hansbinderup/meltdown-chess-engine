@@ -2,10 +2,10 @@
 
 #include "engine/move_handling.h"
 #include "engine/tt_hash_table.h"
-#include "evaluation/material_scoring.h"
 #include "evaluation/move_ordering.h"
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
+#include "evaluation/static_evaluation.h"
 #include "fmt/ranges.h"
 #include "movegen/move_types.h"
 #include "syzygy/syzygy.h"
@@ -91,8 +91,8 @@ public:
         fmt::println("\nTotal nodes:     {}\n"
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
-                     "Material score:  {}\n",
-            m_nodes, score, fmt::join(m_moveOrdering.pvTable(), " "), materialScore(board));
+                     "Static eval:     {}\n",
+            m_nodes, score, fmt::join(m_moveOrdering.pvTable(), " "), staticEvaluation(board));
     }
 
     void setWhiteTime(uint64_t time)
@@ -313,7 +313,7 @@ private:
 
         // Engine is not designed to search deeper than this! Make sure to stop before it's too late
         if (m_ply >= s_maxSearchDepth) {
-            return materialScore(board);
+            return staticEvaluation(board);
         }
 
         m_moveOrdering.pvTable().updateLength(m_ply);
@@ -454,7 +454,7 @@ private:
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
 
-        const int32_t evaluation = materialScore(board);
+        const int32_t evaluation = staticEvaluation(board);
 
         if (m_ply >= s_maxSearchDepth)
             return evaluation;

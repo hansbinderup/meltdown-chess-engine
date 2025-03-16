@@ -1,4 +1,4 @@
-#include "evaluation/material_scoring.h"
+#include "evaluation/static_evaluation.h"
 #include "parsing/fen_parser.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -20,7 +20,7 @@ TEST_CASE("Scoring", "[scoring]")
             boardB.reset();
             boardB.player = PlayerBlack; /* flip side */
 
-            REQUIRE(evaluation::materialScore(boardW) == evaluation::materialScore(boardB));
+            REQUIRE(evaluation::staticEvaluation(boardW) == evaluation::staticEvaluation(boardB));
         }
 
         SECTION("Position 1")
@@ -31,7 +31,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(boardW.has_value());
             REQUIRE(boardB.has_value());
 
-            REQUIRE(evaluation::materialScore(*boardW) == evaluation::materialScore(*boardB));
+            REQUIRE(evaluation::staticEvaluation(*boardW) == evaluation::staticEvaluation(*boardB));
         }
     }
 
