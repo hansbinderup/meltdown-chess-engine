@@ -14,7 +14,7 @@
 
 namespace evaluation {
 
-constexpr int32_t materialScore(const BitBoard& board)
+constexpr int32_t staticEvaluation(const BitBoard& board)
 {
     /* we first evaluate based on "pesto score"
      * then we add mobility, double pawn etc. */
