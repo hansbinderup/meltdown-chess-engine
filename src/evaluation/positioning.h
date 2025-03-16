@@ -11,28 +11,31 @@
 #include "helpers/bit_operations.h"
 #include "movegen/bishops.h"
 #include "movegen/kings.h"
+#include "movegen/knights.h"
 #include "movegen/rooks.h"
 
 namespace evaluation {
 
 namespace {
 
-/* TODO: tune these parameters */
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_doublePawnPenalty { -10, -10 };
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_isolatedPawnPenalty { -10, -10 };
+/* TODO: use a tuning tool to tune these parameters */
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_doublePawnPenalty { -15, -20 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_isolatedPawnPenalty { -15, -25 };
 
 using PassedPawnType = std::array<int32_t, 8>;
 constexpr std::array<PassedPawnType, magic_enum::enum_count<gamephase::Phases>()> s_passedPawnBonus { {
     { 0, 10, 30, 50, 75, 100, 150, 200 },
-    { 0, 10, 30, 50, 75, 100, 150, 200 },
+    { 0, 20, 40, 70, 100, 150, 225, 300 },
 } };
 
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_semiOpenFileScore { 15, 15 };
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_openFileScore { 15, 15 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_semiOpenFileScore { 10, 15 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_openFileScore { 15, 30 };
 
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_bishopMobilityScore { 3, 3 };
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_queenMobilityScore { 1, 1 };
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_kingShieldScore { 5, 5 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_knightMobilityScore { 2, 3 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_bishopMobilityScore { 3, 5 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_rookMobilityScore { 2, 4 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_queenMobilityScore { 1, 2 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_kingShieldScore { 10, 5 };
 
 }
 
@@ -87,6 +90,12 @@ constexpr static inline gamephase::Score getKnightScore(const uint64_t knights)
     gamephase::Score score;
 
     helper::bitIterate(knights, [&score](BoardPosition pos) {
+        const uint64_t moves = movegen::getKnightMoves(pos);
+        const int movesCount = std::popcount(moves);
+
+        score.mg += movesCount * s_knightMobilityScore[gamephase::GamePhaseMg];
+        score.eg += movesCount * s_knightMobilityScore[gamephase::GamePhaseEg];
+
         if constexpr (player == PlayerWhite) {
             score.materialScore += gamephase::s_materialPhaseScore[WhiteKnight];
             score.mg += pesto::s_mgTables[WhiteKnight][pos];
@@ -108,10 +117,10 @@ constexpr static inline gamephase::Score getBishopScore(const BitBoard& board, c
 
     helper::bitIterate(bishops, [&score, &board](BoardPosition pos) {
         const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
-        const int count = std::popcount(moves);
+        const int movesCount = std::popcount(moves);
 
-        score.mg += count * s_bishopMobilityScore[gamephase::GamePhaseMg];
-        score.eg += count * s_bishopMobilityScore[gamephase::GamePhaseEg];
+        score.mg += movesCount * s_bishopMobilityScore[gamephase::GamePhaseMg];
+        score.eg += movesCount * s_bishopMobilityScore[gamephase::GamePhaseEg];
 
         if constexpr (player == PlayerWhite) {
             score.materialScore += gamephase::s_materialPhaseScore[WhiteBishop];
@@ -136,6 +145,12 @@ constexpr gamephase::Score getRookScore(const BitBoard& board, const uint64_t ro
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
     helper::bitIterate(rooks, [&](BoardPosition pos) {
+        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
+        const int movesCount = std::popcount(moves);
+
+        score.mg += movesCount * s_rookMobilityScore[gamephase::GamePhaseMg];
+        score.eg += movesCount * s_rookMobilityScore[gamephase::GamePhaseEg];
+
         if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0) {
             score.mg += s_openFileScore[gamephase::GamePhaseMg];
             score.eg += s_openFileScore[gamephase::GamePhaseEg];
@@ -175,10 +190,10 @@ constexpr static inline gamephase::Score getQueenScore(const BitBoard& board, co
             = movegen::getBishopMoves(pos, board.occupation[Both])
             | movegen::getRookMoves(pos, board.occupation[Both]);
 
-        const int count = std::popcount(moves);
+        const int movesCount = std::popcount(moves);
 
-        score.mg += count * s_queenMobilityScore[gamephase::GamePhaseMg];
-        score.eg += count * s_queenMobilityScore[gamephase::GamePhaseEg];
+        score.mg += movesCount * s_queenMobilityScore[gamephase::GamePhaseMg];
+        score.eg += movesCount * s_queenMobilityScore[gamephase::GamePhaseEg];
 
         if constexpr (player == PlayerWhite) {
             score.materialScore += gamephase::s_materialPhaseScore[WhiteQueen];
