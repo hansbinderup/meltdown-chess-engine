@@ -2,9 +2,10 @@ name: Create Release
 
 on:
   workflow_dispatch:
+    inputs:
       version:
         description: 'Version of the release'
-        default: 'V1.0'
+        default: '1.0'
         required: true
         type: string
       pre_release:
@@ -27,7 +28,15 @@ jobs:
       - name: Safe directory
         run: git config --global --add safe.directory '*'
       - name: Set version
-        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        run: echo "VERSION=v${{ github.event.inputs.version }}" >> $GITHUB_ENV
+      - name: Check if tag exists
+        run: |
+          if git ls-remote --exit-code --tags origin "${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "Tag ${{ env.VERSION }} already exists!"
+            exit 1
+          else
+            echo "Tag ${{ env.VERSION }} does not exist."
+          fi
       - name: Build release
         run: scripts/create_release.sh
       - name: Upload release
@@ -36,7 +45,7 @@ jobs:
         with:
           files: .release/*
           tag_name: ${{ env.VERSION }}
-          name: ${{ env.VERSION }}
+          name: "meltdown-${{ env.VERSION }}"
           generate_release_notes: true
           target_commitish: ${{ github.ref }}
           prerelease: ${{ github.event.inputs.pre_release }}
