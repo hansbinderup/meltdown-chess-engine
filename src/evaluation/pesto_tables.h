@@ -2,6 +2,7 @@
 
 #include "bit_board.h"
 #include "board_defs.h"
+#include "evaluation/game_phase.h"
 #include "helpers/bit_operations.h"
 #include "magic_enum/magic_enum.hpp"
 #include <array>
@@ -345,41 +346,7 @@ constexpr auto generatePestoTable()
 }
 }
 
-constexpr std::array<uint8_t, magic_enum::enum_count<Piece>()> s_gamePhaseScore = {
-    0, 1, 1, 2, 4, 0, /* white pieces */
-    0, 1, 1, 2, 4, 0 /* black pieces */
-};
-
 constexpr auto s_mgTables = mg::generatePestoTable();
 constexpr auto s_egTables = eg::generatePestoTable();
-
-constexpr int32_t evaluate(const BitBoard& board)
-{
-    int32_t mgScore {};
-    int32_t egScore {};
-    uint8_t gamePhase {};
-
-    for (uint8_t wp = WhitePawn; wp <= WhiteKing; wp++) {
-        helper::bitIterate(board.pieces[wp], [&mgScore, &egScore, &gamePhase, wp](BoardPosition pos) {
-            mgScore += s_mgTables[wp][pos];
-            egScore += s_egTables[wp][pos];
-            gamePhase += s_gamePhaseScore[wp];
-        });
-    }
-
-    for (uint8_t bp = BlackPawn; bp <= BlackKing; bp++) {
-        helper::bitIterate(board.pieces[bp], [&mgScore, &egScore, &gamePhase, bp](BoardPosition pos) {
-            mgScore -= s_mgTables[bp][pos];
-            egScore -= s_egTables[bp][pos];
-            gamePhase += s_gamePhaseScore[bp];
-        });
-    }
-
-    constexpr uint8_t mgLimit { 24 };
-    const uint8_t mgGamePhase = std::min(gamePhase, mgLimit); /* 'min' in case of early promotion */
-    const uint8_t egGamePhase = mgLimit - mgGamePhase;
-
-    return (mgScore * mgGamePhase + egScore * egGamePhase) / mgLimit;
-}
 
 }

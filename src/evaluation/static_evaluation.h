@@ -1,7 +1,6 @@
 #pragma once
 
 #include "bit_board.h"
-#include "evaluation/pesto_tables.h"
 #include "evaluation/positioning.h"
 
 #include <cstdint>
@@ -16,9 +15,7 @@ namespace evaluation {
 
 constexpr int32_t staticEvaluation(const BitBoard& board)
 {
-    /* we first evaluate based on "pesto score"
-     * then we add mobility, double pawn etc. */
-    int32_t score = pesto::evaluate(board);
+    gamephase::Score score;
 
     // Material scoring
     for (const auto piece : magic_enum::enum_values<Piece>()) {
@@ -27,15 +24,16 @@ constexpr int32_t staticEvaluation(const BitBoard& board)
             score += position::getPawnScore<PlayerWhite>(board, board.pieces[piece]);
             break;
         case WhiteKnight:
+            score += position::getKnightScore<PlayerWhite>(board.pieces[piece]);
             break;
         case WhiteBishop:
-            score += position::getBishopScore(board, board.pieces[piece]);
+            score += position::getBishopScore<PlayerWhite>(board, board.pieces[piece]);
             break;
         case WhiteRook:
             score += position::getRookScore<PlayerWhite>(board, board.pieces[piece]);
             break;
         case WhiteQueen:
-            score += position::getQueenScore(board, board.pieces[piece]);
+            score += position::getQueenScore<PlayerWhite>(board, board.pieces[piece]);
             break;
         case WhiteKing:
             score += position::getKingScore<PlayerWhite>(board, board.pieces[piece]);
@@ -47,15 +45,16 @@ constexpr int32_t staticEvaluation(const BitBoard& board)
             score -= position::getPawnScore<PlayerBlack>(board, board.pieces[piece]);
             break;
         case BlackKnight:
+            score -= position::getKnightScore<PlayerBlack>(board.pieces[piece]);
             break;
         case BlackBishop:
-            score -= position::getBishopScore(board, board.pieces[piece]);
+            score -= position::getBishopScore<PlayerBlack>(board, board.pieces[piece]);
             break;
         case BlackRook:
             score -= position::getRookScore<PlayerBlack>(board, board.pieces[piece]);
             break;
         case BlackQueen:
-            score -= position::getQueenScore(board, board.pieces[piece]);
+            score -= position::getQueenScore<PlayerBlack>(board, board.pieces[piece]);
             break;
         case BlackKing:
             score -= position::getKingScore<PlayerBlack>(board, board.pieces[piece]);
@@ -63,7 +62,8 @@ constexpr int32_t staticEvaluation(const BitBoard& board)
         }
     }
 
-    return board.player == PlayerWhite ? score : -score;
+    const int32_t evaluation = gamephase::taperedScore(score);
+    return board.player == PlayerWhite ? evaluation : -evaluation;
 }
 
 }
