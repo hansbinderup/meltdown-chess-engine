@@ -31,8 +31,10 @@ constexpr std::array<PassedPawnType, magic_enum::enum_count<gamephase::Phases>()
 constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_semiOpenFileScore { 10, 15 };
 constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_openFileScore { 15, 30 };
 
-constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_knightMobilityScore { 2, 3 };
 constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_bishopMobilityScore { 3, 5 };
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_bishopPairScore { 30, 50 };
+
+constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_knightMobilityScore { 2, 3 };
 constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_rookMobilityScore { 2, 4 };
 constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_queenMobilityScore { 1, 2 };
 constexpr std::array<int32_t, magic_enum::enum_count<gamephase::Phases>()> s_kingShieldScore { 10, 5 };
@@ -114,6 +116,12 @@ template<Player player>
 constexpr static inline gamephase::Score getBishopScore(const BitBoard& board, const uint64_t bishops)
 {
     gamephase::Score score;
+
+    const int amntBishops = std::popcount(bishops);
+    if (amntBishops >= 2) {
+        score.mg += s_bishopPairScore[gamephase::GamePhaseMg];
+        score.mg += s_bishopPairScore[gamephase::GamePhaseEg];
+    }
 
     helper::bitIterate(bishops, [&score, &board](BoardPosition pos) {
         const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
