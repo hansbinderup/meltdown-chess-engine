@@ -20,8 +20,9 @@ int main(int argc, char** argv)
                "Github:      hansbinderup/meltdown-chess-engine\n"
                "Version:     {}\n"
                "Build hash:  {}\n"
-               "Build type:  {}\n\n",
-        s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType);
+               "Build type:  {}\n"
+               "Builtin:     {}\n\n",
+        s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
 
     UciHandler::run();
 
