@@ -16,7 +16,7 @@ done
 
 if [ ! -d "$BUILD_DIR" ]; then
     echo "Setting up Meson..."
-    meson setup "$BUILD_DIR" --buildtype=release
+    meson setup "$BUILD_DIR" --cross-file targets/linux-native.txt --buildtype=release
 fi
 
 ln -sf "$BUILD_DIR"/compile_commands.json .

@@ -1,0 +1,13 @@
+[binaries]
+cpp = 'x86_64-linux-gnu-g++'
+ar = 'x86_64-linux-gnu-gcc-ar'
+strip = 'strip'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+[built-in options]
+cpp_args = ['-march=x86-64-v2']
