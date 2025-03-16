@@ -1,0 +1,46 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+      version:
+        description: 'Version of the release'
+        default: 'V1.0'
+        required: true
+        type: string
+      pre_release:
+        type: boolean
+        default: false
+        description: 'Is the release a pre-release?'
+
+jobs:
+  create_release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    container:
+      image: hansbinderup/meson-gcc:1.0
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          clean: true
+      - name: Safe directory
+        run: git config --global --add safe.directory '*'
+      - name: Set version
+        run: echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+      - name: Build release
+        run: scripts/create_release.sh
+      - name: Upload release
+        id: upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .release/*
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+          generate_release_notes: true
+          target_commitish: ${{ github.ref }}
+          prerelease: ${{ github.event.inputs.pre_release }}
+      - name: Summary
+        run: |
+          SUMMARY=$'# Release can be found at: [${{ env.VERSION }}](${{ steps.upload.outputs.url }})'
+          echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
