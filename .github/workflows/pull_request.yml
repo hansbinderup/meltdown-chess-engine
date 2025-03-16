@@ -23,7 +23,7 @@ jobs:
     - name: Safe directory
       run: git config --global --add safe.directory '*'
     - name: Build Meltdown
-      run: scripts/build.sh
+      run: scripts/ci_build.sh
 
   unit-tests:
     runs-on: ubuntu-latest
