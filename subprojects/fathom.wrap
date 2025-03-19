@@ -1,0 +1,8 @@
+[wrap-git]
+directory = fathom
+url = https://github.com/hansbinderup/Fathom.git
+revision = 6a3076f3648b72c0eb033026733371fc18187212
+depth = 1
+
+[provide]
+fathom = fathom_dep

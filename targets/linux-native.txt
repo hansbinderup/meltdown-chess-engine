@@ -1,4 +1,5 @@
 [binaries]
+c = 'x86_64-linux-gnu-gcc'
 cpp = 'x86_64-linux-gnu-g++'
 ar = 'x86_64-linux-gnu-gcc-ar'
 strip = 'strip'
@@ -11,3 +12,4 @@ endian = 'little'
 
 [built-in options]
 cpp_args = ['-march=native']
+c_args = ['-march=native']
