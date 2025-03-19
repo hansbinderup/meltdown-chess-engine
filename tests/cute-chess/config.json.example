@@ -1,0 +1,27 @@
+{
+    "new_engine": {
+        "name": "Engine to be tested",
+        "path": "/absolute/path/to/engine"
+    },
+    "baseline_engine": {
+        "name": "Engine to test against",
+        "path": "/absolute/path/to/engine"
+    },
+    "tournament": {
+        "rounds": 100,
+        "concurrency": 8,
+        "time_control": "0/8+0.08",
+        "opening_book": "tests/books/8moves_v3.pgn",
+        "opening_book_moves": 8,
+        "resign_move_count": 5,
+        "resign_score": 1000
+    },
+    "sprt": {
+        "enabled": true,
+        "elo_0_hypothesis": 0,
+        "elo_1_hypothesis": 20,
+        "alpha": 0.05,
+        "beta": 0.05
+    }
+}
+
