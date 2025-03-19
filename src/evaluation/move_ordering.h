@@ -57,15 +57,22 @@ public:
 
     constexpr void sortMoves(const BitBoard& board, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
     {
-        /* use stable sort to keep determinism */
-        std::stable_sort(moves.begin(), moves.end(), [&, this](const auto& a, const auto& b) {
-            return moveScore(board, a, ply, ttMove) > moveScore(board, b, ply, ttMove);
-        });
+        /* primitive insertion sort */
+        for (size_t i = 1; i < moves.count(); ++i) {
+            movegen::Move key = moves[i];
+            int keyScore = moveScore(board, key, ply, ttMove);
+            size_t j = i;
+            while (j > 0 && moveScore(board, moves[j - 1], ply, ttMove) < keyScore) {
+                moves[j] = moves[j - 1];
+                --j;
+            }
+            moves[j] = key;
+        }
 
         m_pvTable.setIsScoring(false);
     }
 
-    // NOTE: SCORING MUST BE CONSISTENT DURING A SORT - STL SORTING ALGORTIHMS WILL MESS WITH THE STACK IF NOT
+    // NOTE: scoring must be consistent during a sort
     constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (ttMove.has_value() && move == *ttMove) {
