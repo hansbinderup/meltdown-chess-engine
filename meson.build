@@ -10,7 +10,7 @@ add_project_arguments('-fconstexpr-loop-limit=2147483647', language: 'cpp')
 add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
 
 if get_option('buildtype') != 'debug'
-  add_project_arguments('-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
+  add_project_arguments('-flto=auto', '-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 endif
 
 # magic_enum
@@ -21,7 +21,13 @@ magic_enum_dep = magic_enum.get_variable('magic_enum_dep')
 fmt = subproject('fmt', default_options: ['default_library=static'])
 fmt_dep = fmt.get_variable('fmt_dep')
 
-meltdown_dep = declare_dependency(include_directories: 'src', dependencies: [magic_enum_dep, fmt_dep])
+fathom = subproject('fathom')
+fathom_dep = fathom.get_variable('fathom_dep')
+
+meltdown_dep = declare_dependency(
+  include_directories: 'src',
+  dependencies: [magic_enum_dep, fmt_dep, fathom_dep]
+)
 
 meltdown = executable('meltdown-chess-engine', 'src/main.cpp',
   install : true,
