@@ -47,11 +47,20 @@ struct BitBoard {
         occupation[Both] = occupation[White] | occupation[Black];
     }
 
+    template<Player player>
     constexpr std::optional<Piece> getPieceAtSquare(uint64_t square) const
     {
-        for (const auto piece : magic_enum::enum_values<Piece>()) {
-            if (square & pieces[piece]) {
-                return piece;
+        if constexpr (player == PlayerWhite) {
+            for (const auto piece : s_blackPieces) {
+                if (square & pieces[piece]) {
+                    return piece;
+                }
+            }
+        } else {
+            for (const auto piece : s_whitePieces) {
+                if (square & pieces[piece]) {
+                    return piece;
+                }
             }
         }
 
@@ -74,4 +83,3 @@ struct BitBoard {
     uint32_t fullMoves {};
     uint32_t halfMoves {};
 };
-

@@ -105,14 +105,18 @@ public:
                 return ScoreBadPromotion + 2000;
             }
 
-            const auto attacker = board.getPieceAtSquare(move.fromSquare());
             const auto killerMoves = m_killerMoves.get(ply);
             if (move == killerMoves.first)
                 return ScoreKillerMove;
             else if (move == killerMoves.second)
                 return ScoreKillerMove - 1000;
-            else if (attacker.has_value()) {
-                return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
+            else {
+                std::optional<Piece> attacker = (board.player == PlayerWhite)
+                    ? board.getPieceAtSquare<PlayerWhite>(move.fromSquare())
+                    : board.getPieceAtSquare<PlayerBlack>(move.fromSquare());
+                if (attacker.has_value()) {
+                    return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
+                }
             }
         }
 
@@ -126,4 +130,3 @@ private:
 };
 
 }
-

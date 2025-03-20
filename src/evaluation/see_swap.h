@@ -81,11 +81,12 @@ public:
         /* piece that will track the scoring of next piece */
         Piece nextPiece = move.piece();
 
-        if (const auto initialPiece = board.getPieceAtSquare(move.toSquare())) {
+        Player player = board.player;
+
+        if (const auto initialPiece = (player == PlayerWhite) ? board.getPieceAtSquare<PlayerWhite>(move.toSquare()) : board.getPieceAtSquare<PlayerBlack>(move.toSquare())) {
             gain[depth] = s_pieceValues[*initialPiece];
         }
 
-        Player player = board.player;
         while (attackers) {
             depth++;
 
