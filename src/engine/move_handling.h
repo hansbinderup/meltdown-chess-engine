@@ -60,10 +60,11 @@ constexpr void performCastleMove(BitBoard& board, const movegen::Move& move, uin
     }
 }
 
+template<Player player>
 constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, uint64_t& hash)
 {
-    const bool isWhite = board.player == PlayerWhite;
-    const auto type = isWhite ? WhitePawn : BlackPawn;
+    constexpr bool isWhite = player == PlayerWhite;
+    constexpr auto type = isWhite ? WhitePawn : BlackPawn;
 
     // first clear to be promoted pawn
     uint64_t& pawns = isWhite ? board.pieces[WhitePawn] : board.pieces[BlackPawn];
@@ -71,7 +72,7 @@ constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, 
 
     /* clear piece that will be taken if capture */
     if (move.isCapture()) {
-        if (const auto victim = board.getPieceAtSquare(move.toSquare())) {
+        if (const auto victim = board.getTargetAtSquare<player>(move.toSquare())) {
             clearPiece(board.pieces[victim.value()], move.toPos(), victim.value(), hash);
         }
     }
@@ -80,19 +81,19 @@ constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, 
     case PromotionNone:
         return;
     case PromotionQueen: {
-        const auto type = isWhite ? WhiteQueen : BlackQueen;
+        constexpr auto type = isWhite ? WhiteQueen : BlackQueen;
         setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     case PromotionKnight: {
-        const auto type = isWhite ? WhiteKnight : BlackKnight;
+        constexpr auto type = isWhite ? WhiteKnight : BlackKnight;
         setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     case PromotionBishop: {
-        const auto type = isWhite ? WhiteBishop : BlackBishop;
+        constexpr auto type = isWhite ? WhiteBishop : BlackBishop;
         setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     case PromotionRook: {
-        const auto type = isWhite ? WhiteRook : BlackRook;
+        constexpr auto type = isWhite ? WhiteRook : BlackRook;
         setPiece(board.pieces[type], move.toPos(), type, hash);
     } break;
     }
@@ -177,6 +178,7 @@ constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos
     }
 }
 
+template<Player player>
 constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move, uint64_t& hash)
 {
     BitBoard newBoard = board;
@@ -187,7 +189,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     if (move.isCastleMove()) {
         performCastleMove(newBoard, move, hash);
     } else if (move.takeEnPessant()) {
-        if (newBoard.player == PlayerWhite) {
+        if constexpr (player == PlayerWhite) {
             movePiece(newBoard.pieces[WhitePawn], fromPos, toPos, WhitePawn, hash);
             clearPiece(newBoard.pieces[BlackPawn], enpessantCapturePosition(toPos, PlayerWhite), BlackPawn, hash);
         } else {
@@ -195,10 +197,10 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
             clearPiece(newBoard.pieces[WhitePawn], enpessantCapturePosition(toPos, PlayerBlack), WhitePawn, hash);
         }
     } else if (move.isPromotionMove()) {
-        performPromotionMove(newBoard, move, hash);
+        performPromotionMove<player>(newBoard, move, hash);
     } else {
         if (move.isCapture()) {
-            if (const auto victim = board.getPieceAtSquare(move.toSquare())) {
+            if (const auto victim = board.getTargetAtSquare<player>(move.toSquare())) {
                 clearPiece(newBoard.pieces[victim.value()], move.toPos(), victim.value(), hash);
             }
         }
@@ -218,7 +220,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     }
 
     if (move.hasEnPessant()) {
-        newBoard.enPessant = enpessantCapturePosition(toPos, newBoard.player);
+        newBoard.enPessant = enpessantCapturePosition(toPos, player);
         hashEnpessant(newBoard.enPessant.value(), hash);
     }
 
@@ -228,7 +230,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     newBoard.attacks[PlayerBlack] = attackgen::getAllAttacks<PlayerBlack>(newBoard);
 
     /* player making the move is black -> inc full moves */
-    if (board.player == PlayerBlack)
+    if constexpr (player == PlayerBlack)
         newBoard.fullMoves++;
 
     if (move.isCapture() || move.piece() == WhitePawn || move.piece() == BlackPawn)
@@ -236,10 +238,19 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     else
         newBoard.halfMoves++;
 
-    newBoard.player = nextPlayer(newBoard.player);
+    newBoard.player = nextPlayer(player);
     hashPlayer(hash);
 
     return newBoard;
+}
+
+// Helper: using inside loops means redundant colour checks
+constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move, uint64_t& hash)
+{
+    if (board.player == PlayerWhite)
+        return performMove<PlayerWhite>(board, move, hash);
+    else
+        return performMove<PlayerBlack>(board, move, hash);
 }
 
 constexpr void printPositionDebug(const BitBoard& board)
@@ -252,7 +263,7 @@ constexpr void printPositionDebug(const BitBoard& board)
         for (uint8_t column = 0; column < 8; column++) {
             const auto pos = intToBoardPosition((row - 1) * 8 + column);
             uint64_t square = helper::positionToSquare(pos);
-            const auto piece = board.getPieceAtSquare(square);
+            const auto piece = board.getTargetAtSquare(square, board.player);
             fmt::print("{} ", piece ? parsing::pieceToUnicode(*piece) : "·");
         }
 

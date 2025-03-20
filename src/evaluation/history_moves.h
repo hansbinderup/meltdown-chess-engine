@@ -21,7 +21,7 @@ public:
             return; // nothing to do
         }
 
-        const auto movePiece = board.getPieceAtSquare(move.fromSquare());
+        const auto movePiece = board.getTargetAtSquare(move.fromSquare(), board.player);
 
         if (!movePiece.has_value())
             return; // nothing to do
@@ -40,4 +40,3 @@ private:
 };
 
 }
-
