@@ -19,7 +19,8 @@ public:
 
     static void run()
     {
-        syzygy::init();
+        constexpr std::string_view table_path = "/home/hans/repos/meltdown-chess-engine/src/syzygy/tables";
+        syzygy::init(table_path);
         s_board.reset();
         engine::TtHashTable::clear();
         s_evaluator.reset();
@@ -261,8 +262,10 @@ private:
             s_evaluator.reset();
             engine::TtHashTable::clear();
         } else if (command == "syzygy") {
-            const auto wdl = syzygy::probeWdl(s_board);
-            fmt::println("Syzygy result: wdl: {}", magic_enum::enum_name(wdl));
+            int32_t score = 0;
+            const auto wdl = syzygy::probeWdl(s_board, score);
+            fmt::println("current wdl: {} score: {}", magic_enum::enum_name(wdl), score);
+            syzygy::printDtzDebug(s_board);
         }
 
         return true;

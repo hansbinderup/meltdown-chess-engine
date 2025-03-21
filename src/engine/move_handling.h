@@ -131,31 +131,27 @@ constexpr void updateCastlingRights(BitBoard& board, BoardPosition pos)
 }
 
 template<movegen::MoveType type>
-constexpr movegen::ValidMoves getAllMoves(const BitBoard& board)
+constexpr void getAllMoves(const BitBoard& board, movegen::ValidMoves& moves)
 {
-    movegen::ValidMoves validMoves;
-
     if (board.player == PlayerWhite) {
         const uint64_t attacks = board.attacks[PlayerBlack];
-        movegen::getKingMoves<PlayerWhite, type>(validMoves, board, attacks);
-        movegen::getPawnMoves<PlayerWhite, type>(validMoves, board);
-        movegen::getKnightMoves<PlayerWhite, type>(validMoves, board);
-        movegen::getRookMoves<PlayerWhite, type>(validMoves, board);
-        movegen::getBishopMoves<PlayerWhite, type>(validMoves, board);
-        movegen::getQueenMoves<PlayerWhite, type>(validMoves, board);
-        movegen::getCastlingMoves<PlayerWhite, type>(validMoves, board, attacks);
+        movegen::getKingMoves<PlayerWhite, type>(moves, board, attacks);
+        movegen::getPawnMoves<PlayerWhite, type>(moves, board);
+        movegen::getKnightMoves<PlayerWhite, type>(moves, board);
+        movegen::getRookMoves<PlayerWhite, type>(moves, board);
+        movegen::getBishopMoves<PlayerWhite, type>(moves, board);
+        movegen::getQueenMoves<PlayerWhite, type>(moves, board);
+        movegen::getCastlingMoves<PlayerWhite, type>(moves, board, attacks);
     } else {
         const uint64_t attacks = board.attacks[PlayerWhite];
-        movegen::getKingMoves<PlayerBlack, type>(validMoves, board, attacks);
-        movegen::getPawnMoves<PlayerBlack, type>(validMoves, board);
-        movegen::getKnightMoves<PlayerBlack, type>(validMoves, board);
-        movegen::getRookMoves<PlayerBlack, type>(validMoves, board);
-        movegen::getBishopMoves<PlayerBlack, type>(validMoves, board);
-        movegen::getQueenMoves<PlayerBlack, type>(validMoves, board);
-        movegen::getCastlingMoves<PlayerBlack, type>(validMoves, board, attacks);
+        movegen::getKingMoves<PlayerBlack, type>(moves, board, attacks);
+        movegen::getPawnMoves<PlayerBlack, type>(moves, board);
+        movegen::getKnightMoves<PlayerBlack, type>(moves, board);
+        movegen::getRookMoves<PlayerBlack, type>(moves, board);
+        movegen::getBishopMoves<PlayerBlack, type>(moves, board);
+        movegen::getQueenMoves<PlayerBlack, type>(moves, board);
+        movegen::getCastlingMoves<PlayerBlack, type>(moves, board, attacks);
     }
-
-    return validMoves;
 }
 
 constexpr static inline bool isKingAttacked(const BitBoard& board, Player player)
@@ -265,7 +261,8 @@ constexpr void printPositionDebug(const BitBoard& board)
 
     fmt::print("  A B C D E F G H\n\n");
 
-    const auto allMoves = getAllMoves<movegen::MovePseudoLegal>(board);
+    movegen::ValidMoves moves;
+    getAllMoves<movegen::MovePseudoLegal>(board, moves);
 
     fmt::print(
         "Player: {}\n"
@@ -281,13 +278,13 @@ constexpr void printPositionDebug(const BitBoard& board)
 
     // Print castling moves
     fmt::print("Castle: ");
-    for (const auto& move : allMoves) {
+    for (const auto& move : moves) {
         if (move.isCastleMove()) {
             fmt::print("{} ", move);
         }
     }
 
-    fmt::println("\nMoves[{}]: {}\n", allMoves.count(), fmt::join(allMoves, ", "));
+    fmt::println("\nMoves[{}]: {}\n", moves.count(), fmt::join(moves, ", "));
 }
 
 }

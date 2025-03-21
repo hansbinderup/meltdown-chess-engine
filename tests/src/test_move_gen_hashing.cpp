@@ -9,8 +9,10 @@ constexpr uint8_t s_defaultSearchDepth = 3;
 void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 {
     const uint64_t originalHash = engine::generateHashKey(board);
-    auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
-    for (const auto& move : allMoves) {
+
+    movegen::ValidMoves moves;
+    engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+    for (const auto& move : moves) {
         uint64_t hash = originalHash;
         const auto newBoard = engine::performMove(board, move, hash);
         const auto newHash = engine::generateHashKey(newBoard);
