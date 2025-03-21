@@ -45,13 +45,14 @@ TEST_CASE("Scoring", "[scoring]")
             const auto board = parsing::FenParser::parse("1k6/8/8/4q3/3P4/8/n5n1/R6K w - - 0 0");
             REQUIRE(board.has_value());
 
-            auto allMoves = engine::getAllMoves<movegen::MoveCapture>(board.value());
-            s_evaluator.m_moveOrdering.sortMoves(board.value(), allMoves, 0);
+            movegen::ValidMoves moves;
+            engine::getAllMoves<movegen::MoveCapture>(*board, moves);
+            s_evaluator.m_moveOrdering.sortMoves(board.value(), moves, 0);
 
-            REQUIRE(allMoves.count() == 3);
-            REQUIRE(allMoves[0].piece() == WhitePawn);
-            REQUIRE(allMoves[1].piece() == WhiteKing);
-            REQUIRE(allMoves[2].piece() == WhiteRook);
+            REQUIRE(moves.count() == 3);
+            REQUIRE(moves[0].piece() == WhitePawn);
+            REQUIRE(moves[1].piece() == WhiteKing);
+            REQUIRE(moves[2].piece() == WhiteRook);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
             REQUIRE(move.piece() == WhitePawn);
@@ -62,12 +63,13 @@ TEST_CASE("Scoring", "[scoring]")
             const auto board = parsing::FenParser::parse("1k6/6p1/7Q/4q3/3P4/8/n5n1/R6K w - - 0 0");
             REQUIRE(board.has_value());
 
-            auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board.value());
-            s_evaluator.m_moveOrdering.sortMoves(board.value(), allMoves, 0);
+            movegen::ValidMoves moves;
+            engine::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
+            s_evaluator.m_moveOrdering.sortMoves(board.value(), moves, 0);
 
-            REQUIRE(allMoves[0].piece() == WhitePawn);
-            REQUIRE(allMoves[1].piece() == WhiteKing);
-            REQUIRE(allMoves[2].piece() == WhiteRook);
+            REQUIRE(moves[0].piece() == WhitePawn);
+            REQUIRE(moves[1].piece() == WhiteKing);
+            REQUIRE(moves[2].piece() == WhiteRook);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
             REQUIRE(move.piece() == WhiteQueen); // evading attack + checking king = better move!

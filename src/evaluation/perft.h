@@ -42,11 +42,12 @@ public:
 private:
     constexpr static void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {
-        const auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
+        movegen::ValidMoves moves;
+        engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         uint64_t legalMoves = 0;
 
         if (depth == 0) {
-            for (const auto& move : allMoves) {
+            for (const auto& move : moves) {
                 auto newBoard = engine::performMove(board, move, s_hash);
                 if (engine::isKingAttacked(newBoard, board.player)) {
                     // invalid move
@@ -84,7 +85,7 @@ private:
             return;
         }
 
-        for (const auto& move : allMoves) {
+        for (const auto& move : moves) {
             auto newBoard = engine::performMove(board, move, s_hash);
 
             if (engine::isKingAttacked(newBoard, board.player)) {

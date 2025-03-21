@@ -8,6 +8,7 @@
 #include "evaluation/repetition.h"
 #include "fmt/ranges.h"
 #include "movegen/move_types.h"
+#include "syzygy/syzygy.h"
 #include <atomic>
 #include <engine/zobrist_hashing.h>
 
@@ -61,7 +62,8 @@ public:
 
         fmt::println("");
 
-        auto captures = engine::getAllMoves<movegen::MoveCapture>(board);
+        movegen::ValidMoves captures;
+        engine::getAllMoves<movegen::MoveCapture>(board, captures);
         if (captures.count()) {
             m_moveOrdering.sortMoves(board, captures, m_ply);
 
@@ -74,13 +76,15 @@ public:
 
         /* no need for time management here - just control the start/stop ourselves */
         m_isStopped = false;
-        auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
-        m_moveOrdering.sortMoves(board, allMoves, m_ply);
+
+        movegen::ValidMoves moves;
+        engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+        m_moveOrdering.sortMoves(board, moves, m_ply);
         const int32_t score = negamax(depth, board);
         stop();
 
         fmt::println("Move evaluations [{}]:", depth);
-        for (const auto& move : allMoves) {
+        for (const auto& move : moves) {
             fmt::println("  {}: {}", move, m_moveOrdering.moveScore(board, move, 0));
         }
 
@@ -283,6 +287,8 @@ private:
 
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
+        const bool isRoot = m_ply == 0;
+
         if (m_ply && m_repetition.isRepetition(m_hash)) {
             return 0; /* draw score */
         }
@@ -330,13 +336,30 @@ private:
             }
         }
 
-        auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
-        if (m_moveOrdering.pvTable().isFollowing()) {
-            m_moveOrdering.pvTable().updatePvScoring(allMoves, m_ply);
+        movegen::ValidMoves moves {};
+        bool tbMoves = false;
+        if (syzygy::isTableActive(board)) {
+            if (isRoot) {
+                tbMoves = syzygy::generateSyzygyMoves(board, moves);
+            } else if (board.isQuietPosition()) {
+                int32_t score = 0;
+                syzygy::probeWdl(board, score);
+                engine::TtHashTable::writeEntry(m_hash, score, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
+                return score;
+            }
         }
 
-        m_moveOrdering.sortMoves(board, allMoves, m_ply, m_ttMove);
-        for (const auto& move : allMoves) {
+        if (!tbMoves) {
+            engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+
+            if (m_moveOrdering.pvTable().isFollowing()) {
+                m_moveOrdering.pvTable().updatePvScoring(moves, m_ply);
+            }
+
+            m_moveOrdering.sortMoves(board, moves, m_ply, m_ttMove);
+        }
+
+        for (const auto& move : moves) {
             const auto moveRes = makeMove(board, move);
             if (!moveRes.has_value()) {
                 continue;
@@ -438,10 +461,11 @@ private:
             alpha = evaluation;
         }
 
-        auto allMoves = engine::getAllMoves<movegen::MoveCapture>(board);
-        m_moveOrdering.sortMoves(board, allMoves, m_ply);
+        movegen::ValidMoves moves;
+        engine::getAllMoves<movegen::MoveCapture>(board, moves);
+        m_moveOrdering.sortMoves(board, moves, m_ply);
 
-        for (const auto& move : allMoves) {
+        for (const auto& move : moves) {
             const auto moveRes = makeMove(board, move);
             if (!moveRes.has_value()) {
                 continue;
