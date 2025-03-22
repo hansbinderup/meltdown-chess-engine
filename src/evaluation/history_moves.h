@@ -21,7 +21,7 @@ public:
             return; // nothing to do
         }
 
-        const auto movePiece = (board.player == PlayerWhite) ? board.getPieceAtSquare<PlayerWhite>(move.fromSquare()) : board.getPieceAtSquare<PlayerBlack>(move.fromSquare());
+        const auto movePiece = board.getTargetAtSquare(move.fromSquare(), board.player);
 
         if (!movePiece.has_value())
             return; // nothing to do

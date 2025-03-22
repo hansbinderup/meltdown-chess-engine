@@ -12,7 +12,7 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
     auto allMoves = engine::getAllMoves<movegen::MovePseudoLegal>(board);
     for (const auto& move : allMoves) {
         uint64_t hash = originalHash;
-        const auto newBoard = engine::performMove(board, move, hash);
+        const auto newBoard = engine::performMove(board, move, hash, board.player);
         const auto newHash = engine::generateHashKey(newBoard);
 
         REQUIRE(hash == newHash);

@@ -83,7 +83,7 @@ public:
 
         Player player = board.player;
 
-        if (const auto initialPiece = (player == PlayerWhite) ? board.getPieceAtSquare<PlayerWhite>(move.toSquare()) : board.getPieceAtSquare<PlayerBlack>(move.toSquare())) {
+        if (const auto initialPiece = board.getTargetAtSquare(move.toSquare(), board.player)) {
             gain[depth] = s_pieceValues[*initialPiece];
         }
 

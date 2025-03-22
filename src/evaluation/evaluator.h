@@ -67,7 +67,7 @@ public:
 
             fmt::print("Captures[{}]: ", captures.count());
             for (const auto& move : captures) {
-                fmt::print("{} [{}]  ", move, m_moveOrdering.moveScore(board, move, 0));
+                fmt::print("{} [{}]  ", move, m_moveOrdering.moveScore(board.player, board, move, 0));
             }
             fmt::print("\n\n");
         }
@@ -81,7 +81,7 @@ public:
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : allMoves) {
-            fmt::println("  {}: {}", move, m_moveOrdering.moveScore(board, move, 0));
+            fmt::println("  {}: {}", move, m_moveOrdering.moveScore(board.player, board, move, 0));
         }
 
         fmt::println("\nTotal nodes:     {}\n"
@@ -508,7 +508,7 @@ private:
 
     std::optional<MoveResult> makeMove(const BitBoard& board, const movegen::Move& move)
     {
-        const MoveResult res { m_hash, engine::performMove(board, move, m_hash) };
+        const MoveResult res { m_hash, engine::performMove(board, move, m_hash, board.player) };
 
         if (engine::isKingAttacked(res.board, board.player)) {
             m_hash = res.hash;

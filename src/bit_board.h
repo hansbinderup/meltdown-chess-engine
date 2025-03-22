@@ -48,7 +48,7 @@ struct BitBoard {
     }
 
     template<Player player>
-    constexpr std::optional<Piece> getPieceAtSquare(uint64_t square) const
+    constexpr std::optional<Piece> getTargetAtSquare(uint64_t square) const
     {
         if constexpr (player == PlayerWhite) {
             for (const auto piece : s_blackPieces) {
@@ -65,6 +65,15 @@ struct BitBoard {
         }
 
         return std::nullopt;
+    }
+
+    // Helper: calling within loops will mean redundant colour checks
+    constexpr std::optional<Piece> getTargetAtSquare(uint64_t square, Player player) const
+    {
+        if (player == PlayerWhite)
+            return getTargetAtSquare<PlayerWhite>(square);
+        else
+            return getTargetAtSquare<PlayerBlack>(square);
     }
 
     std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces {};
