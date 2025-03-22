@@ -31,6 +31,9 @@ public:
     // allow default construction for resetting / initializing arrays
     Move() = default;
 
+    explicit Move(uint32_t ext_data)
+        : data(ext_data) {};
+
     explicit Move(uint64_t from, uint64_t to, uint64_t piece, uint64_t promotion, uint64_t castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
         : data(
               from
@@ -77,6 +80,11 @@ public:
     constexpr inline BoardPosition toPos() const
     {
         return intToBoardPosition((data >> s_toShift) & s_toFromMask);
+    }
+
+    constexpr inline uint32_t getData() const
+    {
+        return data;
     }
 
     constexpr inline uint64_t fromSquare() const
@@ -153,7 +161,7 @@ public:
     }
 
 private:
-    uint64_t data;
+    uint32_t data;
 
     constexpr static inline uint64_t s_toFromMask { 0b111111 }; /* 64 values */
     constexpr static inline uint64_t s_toShift { 6 };
