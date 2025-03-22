@@ -107,7 +107,7 @@ private:
                 const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
 
                 if (move.has_value()) {
-                    s_board = engine::performMove(s_board, move.value(), hash);
+                    s_board = s_board.player == PlayerWhite ? engine::performMove<PlayerWhite>(s_board, move.value(), hash) : engine::performMove<PlayerBlack>(s_board, move.value(), hash);
                     s_evaluator.updateRepetition(hash);
                 } else {
                     break;

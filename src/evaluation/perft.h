@@ -47,7 +47,7 @@ private:
 
         if (depth == 0) {
             for (const auto& move : allMoves) {
-                auto newBoard = engine::performMove(board, move, s_hash);
+                auto newBoard = engine::performMove(board, move, s_hash, board.player);
                 if (engine::isKingAttacked(newBoard, board.player)) {
                     // invalid move
                     continue;
@@ -85,7 +85,7 @@ private:
         }
 
         for (const auto& move : allMoves) {
-            auto newBoard = engine::performMove(board, move, s_hash);
+            auto newBoard = engine::performMove(board, move, s_hash, board.player);
 
             if (engine::isKingAttacked(newBoard, board.player)) {
                 // invalid move
