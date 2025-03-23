@@ -5,6 +5,8 @@
 #include "parsing/fen_parser.h"
 #include "parsing/input_parsing.h"
 
+#include "syzygy/syzygy.h"
+
 #include <iostream>
 #include <string_view>
 #include <thread>
@@ -17,11 +19,13 @@ public:
 
     static void run()
     {
+        syzygy::init();
         s_board.reset();
         engine::TtHashTable::clear();
         s_evaluator.reset();
 
         startInputThread();
+        syzygy::deinit();
     }
 
 private:
@@ -256,6 +260,9 @@ private:
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
+        } else if (command == "syzygy") {
+            const auto wdl = syzygy::probeWdl(s_board);
+            fmt::println("Syzygy result: wdl: {}", magic_enum::enum_name(wdl));
         }
 
         return true;
@@ -283,6 +290,7 @@ private:
                    "debug position      :  print the current position\n"
                    "debug clear         :  clear all scoring tables\n"
                    "debug options       :  print all options\n"
+                   "debug syzygy        :  run syzygy evaluation on current position\n"
                    "version             :  print version information\n"
                    "quit                :  stop the engine\n");
 
