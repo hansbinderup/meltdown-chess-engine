@@ -19,13 +19,13 @@ public:
 
     static void run()
     {
-        constexpr std::string_view table_path = "/home/hans/repos/meltdown-chess-engine/src/syzygy/tables";
-        syzygy::init(table_path);
         s_board.reset();
         engine::TtHashTable::clear();
         s_evaluator.reset();
 
         startInputThread();
+
+        /* always release resources */
         syzygy::deinit();
     }
 
@@ -88,6 +88,7 @@ private:
         fmt::println("id engine Meltdown\n"
                      "id author Hans Binderup\n"
                      "option name Ponder type check default false\n"
+                     "option name Syzygy type string default <empty>\n"
                      "uciok");
 
         return true;
@@ -242,6 +243,17 @@ private:
                         s_ponderingEnabled = false;
                     }
                 }
+            } else if (option == "Syzygy") {
+                const auto value = parsing::sv_next_split(input);
+                if (value == "value") {
+                    const auto path = parsing::sv_next_split(input).value_or(input);
+                    syzygy::deinit();
+                    if (syzygy::init(path)) {
+                        s_syzygyPath = path;
+                    } else {
+                        fmt::println("failed to init syzygy with path '{}'", path);
+                    }
+                }
             }
         }
 
@@ -258,14 +270,17 @@ private:
             s_evaluator.printEvaluation(s_board, depth);
         } else if (command == "options") {
             fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
+            fmt::println("name Syzygy value {}", s_syzygyPath);
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
         } else if (command == "syzygy") {
+            fmt::println("Syzygy path: {}", s_syzygyPath);
             int32_t score = 0;
             const auto wdl = syzygy::probeWdl(s_board, score);
-            fmt::println("current wdl: {} score: {}", magic_enum::enum_name(wdl), score);
-            syzygy::printDtzDebug(s_board);
+            fmt::println("wdl: {}, score: {}, table size: {}", magic_enum::enum_name(wdl), score, syzygy::tableSize());
+            if (!(wdl == syzygy::WdlResultFailed || wdl == syzygy::WdlResultTableNotActive))
+                syzygy::printDtzDebug(s_board);
         }
 
         return true;
@@ -306,6 +321,7 @@ private:
 
     /* options */
     static inline bool s_ponderingEnabled { false };
+    static inline std::string s_syzygyPath { "<empty>" };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };
