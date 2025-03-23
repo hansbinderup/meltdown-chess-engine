@@ -31,6 +31,8 @@ constexpr auto s_openFileScore = helper::createPhaseArray<int32_t>(15, 15);
 constexpr auto s_semiOpenFileScore = helper::createPhaseArray<int32_t>(10, 10);
 
 constexpr auto s_bishopMobilityScore = helper::createPhaseArray<int32_t>(3, 3);
+constexpr auto s_bishopPairScore = helper::createPhaseArray<int32_t>(0, 0);
+
 constexpr auto s_queenMobilityScore = helper::createPhaseArray<int32_t>(1, 1);
 constexpr auto s_kingShieldScore = helper::createPhaseArray<int32_t>(5, 5);
 
@@ -107,6 +109,11 @@ constexpr static inline gamephase::Score getBishopScore(const BitBoard& board, c
 {
     gamephase::Score score;
 
+    const int amntBishops = std::popcount(bishops);
+    if (amntBishops >= 2) {
+        score.mg += s_bishopPairScore[gamephase::GamePhaseMg];
+        score.eg += s_bishopPairScore[gamephase::GamePhaseEg];
+    }
 
     helper::bitIterate(bishops, [&score, &board](BoardPosition pos) {
         const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
