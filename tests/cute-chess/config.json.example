@@ -1,11 +1,13 @@
 {
     "new_engine": {
         "name": "Engine to be tested",
-        "path": "/absolute/path/to/engine"
+        "path": "/absolute/path/to/engine",
+        "options": ["Syzygy=/path/to/syzygy/tables", "Ponder=false"]
     },
     "baseline_engine": {
         "name": "Engine to test against",
-        "path": "/absolute/path/to/engine"
+        "path": "/absolute/path/to/engine",
+        "options": []
     },
     "tournament": {
         "rounds": 100,

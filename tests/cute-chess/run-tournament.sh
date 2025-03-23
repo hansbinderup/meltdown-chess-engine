@@ -16,9 +16,15 @@ PGN_OUTPUT="$OUTPUT_DIR/games_$FILENAME_SUFFIX.pgn"
 # engine settings
 ENGINE1_NAME=$(jq -r '.new_engine.name' "$CONFIG_FILE")
 ENGINE1_PATH=$(jq -r '.new_engine.path' "$CONFIG_FILE")
+for option in $(jq -r '.new_engine.options[]' "$CONFIG_FILE"); do
+    ENGINE1_OPTIONS="$ENGINE1_OPTIONS option.$option"
+done
 
 ENGINE2_NAME=$(jq -r '.baseline_engine.name' "$CONFIG_FILE")
 ENGINE2_PATH=$(jq -r '.baseline_engine.path' "$CONFIG_FILE")
+for option in $(jq -r '.baseline_engine.options[]' "$CONFIG_FILE"); do
+    ENGINE2_OPTIONS="$ENGINE2_OPTIONS option.$option"
+done
 
 # tournament settings
 ROUNDS=$(jq -r '.tournament.rounds' "$CONFIG_FILE")
@@ -53,7 +59,7 @@ cutechess-cli \
   -concurrency $CONCURRENCY -rounds $ROUNDS -repeat -games 2 \
   $SPRT_STRING \
   -openings file=$OPENING_BOOK plies=$OPENING_BOOK_MOVES order=random policy=round \
-  -ratinginterval 5 -pgnout "$PGN_OUTPUT" -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE -maxmoves 200 \
+  -ratinginterval $CONCURRENCY -pgnout "$PGN_OUTPUT" -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE -maxmoves 200 \
   -resultformat default > $RESULT_OUTPUT
 
 echo "Tournament finished!"
