@@ -33,6 +33,7 @@ constexpr auto s_semiOpenFileScore = helper::createPhaseArray<int32_t>(10, 10);
 constexpr auto s_bishopMobilityScore = helper::createPhaseArray<int32_t>(3, 3);
 constexpr auto s_bishopPairScore = helper::createPhaseArray<int32_t>(0, 0);
 
+constexpr auto s_knightMobilityScore = helper::createPhaseArray<int32_t>(0, 0);
 constexpr auto s_queenMobilityScore = helper::createPhaseArray<int32_t>(1, 1);
 constexpr auto s_kingShieldScore = helper::createPhaseArray<int32_t>(5, 5);
 
@@ -89,6 +90,11 @@ constexpr static inline gamephase::Score getKnightScore(const uint64_t knights)
     gamephase::Score score;
 
     helper::bitIterate(knights, [&score](BoardPosition pos) {
+        const uint64_t moves = movegen::getKnightMoves(pos);
+        const int movesCount = std::popcount(moves);
+
+        score.mg += movesCount * s_knightMobilityScore[gamephase::GamePhaseMg];
+        score.eg += movesCount * s_knightMobilityScore[gamephase::GamePhaseEg];
 
         if constexpr (player == PlayerWhite) {
             score.materialScore += gamephase::s_materialPhaseScore[WhiteKnight];
