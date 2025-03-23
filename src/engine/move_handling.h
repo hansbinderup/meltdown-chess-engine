@@ -235,7 +235,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     if (board.player == PlayerBlack)
         newBoard.fullMoves++;
 
-    if (move.isCapture())
+    if (move.isCapture() || move.piece() == WhitePawn || move.piece() == BlackPawn)
         newBoard.halfMoves = 0;
     else
         newBoard.halfMoves++;
