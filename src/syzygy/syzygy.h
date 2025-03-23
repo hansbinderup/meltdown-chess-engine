@@ -47,20 +47,19 @@ std::span<uint32_t> sortDtzResults(std::span<uint32_t> results, uint32_t wdl)
         }
 
         if (lowDtz) {
-            // If WDL is equal, compare by DTZ: lower is better
+            /* If WDL is equal, compare by DTZ: lower is better */
             while (j > 0 && TB_GET_WDL(results[j - 1]) == TB_GET_WDL(key) && TB_GET_DTZ(results[j - 1]) > TB_GET_DTZ(key)) {
                 results[j] = results[j - 1];
                 --j;
             }
         } else {
-            // If WDL is equal, compare by DTZ: higher is better
+            /* If WDL is equal, compare by DTZ: higher is better */
             while (j > 0 && TB_GET_WDL(results[j - 1]) == TB_GET_WDL(key) && TB_GET_DTZ(results[j - 1]) < TB_GET_DTZ(key)) {
                 results[j] = results[j - 1];
                 --j;
             }
         }
 
-        // Place the key in the correct position
         results[j] = key;
     }
 
@@ -193,7 +192,7 @@ inline void printDtzDebug(const BitBoard& board)
     }
 }
 
-inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& moves)
+inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& moves, WdlResult& wdl, uint8_t& dtz)
 {
     std::array<uint32_t, TB_MAX_MOVES> results;
 
@@ -239,7 +238,46 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
         }
     }
 
+    if (!sortedResults.empty()) {
+        dtz = TB_GET_DTZ(sortedResults.front());
+    }
+
+    wdl = wdlFromInt(TB_GET_WDL(res));
+
     return true;
+}
+
+inline int32_t approximateDtzScore(const BitBoard& board, int32_t score, uint8_t dtz, WdlResult wdl, uint8_t& tbhit)
+{
+    switch (wdl) {
+    case WdlResultLoss:
+        break;
+    case WdlResultBlessedLoss:
+    case WdlResultDraw:
+    case WdlResultCursedWin:
+        tbhit = 1;
+        return 0;
+    case WdlResultWin:
+        break;
+    case WdlResultFailed:
+    case WdlResultTableNotActive:
+        return score;
+    }
+
+    tbhit = 1;
+
+    /* If we're already at DTZ 0, it implies a forced draw or mate, so no further approximation needed */
+    if (dtz == 0) {
+        score = s_mateValue; // Forced mate or draw
+    } else if (const int piecesLeft = std::popcount(board.occupation[Both]); piecesLeft == 3) {
+        /* last piece to be taken so dtm must be dtz */
+        score = s_mateValue - dtz;
+    } else {
+        /* mate but we don't know when - return high score */
+        score = s_mateValue / 2;
+    }
+
+    return wdl == WdlResultWin ? score : -score;
 }
 
 }
