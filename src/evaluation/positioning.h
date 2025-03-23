@@ -6,7 +6,6 @@
 #include <cstdint>
 
 #include "evaluation/game_phase.h"
-#include "evaluation/pesto_tables.h"
 #include "evaluation/position_tables.h"
 #include "helpers/bit_operations.h"
 #include "helpers/game_phases.h"
@@ -18,6 +17,9 @@
 namespace evaluation {
 
 namespace {
+
+/* TODO: find a way to tune these parameters in an automated way - currently they're just guesses
+ * NOTE: All values are duplicates as no EG tuning has been performed yet */
 
 constexpr auto s_doublePawnPenalty = helper::createPhaseArray<int32_t>(-10, -10);
 constexpr auto s_isolatedPawnPenalty = helper::createPhaseArray<int32_t>(-10, -10);
@@ -49,20 +51,14 @@ constexpr static inline gamephase::Score getPawnScore(const BitBoard& board, con
 
     helper::bitIterate(pawns, [&](BoardPosition pos) {
         const auto doubledPawns = std::popcount(pawns & s_fileMaskTable[pos]);
-        if (doubledPawns > 1) {
-            score.mg += s_doublePawnPenalty[gamephase::GamePhaseMg];
-            score.eg += s_doublePawnPenalty[gamephase::GamePhaseEg];
-        }
+        if (doubledPawns > 1)
+            helper::addPhaseScore(score, s_doublePawnPenalty);
 
-        if ((pawns & s_isolationMaskTable[pos]) == 0) {
-            score.mg += s_isolatedPawnPenalty[gamephase::GamePhaseMg];
-            score.eg += s_isolatedPawnPenalty[gamephase::GamePhaseEg];
-        }
+        if ((pawns & s_isolationMaskTable[pos]) == 0)
+            helper::addPhaseScore(score, s_isolatedPawnPenalty);
 
         if constexpr (player == PlayerWhite) {
-            score.materialScore += gamephase::s_materialPhaseScore[WhitePawn];
-            score.mg += pesto::s_mgTables[WhitePawn][pos];
-            score.eg += pesto::s_egTables[WhitePawn][pos];
+            helper::addPestoPhaseScore(score, WhitePawn, pos);
 
             if ((board.pieces[BlackPawn] & s_whitePassedPawnMaskTable[pos]) == 0) {
                 const uint8_t row = (pos / 8);
@@ -70,9 +66,7 @@ constexpr static inline gamephase::Score getPawnScore(const BitBoard& board, con
                 score.eg += s_passedPawnBonus[gamephase::GamePhaseEg][row];
             }
         } else {
-            score.materialScore += gamephase::s_materialPhaseScore[BlackPawn];
-            score.mg += pesto::s_mgTables[BlackPawn][pos];
-            score.eg += pesto::s_egTables[BlackPawn][pos];
+            helper::addPestoPhaseScore(score, BlackPawn, pos);
 
             if ((board.pieces[WhitePawn] & s_blackPassedPawnMaskTable[pos]) == 0) {
                 const uint8_t row = (pos / 8);
@@ -93,18 +87,12 @@ constexpr static inline gamephase::Score getKnightScore(const uint64_t knights)
     helper::bitIterate(knights, [&score](BoardPosition pos) {
         const uint64_t moves = movegen::getKnightMoves(pos);
         const int movesCount = std::popcount(moves);
-
-        score.mg += movesCount * s_knightMobilityScore[gamephase::GamePhaseMg];
-        score.eg += movesCount * s_knightMobilityScore[gamephase::GamePhaseEg];
+        helper::addPhaseScore(score, s_knightMobilityScore, movesCount);
 
         if constexpr (player == PlayerWhite) {
-            score.materialScore += gamephase::s_materialPhaseScore[WhiteKnight];
-            score.mg += pesto::s_mgTables[WhiteKnight][pos];
-            score.eg += pesto::s_egTables[WhiteKnight][pos];
+            helper::addPestoPhaseScore(score, WhiteKnight, pos);
         } else {
-            score.materialScore += gamephase::s_materialPhaseScore[BlackKnight];
-            score.mg += pesto::s_mgTables[BlackKnight][pos];
-            score.eg += pesto::s_egTables[BlackKnight][pos];
+            helper::addPestoPhaseScore(score, BlackKnight, pos);
         }
     });
 
@@ -117,26 +105,18 @@ constexpr static inline gamephase::Score getBishopScore(const BitBoard& board, c
     gamephase::Score score;
 
     const int amntBishops = std::popcount(bishops);
-    if (amntBishops >= 2) {
-        score.mg += s_bishopPairScore[gamephase::GamePhaseMg];
-        score.eg += s_bishopPairScore[gamephase::GamePhaseEg];
-    }
+    if (amntBishops >= 2)
+        helper::addPhaseScore(score, s_bishopPairScore);
 
     helper::bitIterate(bishops, [&score, &board](BoardPosition pos) {
         const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
         const int movesCount = std::popcount(moves);
-
-        score.mg += movesCount * s_bishopMobilityScore[gamephase::GamePhaseMg];
-        score.eg += movesCount * s_bishopMobilityScore[gamephase::GamePhaseEg];
+        helper::addPhaseScore(score, s_bishopMobilityScore, movesCount);
 
         if constexpr (player == PlayerWhite) {
-            score.materialScore += gamephase::s_materialPhaseScore[WhiteBishop];
-            score.mg += pesto::s_mgTables[WhiteBishop][pos];
-            score.eg += pesto::s_egTables[WhiteBishop][pos];
+            helper::addPestoPhaseScore(score, WhiteBishop, pos);
         } else {
-            score.materialScore += gamephase::s_materialPhaseScore[BlackBishop];
-            score.mg += pesto::s_mgTables[BlackBishop][pos];
-            score.eg += pesto::s_egTables[BlackBishop][pos];
+            helper::addPestoPhaseScore(score, BlackBishop, pos);
         }
     });
 
@@ -154,33 +134,21 @@ constexpr gamephase::Score getRookScore(const BitBoard& board, const uint64_t ro
     helper::bitIterate(rooks, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
         const int movesCount = std::popcount(moves);
+        helper::addPhaseScore(score, s_rookMobilityScore, movesCount);
 
-        score.mg += movesCount * s_rookMobilityScore[gamephase::GamePhaseMg];
-        score.eg += movesCount * s_rookMobilityScore[gamephase::GamePhaseEg];
-
-        if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0) {
-            score.mg += s_openFileScore[gamephase::GamePhaseMg];
-            score.eg += s_openFileScore[gamephase::GamePhaseEg];
-        }
+        if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
+            helper::addPhaseScore(score, s_openFileScore);
 
         if constexpr (player == PlayerWhite) {
-            score.materialScore += gamephase::s_materialPhaseScore[WhiteRook];
-            score.mg += pesto::s_mgTables[WhiteRook][pos];
-            score.eg += pesto::s_egTables[WhiteRook][pos];
+            helper::addPestoPhaseScore(score, WhiteRook, pos);
 
-            if ((whitePawns & s_fileMaskTable[pos]) == 0) {
-                score.mg += s_semiOpenFileScore[gamephase::GamePhaseMg];
-                score.eg += s_semiOpenFileScore[gamephase::GamePhaseEg];
-            }
+            if ((whitePawns & s_fileMaskTable[pos]) == 0)
+                helper::addPhaseScore(score, s_semiOpenFileScore);
         } else {
-            score.materialScore += gamephase::s_materialPhaseScore[BlackRook];
-            score.mg += pesto::s_mgTables[BlackRook][pos];
-            score.eg += pesto::s_egTables[BlackRook][pos];
+            helper::addPestoPhaseScore(score, BlackRook, pos);
 
-            if ((blackPawns & s_fileMaskTable[pos]) == 0) {
-                score.mg += s_semiOpenFileScore[gamephase::GamePhaseMg];
-                score.eg += s_semiOpenFileScore[gamephase::GamePhaseEg];
-            }
+            if ((blackPawns & s_fileMaskTable[pos]) == 0)
+                helper::addPhaseScore(score, s_semiOpenFileScore);
         }
     });
 
@@ -198,18 +166,12 @@ constexpr static inline gamephase::Score getQueenScore(const BitBoard& board, co
             | movegen::getRookMoves(pos, board.occupation[Both]);
 
         const int movesCount = std::popcount(moves);
-
-        score.mg += movesCount * s_queenMobilityScore[gamephase::GamePhaseMg];
-        score.eg += movesCount * s_queenMobilityScore[gamephase::GamePhaseEg];
+        helper::addPhaseScore(score, s_queenMobilityScore, movesCount);
 
         if constexpr (player == PlayerWhite) {
-            score.materialScore += gamephase::s_materialPhaseScore[WhiteQueen];
-            score.mg += pesto::s_mgTables[WhiteQueen][pos];
-            score.eg += pesto::s_egTables[WhiteQueen][pos];
+            helper::addPestoPhaseScore(score, WhiteQueen, pos);
         } else {
-            score.materialScore += gamephase::s_materialPhaseScore[BlackQueen];
-            score.mg += pesto::s_mgTables[BlackQueen][pos];
-            score.eg += pesto::s_egTables[BlackQueen][pos];
+            helper::addPestoPhaseScore(score, BlackQueen, pos);
         }
     });
 
@@ -226,37 +188,27 @@ constexpr static inline gamephase::Score getKingScore(const BitBoard& board, con
 
     helper::bitIterate(king, [&](BoardPosition pos) {
         /* king will get a penalty for semi/open files */
-        if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0) {
-            score.mg -= s_openFileScore[gamephase::GamePhaseMg];
-            score.eg -= s_openFileScore[gamephase::GamePhaseEg];
-        }
+        if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
+            helper::subPhaseScore(score, s_openFileScore);
 
         if constexpr (player == PlayerWhite) {
-            score.mg += pesto::s_mgTables[WhiteKing][pos];
-            score.eg += pesto::s_egTables[WhiteKing][pos];
+            helper::addPestoPhaseScore(score, WhiteKing, pos);
 
-            if ((whitePawns & s_fileMaskTable[pos]) == 0) {
-                score.mg -= s_semiOpenFileScore[gamephase::GamePhaseMg];
-                score.eg -= s_semiOpenFileScore[gamephase::GamePhaseEg];
-            }
+            if ((whitePawns & s_fileMaskTable[pos]) == 0)
+                helper::subPhaseScore(score, s_semiOpenFileScore);
 
             const uint64_t kingShields = movegen::getKingMoves(pos) & board.occupation[PlayerWhite];
             const int shieldCount = std::popcount(kingShields);
-            score.mg += shieldCount * s_kingShieldScore[gamephase::GamePhaseMg];
-            score.eg += shieldCount * s_kingShieldScore[gamephase::GamePhaseEg];
+            helper::addPhaseScore(score, s_kingShieldScore, shieldCount);
         } else {
-            score.mg += pesto::s_mgTables[BlackKing][pos];
-            score.eg += pesto::s_egTables[BlackKing][pos];
+            helper::addPestoPhaseScore(score, BlackKing, pos);
 
-            if ((blackPawns & s_fileMaskTable[pos]) == 0) {
-                score.mg -= s_semiOpenFileScore[gamephase::GamePhaseMg];
-                score.eg -= s_semiOpenFileScore[gamephase::GamePhaseEg];
-            }
+            if ((blackPawns & s_fileMaskTable[pos]) == 0)
+                helper::subPhaseScore(score, s_semiOpenFileScore);
 
             const uint64_t kingShields = movegen::getKingMoves(pos) & board.occupation[PlayerBlack];
             const int shieldCount = std::popcount(kingShields);
-            score.mg += shieldCount * s_kingShieldScore[gamephase::GamePhaseMg];
-            score.eg += shieldCount * s_kingShieldScore[gamephase::GamePhaseEg];
+            helper::addPhaseScore(score, s_kingShieldScore, shieldCount);
         }
     });
 
