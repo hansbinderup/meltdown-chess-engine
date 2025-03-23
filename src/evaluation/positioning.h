@@ -34,6 +34,7 @@ constexpr auto s_bishopMobilityScore = helper::createPhaseArray<int32_t>(3, 3);
 constexpr auto s_bishopPairScore = helper::createPhaseArray<int32_t>(0, 0);
 
 constexpr auto s_knightMobilityScore = helper::createPhaseArray<int32_t>(0, 0);
+constexpr auto s_rookMobilityScore = helper::createPhaseArray<int32_t>(0, 0);
 constexpr auto s_queenMobilityScore = helper::createPhaseArray<int32_t>(1, 1);
 constexpr auto s_kingShieldScore = helper::createPhaseArray<int32_t>(5, 5);
 
@@ -151,6 +152,11 @@ constexpr gamephase::Score getRookScore(const BitBoard& board, const uint64_t ro
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
     helper::bitIterate(rooks, [&](BoardPosition pos) {
+        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
+        const int movesCount = std::popcount(moves);
+
+        score.mg += movesCount * s_rookMobilityScore[gamephase::GamePhaseMg];
+        score.eg += movesCount * s_rookMobilityScore[gamephase::GamePhaseEg];
 
         if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0) {
             score.mg += s_openFileScore[gamephase::GamePhaseMg];
