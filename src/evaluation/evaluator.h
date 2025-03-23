@@ -241,6 +241,9 @@ private:
             }
 
             m_moveOrdering.pvTable().setIsFollowing(true);
+            m_wdl = syzygy::WdlResultTableNotActive;
+            m_dtz = 0;
+
             int32_t score = negamax(d, board, alpha, beta);
 
             /* the search fell outside the window - we need to retry a full search */
@@ -255,7 +258,7 @@ private:
             alpha = score - s_aspirationWindow;
             beta = score + s_aspirationWindow;
 
-            printScoreInfo(score, d);
+            printScoreInfo(board, score, d);
 
             /* only increment depth, if we didn't fall out of the window */
             d++;
@@ -267,21 +270,25 @@ private:
         return m_moveOrdering.pvTable().bestMove();
     }
 
-    constexpr void printScoreInfo(int32_t score, uint8_t currentDepth)
+    constexpr void printScoreInfo(const BitBoard& board, int32_t score, uint8_t currentDepth)
     {
         using namespace std::chrono;
 
         const auto endTime = system_clock::now();
         const auto timeDiff = duration_cast<milliseconds>(endTime - m_startTime).count();
 
+        uint8_t tbHit = 0;
+        score = syzygy::approximateDtzScore(board, score, m_dtz, m_wdl, tbHit);
+
         if (score > -s_mateValue && score < -s_mateScore)
-            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes);
+            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes, tbHit);
         else if (score > s_mateScore && score < s_mateValue)
-            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes);
+            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes, tbHit);
         else
-            fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull());
+            fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} tbhits {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull(), tbHit);
 
         fmt::println("{}", fmt::join(m_moveOrdering.pvTable(), " "));
+
         fflush(stdout);
     }
 
@@ -336,11 +343,11 @@ private:
             }
         }
 
-        movegen::ValidMoves moves {};
         bool tbMoves = false;
+        movegen::ValidMoves moves {};
         if (syzygy::isTableActive(board)) {
             if (isRoot) {
-                tbMoves = syzygy::generateSyzygyMoves(board, moves);
+                tbMoves = syzygy::generateSyzygyMoves(board, moves, m_wdl, m_dtz);
             } else if (board.isQuietPosition()) {
                 int32_t score = 0;
                 syzygy::probeWdl(board, score);
@@ -587,6 +594,9 @@ private:
     uint64_t m_hash {};
     uint8_t m_selDepth {};
     std::optional<movegen::Move> m_ttMove;
+
+    syzygy::WdlResult m_wdl = syzygy::WdlResultTableNotActive;
+    uint8_t m_dtz {};
 
     MoveOrdering m_moveOrdering {};
     Repetition m_repetition;
