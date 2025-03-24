@@ -17,27 +17,27 @@ enum TtHashFlag : uint8_t {
 
 /*
  * Non-key members are encoded for compression. From lower bits to higher, entries are:
- * depth: 7 bits, i.e. 0000 ... 0000 0000 0111 1111
- * flag: 3 bits, i.e. 0000 ... 0000 0011 1000 0000
- * score: 17 bits (see board_defs.h)
- * generation: 8 bits
+ * depth: 8 bits, i.e. 0000 ... 0000 0000 1111 1111
+ * flag: 2 bits, i.e. 0000 ... 0000 0011 1000 0000
+ * score: 16 bits for value + 1 for sign (see board_defs.h)
+ * generation: 4 bits
  * move: 26 bits (see move_types.h)
  * */
 
 class TtHashEntryData {
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshift-count-overflow"
-    explicit TtHashEntryData(uint64_t depth = 0, uint64_t flag = TtHashExact, int64_t score = 0, uint64_t generation = 0, uint64_t move = {})
+    explicit TtHashEntryData() = default;
+
+    explicit TtHashEntryData(uint64_t depth, uint64_t flag, int64_t score, uint64_t generation, uint64_t move)
         : m_data(
               depth
               | flag << s_flagShift
-              | score << s_scoreShift
+              // Most significant bit: sign (1 if negative)
+              | (score > 0 ? score : -score + (1 << 16)) << s_scoreShift
               | generation << s_generationShift
               | move << s_moveShift)
     {
     }
-#pragma GCC diagnostic pop
 
     constexpr inline uint8_t getDepth() const
     {
@@ -51,7 +51,15 @@ public:
 
     constexpr inline int32_t getScore() const
     {
-        return (m_data >> s_scoreShift) & s_scoreMask;
+        // Casting is safe: operand's MSB is always zero
+        auto scoreBits = static_cast<int32_t>((m_data >> s_scoreShift) & s_scoreMask);
+
+        if (scoreBits >= (1 << 16)) {
+            // From negative value
+            return -(scoreBits - (1 << 16));
+        } else {
+            return scoreBits;
+        }
     }
 
     constexpr inline uint8_t getGeneration() const
@@ -65,21 +73,21 @@ public:
     }
 
 private:
-    constexpr static inline uint64_t s_depthMask { 0b1111111 };
+    constexpr static inline uint64_t s_depthMask { 0xFF };
 
-    constexpr static inline uint64_t s_flagMask { 0b111 };
-    constexpr static inline uint64_t s_flagShift { 7 };
+    constexpr static inline uint64_t s_flagMask { 0x3 };
+    constexpr static inline uint64_t s_flagShift { 8 };
 
-    constexpr static inline uint64_t s_scoreMask { 0b11111111111111111 };
+    constexpr static inline uint64_t s_scoreMask { 0x1FFFF };
     constexpr static inline uint64_t s_scoreShift { 10 };
 
-    constexpr static inline uint64_t s_generationMask { 0b11111111 };
+    constexpr static inline uint64_t s_generationMask { 0xF };
     constexpr static inline uint64_t s_generationShift { 27 };
 
-    constexpr static inline uint64_t s_moveMask { 0b11111111111111111111111111 };
-    constexpr static inline uint64_t s_moveShift { 35 };
+    constexpr static inline uint64_t s_moveMask { 0x3FFFFFF };
+    constexpr static inline uint64_t s_moveShift { 31 };
 
-    uint64_t m_data;
+    uint64_t m_data {};
 };
 
 struct TtHashEntry {
@@ -94,7 +102,7 @@ public:
 
         for (auto& entry : s_ttHashTable) {
             entry.key = 0;
-            entry.data = TtHashEntryData(); // Manually construct
+            entry.data = TtHashEntryData();
         }
         s_hashCount = 0;
         s_currentGeneration = 0;
@@ -174,7 +182,8 @@ public:
         TtHashEntryData newData { depth, flag, score, s_currentGeneration, move.getData() };
 
         // Can be racy
-        static_assert(std::atomic<uint64_t>::is_always_lock_free);
+
+        static_assert(std::atomic<TtHashEntryData>::is_always_lock_free);
         entry.key.store(key, std::memory_order_relaxed);
         entry.data.store(newData, std::memory_order_relaxed);
     }
