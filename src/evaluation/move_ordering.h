@@ -55,36 +55,24 @@ public:
         return m_historyMoves;
     }
 
-    template<Player player>
     constexpr void sortMoves(const BitBoard& board, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
     {
         /* primitive insertion sort */
         for (size_t i = 1; i < moves.count(); ++i) {
             movegen::Move key = moves[i];
-
-            int keyScore = moveScore<player>(board, key, ply, ttMove);
+            int keyScore = moveScore(board, key, ply, ttMove);
             size_t j = i;
-            while (j > 0 && moveScore<player>(board, moves[j - 1], ply, ttMove) < keyScore) {
+            while (j > 0 && moveScore(board, moves[j - 1], ply, ttMove) < keyScore) {
                 moves[j] = moves[j - 1];
                 --j;
             }
             moves[j] = key;
         }
+
         m_pvTable.setIsScoring(false);
     }
 
-    // Helper: calling inside loops will mean redundant colour checks
-
-    constexpr void sortMoves(const BitBoard& board, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
-    {
-        if (board.player == PlayerWhite) {
-            sortMoves<PlayerWhite>(board, moves, ply, ttMove);
-        } else {
-            sortMoves<PlayerBlack>(board, moves, ply, ttMove);
-        }
-    }
     // NOTE: scoring must be consistent during a sort
-    template<Player player>
     constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (ttMove.has_value() && move == *ttMove) {
@@ -117,30 +105,18 @@ public:
                 return ScoreBadPromotion + 2000;
             }
 
+            const auto attacker = board.getPieceAtSquare(move.fromSquare());
             const auto killerMoves = m_killerMoves.get(ply);
             if (move == killerMoves.first)
                 return ScoreKillerMove;
             else if (move == killerMoves.second)
                 return ScoreKillerMove - 1000;
-            else {
-                const auto attacker = board.getTargetAtSquare<player>(move.fromSquare());
-                if (attacker.has_value()) {
-                    return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
-                }
+            else if (attacker.has_value()) {
+                return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
             }
         }
 
         return 0;
-    }
-
-    // Helper: calling inside loops will mean redundant colour checks
-    constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
-    {
-        if (board.player == PlayerWhite) {
-            return moveScore<PlayerWhite>(board, move, ply, ttMove);
-        } else {
-            return moveScore<PlayerBlack>(board, move, ply, ttMove);
-        }
     }
 
 private:
@@ -148,4 +124,6 @@ private:
     HistoryMoves m_historyMoves {};
     PVTable m_pvTable {};
 };
+
 }
+
