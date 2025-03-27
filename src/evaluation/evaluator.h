@@ -302,6 +302,7 @@ private:
     {
         const bool isRoot = m_ply == 0;
 
+        m_moveOrdering.pvTable().updateLength(m_ply);
         if (m_ply && m_repetition.isRepetition(m_hash)) {
             return 0; /* draw score */
         }
@@ -321,8 +322,6 @@ private:
         if (m_ply >= s_maxSearchDepth) {
             return staticEvaluation(board);
         }
-
-        m_moveOrdering.pvTable().updateLength(m_ply);
 
         if (depth == 0) {
             return quiesence(board, alpha, beta);
