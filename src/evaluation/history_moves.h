@@ -21,12 +21,12 @@ public:
             return; // nothing to do
         }
 
-        const auto movePiece = board.getTargetAtSquare(move.fromSquare(), board.player);
+        const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player);
 
-        if (!movePiece.has_value())
+        if (!attacker.has_value())
             return; // nothing to do
 
-        m_historyMoves.at(move.toPos()).at(movePiece.value()) += ply;
+        m_historyMoves.at(move.toPos()).at(attacker.value()) += ply;
     }
 
     void reset()
