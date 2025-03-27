@@ -212,7 +212,7 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
         if (!from.has_value() || !to.has_value())
             continue;
 
-        const auto piece = board.getTargetAtSquare(helper::positionToSquare(*from), board.player);
+        const auto piece = board.getAttackerAtSquare(helper::positionToSquare(*from), board.player);
         const auto target = board.getTargetAtSquare(helper::positionToSquare(*to), board.player);
         if (!piece.has_value())
             continue;

@@ -123,7 +123,7 @@ public:
             else if (move == killerMoves.second)
                 return ScoreKillerMove - 1000;
             else {
-                const auto attacker = board.getTargetAtSquare<player>(move.fromSquare());
+                const auto attacker = board.getAttackerAtSquare<player>(move.fromSquare());
                 if (attacker.has_value()) {
                     return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
                 }

@@ -169,9 +169,10 @@ constexpr static inline bool isKingAttacked(const BitBoard& board)
     return isKingAttacked(board, board.player);
 }
 
-constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos, Player player)
+template<Player player>
+constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos)
 {
-    if (player == PlayerWhite) {
+    if constexpr (player == PlayerWhite) {
         return intToBoardPosition(pos - 8);
     } else {
         return intToBoardPosition(pos + 8);
@@ -191,10 +192,10 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     } else if (move.takeEnPessant()) {
         if constexpr (player == PlayerWhite) {
             movePiece(newBoard.pieces[WhitePawn], fromPos, toPos, WhitePawn, hash);
-            clearPiece(newBoard.pieces[BlackPawn], enpessantCapturePosition(toPos, PlayerWhite), BlackPawn, hash);
+            clearPiece(newBoard.pieces[BlackPawn], enpessantCapturePosition<player>(toPos), BlackPawn, hash);
         } else {
             movePiece(newBoard.pieces[BlackPawn], fromPos, toPos, BlackPawn, hash);
-            clearPiece(newBoard.pieces[WhitePawn], enpessantCapturePosition(toPos, PlayerBlack), WhitePawn, hash);
+            clearPiece(newBoard.pieces[WhitePawn], enpessantCapturePosition<player>(toPos), WhitePawn, hash);
         }
     } else if (move.isPromotionMove()) {
         performPromotionMove<player>(newBoard, move, hash);
@@ -220,7 +221,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     }
 
     if (move.hasEnPessant()) {
-        newBoard.enPessant = enpessantCapturePosition(toPos, player);
+        newBoard.enPessant = enpessantCapturePosition<player>(toPos);
         hashEnpessant(newBoard.enPessant.value(), hash);
     }
 
@@ -263,7 +264,10 @@ constexpr void printPositionDebug(const BitBoard& board)
         for (uint8_t column = 0; column < 8; column++) {
             const auto pos = intToBoardPosition((row - 1) * 8 + column);
             uint64_t square = helper::positionToSquare(pos);
-            const auto piece = board.getTargetAtSquare(square, board.player);
+            auto piece = board.getAttackerAtSquare<PlayerWhite>(square);
+            if (!piece.has_value()) {
+                piece = board.getAttackerAtSquare<PlayerBlack>(square);
+            }
             fmt::print("{} ", piece ? parsing::pieceToUnicode(*piece) : "·");
         }
 

@@ -17,6 +17,7 @@ TEST_CASE("HistoryMoves: Updating quiet moves", "[HistoryMoves]")
 {
     HistoryMoves historyMoves;
     BitBoard board;
+    board.player = PlayerBlack;
 
     setPieceAtSquare(board, BlackKnight, C3);
 
@@ -34,6 +35,7 @@ TEST_CASE("HistoryMoves: Ignoring capture moves", "[HistoryMoves]")
 {
     HistoryMoves historyMoves;
     BitBoard board;
+    board.player = PlayerBlack;
 
     setPieceAtSquare(board, BlackPawn, B2);
 
@@ -52,6 +54,7 @@ TEST_CASE("HistoryMoves: Handling missing piece cases", "[HistoryMoves]")
 {
     HistoryMoves historyMoves;
     BitBoard board;
+    board.player = PlayerBlack;
 
     Move quietMove = Move::create(E4, G5, BlackBishop, false);
     historyMoves.update(board, quietMove, 6);
@@ -64,6 +67,7 @@ TEST_CASE("HistoryMoves: Reset functionality", "[HistoryMoves]")
 {
     HistoryMoves historyMoves;
     BitBoard board;
+    board.player = PlayerBlack;
 
     setPieceAtSquare(board, BlackQueen, D1);
     Move quietMove = Move::create(D1, H5, BlackQueen, false);
@@ -74,4 +78,3 @@ TEST_CASE("HistoryMoves: Reset functionality", "[HistoryMoves]")
     historyMoves.reset();
     REQUIRE(historyMoves.get(BlackQueen, H5) == 0);
 }
-
