@@ -292,6 +292,12 @@ private:
         fflush(stdout);
     }
 
+    enum SearchType {
+        Default,
+        NullSearch,
+    };
+
+    template<SearchType searchType = SearchType::Default>
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
         const bool isRoot = m_ply == 0;
@@ -337,9 +343,12 @@ private:
             depth++;
         }
 
-        if (depth > s_nullMoveReduction && !isChecked && m_ply) {
-            if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
-                return nullMoveScore.value();
+        /* dangerous to repeat null search on a null search - skip it here */
+        if constexpr (searchType != SearchType::NullSearch) {
+            if (depth > s_nullMoveReduction && !isChecked && m_ply) {
+                if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                    return nullMoveScore.value();
+                }
             }
         }
 
@@ -515,14 +524,14 @@ private:
         /* give opponent an extra move */
         nullMoveBoard.player = nextPlayer(nullMoveBoard.player);
 
-        m_ply++;
+        m_ply += 2;
         m_repetition.add(oldHash);
 
         /* perform search with reduced depth (based on reduction limit) */
-        int32_t score = -negamax(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+        int32_t score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
 
         m_hash = oldHash;
-        m_ply--;
+        m_ply -= 2;
         m_repetition.remove();
 
         if (score >= beta) {
