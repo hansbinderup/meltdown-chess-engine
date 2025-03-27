@@ -212,28 +212,28 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
         if (!from.has_value() || !to.has_value())
             continue;
 
-        const auto piece = board.getTargetAtSquare(helper::positionToSquare(*from), board.player);
+        const auto attacker = board.getAttackerAtSquare(helper::positionToSquare(*from), board.player);
         const auto target = board.getTargetAtSquare(helper::positionToSquare(*to), board.player);
-        if (!piece.has_value())
+        if (!attacker.has_value())
             continue;
 
         const bool isCapture = target.has_value();
 
         switch (TB_GET_PROMOTES(res)) {
         case TB_PROMOTES_NONE:
-            moves.addMove(movegen::Move::create(*from, *to, *piece, isCapture));
+            moves.addMove(movegen::Move::create(*from, *to, *attacker, isCapture));
             break;
         case TB_PROMOTES_QUEEN:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *piece, PromotionQueen, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionQueen, isCapture));
             break;
         case TB_PROMOTES_ROOK:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *piece, PromotionRook, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionRook, isCapture));
             break;
         case TB_PROMOTES_BISHOP:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *piece, PromotionBishop, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionBishop, isCapture));
             break;
         case TB_PROMOTES_KNIGHT:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *piece, PromotionKnight, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionKnight, isCapture));
             break;
         }
     }
