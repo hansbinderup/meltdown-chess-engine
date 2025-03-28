@@ -362,6 +362,24 @@ private:
             }
         }
 
+        /* https://www.chessprogramming.org/Razoring (Strelka) */
+        if (!isPv && !isChecked && depth <= s_reductionLimit) {
+            int32_t score = staticEval + s_razorMarginShallow;
+            if (score < beta) {
+                if (depth == 1) {
+                    int32_t newScore = quiesence(board, alpha, beta);
+                    return (newScore > score) ? newScore : score;
+                }
+
+                score += s_razorMarginDeep;
+                if (score < beta && depth <= s_razorDeepReductionLimit) {
+                    const int32_t newScore = quiesence(board, alpha, beta);
+                    if (newScore < beta)
+                        return (newScore > score) ? newScore : score;
+                }
+            }
+        }
+
         bool tbMoves = false;
         movegen::ValidMoves moves {};
         if (syzygy::isTableActive(board)) {
@@ -634,6 +652,11 @@ private:
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
     constexpr static inline uint32_t s_reductionLimit { 3 };
+    constexpr static inline int32_t s_futilityMargin { 100 };
+    constexpr static inline int32_t s_futilityEvaluationMargin { 120 };
+    constexpr static inline int32_t s_razorMarginShallow { 125 };
+    constexpr static inline int32_t s_razorMarginDeep { 175 };
+    constexpr static inline uint8_t s_razorDeepReductionLimit { 2 };
     constexpr static inline uint32_t s_defaultAmountMoves { 75 };
 
     constexpr static inline uint8_t s_aspirationWindow { 50 };
