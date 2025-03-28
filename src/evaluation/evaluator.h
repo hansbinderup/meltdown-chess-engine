@@ -342,6 +342,17 @@ private:
             depth++;
         }
 
+        const int32_t staticEval = staticEvaluation(board);
+
+        /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
+        if (depth < s_reductionLimit && !isPv && !isChecked) {
+            const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + s_futilityMargin);
+            const int32_t evalMargin = s_futilityEvaluationMargin * depth;
+
+            if (withinFutilityMargin && (staticEval - evalMargin) >= beta)
+                return staticEval - evalMargin;
+        }
+
         /* dangerous to repeat null search on a null search - skip it here */
         if constexpr (searchType != SearchType::NullSearch) {
             if (depth > s_nullMoveReduction && !isChecked && m_ply) {
