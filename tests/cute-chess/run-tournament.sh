@@ -55,11 +55,11 @@ echo "<ctrl-c> will stop tests early"
 cutechess-cli \
   -engine cmd="$ENGINE1_PATH" name="$ENGINE1_NAME" $ENGINE1_OPTIONS \
   -engine cmd="$ENGINE2_PATH" name="$ENGINE2_NAME" $ENGINE2_OPTIONS \
-  -each tc=$TIME_CONTROL proto=uci \
-  -concurrency $CONCURRENCY -rounds $ROUNDS -repeat -games 2 \
+  -each proto=uci $TIME_CONTROL \
+  -concurrency $CONCURRENCY -rounds $ROUNDS -repeat 2 -games 2 \
   $SPRT_STRING \
   -openings file=$OPENING_BOOK plies=$OPENING_BOOK_MOVES order=random policy=round \
-  -ratinginterval $CONCURRENCY -pgnout "$PGN_OUTPUT" -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE -maxmoves 200 \
+  -ratinginterval $CONCURRENCY -outcomeinterval $CONCURRENCY -pgnout "$PGN_OUTPUT" -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE -maxmoves 200 \
   -resultformat default > $RESULT_OUTPUT
 
 echo "Tournament finished!"
