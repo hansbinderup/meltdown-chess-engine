@@ -22,6 +22,43 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
     const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
 
     TtHashTable::writeEntry(key, score, move, depth, ply, TtHashExact);
+    // Writing generation=0, receiving generation=15
+    auto retrieved = TtHashTable::TtHashTable::probe(key, alpha, beta, depth, ply);
+
+    REQUIRE(retrieved.has_value());
+    REQUIRE(retrieved->first == score);
+    REQUIRE(retrieved->second == move);
+}
+
+TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
+{
+    TtHashTable::TtHashTable::clear();
+
+    uint64_t key = 0x123456789ABCDEF;
+    int32_t score = s_maxScore;
+
+    const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
+
+    TtHashTable::writeEntry(key, score, move, depth, ply, TtHashExact);
+    // Writing generation=0, receiving generation=15
+    auto retrieved = TtHashTable::TtHashTable::probe(key, alpha, beta, depth, ply);
+
+    REQUIRE(retrieved.has_value());
+    REQUIRE(retrieved->first == score);
+    REQUIRE(retrieved->second == move);
+}
+
+TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
+{
+    TtHashTable::TtHashTable::clear();
+
+    uint64_t key = 0x123456789ABCDEF;
+    int32_t score = s_minScore;
+
+    const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
+
+    TtHashTable::writeEntry(key, score, move, depth, ply, TtHashExact);
+    // Writing generation=0, receiving generation=15
     auto retrieved = TtHashTable::TtHashTable::probe(key, alpha, beta, depth, ply);
 
     REQUIRE(retrieved.has_value());
@@ -127,4 +164,3 @@ TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
     auto retrieved = TtHashTable::probe(key, alpha, beta, depth, ply);
     REQUIRE_FALSE(retrieved.has_value()); // Should be cleared
 }
-
