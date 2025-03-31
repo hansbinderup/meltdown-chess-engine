@@ -5,6 +5,7 @@ FROM archlinux:latest
 RUN pacman -Sy --noconfirm \
     base-devel \
     gcc \
+    mingw-w64-gcc \
     meson \
     ninja \
     gdb \

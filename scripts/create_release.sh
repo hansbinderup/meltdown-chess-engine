@@ -13,6 +13,8 @@ RELEASE_DIR=".release"
 ARCHS=(
     "linux-gcc-x86-64-v2" 
     "linux-gcc-x86-64-v3"
+    "windows-gcc-x86-64-v2"
+    "windows-gcc-x86-64-v3"
 )
 
 # Ensure that we always have an empty release folder
@@ -29,7 +31,11 @@ for ARCH in "${ARCHS[@]}"; do
     meson compile -C "$BUILD_DIR"
 
     # Rename the binary with architecture and version info 
-    cp "$BUILD_DIR/meltdown-chess-engine" "$RELEASE_DIR/meltdown-$VERSION-$ARCH"
+    if [[ -f "$BUILD_DIR/meltdown-chess-engine" ]]; then
+        cp "$BUILD_DIR/meltdown-chess-engine" "$RELEASE_DIR/meltdown-$VERSION-$ARCH"
+    elif [[ -f "$BUILD_DIR/meltdown-chess-engine.exe" ]]; then
+        cp "$BUILD_DIR/meltdown-chess-engine.exe" "$RELEASE_DIR/meltdown-$VERSION-$ARCH.exe"
+    fi
 
     echo "Finished building for $ARCH."
 done

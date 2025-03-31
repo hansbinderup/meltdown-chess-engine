@@ -4,7 +4,8 @@ NOTE: this is a hobby project that is work in progress.
 
 C++26 chess engine.
 
-Design goals:
+<details>
+<summary>Design goals</summary>
 
 ```
 #1 Fully stack allocated - engine should at no point allocate heap memory
@@ -21,8 +22,18 @@ Comments:
 #3 Starting this project I spend a fair amount of time getting some inspiration. Mostly for algorithms. And I often observed that the implementation of the algorithms were pretty hard to read. I believe that it's possible to implement these fancy and "magic" algorithms in a way that is readable but also don't compromise #2. When it comes to the "magic" algorithms etc. my goal is to separate the logic into method where it's easy(er) to follow what's going on based on the documentation that is currently available.
 
 #4 Each component should, if possible, be decoupled so that it is easy to implement newer and potentially better algorithms if such were to be found.
+</details>
 
 ## Getting started
+
+The build scripts currently support Linux and Windows. The OS is automatically detected on build.
+
+### Download Meltdown release
+
+The easiest way to install Meltdown is by downloading one of the releases from the [release page](https://github.com/hansbinderup/meltdown-chess-engine/tags).
+All binaries are statically compiled so it should be easy to run.
+
+### Compiling through Docker
 
 1. Setup [docker](https://docs.docker.com/get-started/get-docker/)
 2. Run docker iteractively: `./docker/run.sh`
@@ -30,6 +41,11 @@ Comments:
     * For release/optimized build: `./scripts/build.sh -r` (-r is optional and will run the compiled executable)
     * For debugging in gdb: `./scripts/debug.sh`
     * Compile and run unit-tests: `./scripts/unit_test.sh`
+
+### Compiling without Docker
+
+If you prefer to compile without Docker you must ensure that `meson` (min. v1.1) is installed and your compiler supports cpp26.
+You can then run step #3 from above.
 
 ## Nightly builds
 

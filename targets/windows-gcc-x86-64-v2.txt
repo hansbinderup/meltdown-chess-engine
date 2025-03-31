@@ -1,0 +1,17 @@
+[binaries]
+c = 'x86_64-w64-mingw32-gcc'
+cpp = 'x86_64-w64-mingw32-g++'
+ar = 'x86_64-w64-mingw32-gcc-ar'
+strip = 'x86_64-w64-mingw32-strip'
+ld = 'x86_64-w64-mingw32-ld'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+[built-in options]
+cpp_args = ['-march=x86-64-v2', '-static']
+c_args = ['-march=x86-64-v2', '-static']
+default_library = 'static'
