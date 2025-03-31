@@ -125,7 +125,10 @@ public:
     static uint16_t getHashFull()
     {
         /* should be returned as permill */
-        return std::min((1000 * s_hashCount.load(std::memory_order_relaxed)) / s_ttHashSize, 1000UL);
+        constexpr uint16_t maxValue { 1000 };
+        const uint16_t permill = (1000 * s_hashCount.load(std::memory_order_relaxed)) / s_ttHashSize;
+
+        return std::min(permill, maxValue);
     }
 
     using ProbeResult = std::pair<int32_t, movegen::Move>;

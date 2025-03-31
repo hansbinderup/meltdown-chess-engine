@@ -8,9 +8,11 @@ BUILD_DIR=".build-ci"
 # List of elements that we cross compile.
 # They refer to the .txt files in our 'targets' folder
 ARCHS=(
+    "linux-native"
     "linux-gcc-x86-64-v2"
     "linux-gcc-x86-64-v3"
-    "linux-native"
+    "windows-gcc-x86-64-v2"
+    "windows-gcc-x86-64-v3"
 )
 
 for ARCH in "${ARCHS[@]}"; do

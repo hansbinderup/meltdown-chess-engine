@@ -5,7 +5,9 @@ set -e
 BUILD_DIR=".debug"
 
 if [ ! -d "$BUILD_DIR" ]; then
-    meson setup "$BUILD_DIR" --cross-file targets/linux-native.txt
+    NATIVE_TARGET=$(scripts/get-native-target.sh)
+    echo "Setting up Meson for $NATIVE_TARGET"
+    meson setup "$BUILD_DIR" --cross-file "targets/$NATIVE_TARGET"
 fi
 
 ln -sf "$BUILD_DIR"/compile_commands.json .
