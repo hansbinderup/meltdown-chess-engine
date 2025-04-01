@@ -1,5 +1,6 @@
 #pragma once
 
+#include "magic_enum/magic_enum.hpp"
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -30,6 +31,15 @@ enum Piece : uint8_t {
     BlackRook,
     BlackQueen,
     BlackKing,
+};
+
+enum ColorlessPiece : uint8_t {
+    Pawn = 0,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King
 };
 
 // clang-format off
@@ -91,6 +101,18 @@ constexpr inline char promotionToString(PromotionType p)
     return ' ';
 }
 
+constexpr static inline uint8_t s_amountPieces = magic_enum::enum_count<Piece>();
+
+enum Phases : uint8_t {
+    GamePhaseMg = 0,
+    GamePhaseEg,
+};
+
+constexpr static inline std::array<uint8_t, s_amountPieces> s_piecePhaseValues {
+    0, 1, 1, 2, 4, 0, /* white */
+    0, 1, 1, 2, 4, 0, /* black */
+};
+
 constexpr static inline uint8_t s_maxSearchDepth { 128 };
 constexpr static inline uint8_t s_amountSquares { 64 };
 constexpr static inline uint16_t s_maxHalfMoves { 1000 };
@@ -114,5 +136,7 @@ constexpr static inline int32_t s_mateValue { s_maxScore - 1000 };
 constexpr static inline int32_t s_mateScore { s_maxScore - 2000 };
 
 constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
+
+constexpr static inline uint8_t s_middleGamePhase { 24 };
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
