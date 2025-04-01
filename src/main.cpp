@@ -29,6 +29,13 @@ int main(int argc, char** argv)
                "Builtin:     {}\n\n",
         s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
 
+#ifdef TUNING
+    fmt::println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
+                 "WARNING: THIS IS A TUNING BUILD!\n"
+                 "THIS BUILD IS ONLY MEANT FOR TUNING THE ENGINE\n\n"
+                 "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+#endif
+
     UciHandler::run();
 
     return 0;

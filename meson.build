@@ -34,12 +34,20 @@ meltdown_dep = declare_dependency(
   dependencies: [magic_enum_dep, fmt_dep, fathom_dep]
 )
 
-meltdown = executable('meltdown-chess-engine', 'src/main.cpp',
-  install : true,
-  dependencies: [meltdown_dep])
+# build tuner instead of meltdown engine
+if get_option('tuning') == true
+  add_project_arguments('-DTUNING', language : 'cpp')
+  subdir('tuner')
+else
+  meltdown = executable('meltdown-chess-engine', 'src/main.cpp',
+    install : true,
+    dependencies: [meltdown_dep])
 
-test('meltdown-chess-engine', meltdown)
+  test('meltdown-chess-engine', meltdown)
 
-if get_option('unit-tests')
-  subdir('tests')
+  if get_option('unit-tests')
+    subdir('tests')
+  endif
 endif
+
+
