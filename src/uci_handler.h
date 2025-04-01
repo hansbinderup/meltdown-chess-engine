@@ -73,6 +73,8 @@ private:
             return handleHelp();
         } else if (command == "authors") {
             return handleAuthors();
+        } else if (command == "version") {
+            return handleVersion();
         } else if (command == "quit" || command == "exit") {
             s_isRunning = false;
         } else {
@@ -304,6 +306,16 @@ private:
     static bool handleAuthors()
     {
         fmt::println("{}", s_meltdownAuthors);
+        return true;
+    }
+
+    static bool handleVersion()
+    {
+        fmt::print("Version:     {}\n"
+                   "Build hash:  {}\n"
+                   "Build type:  {}\n"
+                   "Builtin:     {}\n\n",
+            s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
         return true;
     }
 
