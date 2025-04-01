@@ -17,7 +17,7 @@ done
 if [ ! -d "$BUILD_DIR" ]; then
     NATIVE_TARGET=$(scripts/get-native-target.sh)
     echo "Setting up Meson for $NATIVE_TARGET"
-    meson setup "$BUILD_DIR" --cross-file "targets/$NATIVE_TARGET" --buildtype=release
+    meson setup "$BUILD_DIR" --cross-file "targets/$NATIVE_TARGET" --buildtype=release -Dtournament-mode=true
 fi
 
 ln -sf "$BUILD_DIR"/compile_commands.json .

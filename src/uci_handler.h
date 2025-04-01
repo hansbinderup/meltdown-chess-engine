@@ -12,6 +12,7 @@
 #include <string_view>
 #include <thread>
 
+template<bool tournamentMode>
 class UciHandler {
 public:
     // no need to create an object - the methods are purely to group the
@@ -22,6 +23,7 @@ public:
     {
         s_board.reset();
         engine::TtHashTable::clear();
+
         s_evaluator.reset();
 
         startInputThread();
@@ -93,9 +95,13 @@ private:
         fmt::println("id engine Meltdown\n"
                      "id author Hans Binderup\n"
                      "option name Ponder type check default false\n"
-                     "option name Syzygy type string default <empty>\n"
-                     "uciok");
+                     "option name Syzygy type string default <empty>");
 
+        if constexpr (!tournamentMode) {
+            fmt::println("option name Threads type spin default 1 min 1 max 256");
+        }
+
+        fmt::println("uciok");
         return true;
     }
 
@@ -174,6 +180,10 @@ private:
 
     static bool handleGo(std::string_view args)
     {
+        if (!s_searchersInitialized) {
+            s_evaluator.initializeSearchers(s_numThreads);
+            s_searchersInitialized = true;
+        }
         std::optional<uint8_t> depth;
 
         s_evaluator.resetTiming();
@@ -206,26 +216,29 @@ private:
             }
         }
 
-        std::thread searchThread([depth] {
-            const auto bestMove = s_evaluator.getBestMove(s_board, depth);
-            fmt::print("bestmove {}", bestMove);
-            if (s_ponderingEnabled) {
-                const auto ponderMove = s_evaluator.getPonderMove();
-                if (ponderMove.has_value()) {
-                    fmt::print(" ponder {}", *ponderMove);
+        auto doSearch =
+            [depth] {
+                const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+                fmt::print("bestmove {}", bestMove);
+                if (s_ponderingEnabled) {
+                    const auto ponderMove = s_evaluator.getPonderMove();
+                    if (ponderMove.has_value()) {
+                        fmt::print(" ponder {}", *ponderMove);
+                    }
                 }
-            }
 
-            fmt::print("\n");
-            fflush(stdout);
-        });
+                fmt::print("\n");
+                fflush(stdout);
+            };
 
+        std::thread searchThread(doSearch);
         searchThread.detach();
 
         return true;
     }
 
-    static bool handleStop()
+    static bool
+    handleStop()
     {
         s_evaluator.stop();
 
@@ -259,6 +272,22 @@ private:
                         fmt::println("failed to init syzygy with path '{}'", path);
                     }
                 }
+            } else if (option == "Threads") {
+                if constexpr (!tournamentMode) {
+                    const auto value = parsing::sv_next_split(input);
+                    if (value == "value") {
+                        // Parse next entry
+                        const auto numThreads = parsing::to_number(parsing::sv_next_split(input).value_or(input));
+
+                        if (numThreads.has_value() && numThreads.value() != 0) {
+                            if (numThreads.value() <= std::thread::hardware_concurrency()) {
+                                s_numThreads = numThreads.value();
+                            } else {
+                                s_numThreads = std::thread::hardware_concurrency();
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -276,6 +305,9 @@ private:
         } else if (command == "options") {
             fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
             fmt::println("name Syzygy value {}", s_syzygyPath);
+            if constexpr (!tournamentMode) {
+                fmt::println("name Threads: {}", s_numThreads);
+            }
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
@@ -339,11 +371,13 @@ private:
 
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
-    static inline evaluation::Evaluator s_evaluator;
+    static inline evaluation::Evaluator<tournamentMode> s_evaluator;
 
     /* options */
     static inline bool s_ponderingEnabled { false };
     static inline std::string s_syzygyPath { "<empty>" };
+    static inline bool s_searchersInitialized { false };
+    static inline uint8_t s_numThreads { 1 };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };

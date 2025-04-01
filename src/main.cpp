@@ -1,4 +1,3 @@
-
 #include "uci_handler.h"
 #include "version/version.h"
 
@@ -24,7 +23,7 @@ int main(int argc, char** argv)
                "Builtin:     {}\n\n",
         s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
 
-    UciHandler::run();
+    UciHandler<TOURNAMENT_MODE>::run();
 
     return 0;
 }

@@ -13,6 +13,12 @@ if get_option('buildtype') != 'debug'
   add_project_arguments('-flto=auto', '-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 endif
 
+if get_option('tournament-mode')
+  add_project_arguments('-DTOURNAMENT_MODE=1', language: 'cpp')
+else
+  add_project_arguments('-DTOURNAMENT_MODE=0', language: 'cpp')
+endif
+
 # magic_enum
 magic_enum = subproject('magic_enum', default_options: ['test=false'])
 magic_enum_dep = magic_enum.get_variable('magic_enum_dep')

@@ -70,6 +70,12 @@ public:
         return Move(from, to, piece, PromotionNone, CastleNone, takeEnPessant, enPessant, takeEnPessant);
     }
 
+    // For construction of maps in thread voting
+    bool operator<(const Move& other) const
+    {
+        return data < other.data;
+    }
+
     friend bool operator<=>(const Move& a, const Move& b) = default;
 
     constexpr inline BoardPosition fromPos() const
