@@ -30,6 +30,7 @@ public:
         startInputThread();
 
         /* always release resources */
+        s_evaluator.stop();
         syzygy::deinit();
     }
 
@@ -81,7 +82,7 @@ private:
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
-            s_isRunning = false;
+            return handleQuit();
         } else {
             // invalid input
             return false;
@@ -212,8 +213,15 @@ private:
             }
         }
 
-        std::thread searchThread([depth] {
+        s_evaluator.resizeSearchers(s_numSearchers);
+
+        evaluation::Searcher::s_threadPool.submit([depth] {
             const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+
+            if (!s_isRunning) {
+                return;
+            }
+
             fmt::print("bestmove {}", bestMove);
             if (s_ponderingEnabled) {
                 const auto ponderMove = s_evaluator.getPonderMove();
@@ -226,14 +234,20 @@ private:
             fflush(stdout);
         });
 
-        searchThread.detach();
-
         return true;
     }
 
     static bool handleStop()
     {
         s_evaluator.stop();
+
+        return true;
+    }
+
+    static bool handleQuit()
+    {
+        s_evaluator.kill();
+        s_isRunning = false;
 
         return true;
     }
@@ -309,9 +323,9 @@ private:
     {
         const auto depth = parsing::to_number(args);
         if (depth.has_value()) {
-            engine::Bench::run(*depth);
+            engine::Bench::run(s_numSearchers, *depth);
         } else {
-            engine::Bench::run();
+            engine::Bench::run(s_numSearchers);
         }
 
         return true;
@@ -349,6 +363,8 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
+    static inline uint8_t s_numSearchers { 1 };
+
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 
     /* options used in the UCI handler */
@@ -372,6 +388,9 @@ private:
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
         ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {
+            s_numSearchers = val;
+            s_evaluator.resizeSearchers(val);
+        }),
     });
 };
-
