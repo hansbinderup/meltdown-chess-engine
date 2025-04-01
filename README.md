@@ -1,4 +1,17 @@
-# Meltdown Chess Engine
+# <div align="center">Meltdown</div>
+
+<div align="center">
+
+[![GitHub Release](https://img.shields.io/github/v/release/hansbinderup/meltdown-chess-engine?display_name=tag&style=for-the-badge&label=latest%20release&color=red)](https://github.com/hansbinderup/meltdown-chess-engine/releases/latest)
+[![GitHub commits since latest release](https://img.shields.io/github/commits-since/hansbinderup/meltdown-chess-engine/latest?style=for-the-badge&color=orange)](https://github.com/hansbinderup/meltdown-chess-engine/commits/main)
+[![GitHub Downloads](https://img.shields.io/github/downloads/hansbinderup/meltdown-chess-engine/total?style=for-the-badge&color=yellow)](https://github.com/hansbinderup/meltdown-chess-engine/releases)
+
+[![Linux](https://img.shields.io/badge/Linux-green?style=for-the-badge&logo=linux&logoColor=black)](#)
+[![Windows](https://img.shields.io/badge/Windows-blue?style=for-the-badge&logo=gitforwindows&logoColor=black)](#)
+
+[![Lichess Bot](https://img.shields.io/badge/Lichess-bot-purple?style=for-the-badge&logo=lichess)](https://lichess.org/@/Meltd0wn)
+
+</div>
 
 NOTE: this is a hobby project that is work in progress.
 
