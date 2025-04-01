@@ -5,6 +5,7 @@
 constexpr static inline std::string_view s_meltdownVersion { "@MELTDOWN_VERSION@" };
 constexpr static inline std::string_view s_meltdownBuildHash { "@MELTDOWN_HASH@" };
 constexpr static inline std::string_view s_meltdownBuildType { "@MELTDOWN_BUILD_TYPE@" };
+constexpr static inline std::string_view s_meltdownAuthors { "@MELTDOWN_AUTHORS@" };
 
 #ifdef __BMI2__
 constexpr static inline std::string_view s_meltdownBuiltinFeature { "BMI2" };

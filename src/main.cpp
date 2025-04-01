@@ -16,7 +16,7 @@ int main(int argc, char** argv)
         "============================\n\n");
 
     fmt::print("Engine:      Meltdown\n"
-               "Author:      Hans Binderup\n"
+               "Authors:     Run 'authors'\n"
                "Github:      hansbinderup/meltdown-chess-engine\n"
                "Version:     {}\n"
                "Build hash:  {}\n"

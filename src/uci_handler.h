@@ -6,6 +6,7 @@
 #include "parsing/input_parsing.h"
 
 #include "syzygy/syzygy.h"
+#include "version/version.h"
 
 #include <iostream>
 #include <string_view>
@@ -70,6 +71,8 @@ private:
             return handlePerft(args);
         } else if (command == "help") {
             return handleHelp();
+        } else if (command == "authors") {
+            return handleAuthors();
         } else if (command == "quit" || command == "exit") {
             s_isRunning = false;
         } else {
@@ -298,6 +301,12 @@ private:
         return true;
     }
 
+    static bool handleAuthors()
+    {
+        fmt::println("{}", s_meltdownAuthors);
+        return true;
+    }
+
     static bool handleHelp()
     {
         fmt::print("\nMeltdown communicates over UCI protocol.\n"
@@ -309,8 +318,9 @@ private:
                    "debug clear         :  clear all scoring tables\n"
                    "debug options       :  print all options\n"
                    "debug syzygy        :  run syzygy evaluation on current position\n"
+                   "authors             :  print author information\n"
                    "version             :  print version information\n"
-                   "quit                :  stop the engine\n");
+                   "quit                :  stop the engine\n\n");
 
         return true;
     }
