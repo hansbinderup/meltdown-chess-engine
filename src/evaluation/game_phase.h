@@ -8,11 +8,7 @@
 
 namespace evaluation::gamephase {
 
-namespace {
-
 constexpr uint8_t s_mgLimit { 24 };
-
-}
 
 constexpr std::array<uint8_t, magic_enum::enum_count<Piece>()> s_materialPhaseScore = {
     0, 1, 1, 2, 4, 0, /* white pieces */

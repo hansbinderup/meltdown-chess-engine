@@ -16,8 +16,6 @@
 
 namespace evaluation {
 
-namespace {
-
 /* TODO: find a way to tune these parameters in an automated way - currently they're just guesses
  * NOTE: All values are duplicates as no EG tuning has been performed yet */
 
@@ -33,14 +31,12 @@ constexpr auto s_openFileScore = helper::createPhaseArray<int32_t>(15, 15);
 constexpr auto s_semiOpenFileScore = helper::createPhaseArray<int32_t>(10, 10);
 
 constexpr auto s_bishopMobilityScore = helper::createPhaseArray<int32_t>(3, 3);
-constexpr auto s_bishopPairScore = helper::createPhaseArray<int32_t>(0, 0);
+constexpr auto s_bishopPairScore = helper::createPhaseArray<int32_t>(25, 50);
 
-constexpr auto s_knightMobilityScore = helper::createPhaseArray<int32_t>(0, 0);
-constexpr auto s_rookMobilityScore = helper::createPhaseArray<int32_t>(0, 0);
+constexpr auto s_knightMobilityScore = helper::createPhaseArray<int32_t>(1, 1);
+constexpr auto s_rookMobilityScore = helper::createPhaseArray<int32_t>(1, 1);
 constexpr auto s_queenMobilityScore = helper::createPhaseArray<int32_t>(1, 1);
 constexpr auto s_kingShieldScore = helper::createPhaseArray<int32_t>(5, 5);
-
-}
 
 namespace position {
 
