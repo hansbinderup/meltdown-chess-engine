@@ -47,3 +47,17 @@ jobs:
         path: .build-tests/meson-logs/testlog.junit.xml
         reporter: java-junit
 
+  build-tuner:
+    runs-on: ubuntu-latest
+    container:
+      image: hansbinderup/meson-gcc:1.1
+      options: --user root
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+          clean: true
+    - name: Safe directory
+      run: git config --global --add safe.directory '*'
+    - name: Build tuner
+      run: tuner/scripts/build.sh
