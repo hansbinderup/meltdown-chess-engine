@@ -31,7 +31,9 @@ public:
 
     movegen::Move bestMove() const
     {
-        return m_pvTable.at(0).at(0);
+        // TODO debug only, remove
+        auto bestMoves = m_pvTable.at(0);
+        return bestMoves.at(0);
     }
 
     void updateLength(uint8_t ply)

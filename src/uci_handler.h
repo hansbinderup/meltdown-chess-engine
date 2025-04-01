@@ -21,6 +21,8 @@ public:
     {
         s_board.reset();
         engine::TtHashTable::clear();
+        // TODO doesn't currently handle stop-restart
+        s_evaluator.initializeSearchers(s_numThreads);
         s_evaluator.reset();
 
         startInputThread();
@@ -89,6 +91,7 @@ private:
                      "id author Hans Binderup\n"
                      "option name Ponder type check default false\n"
                      "option name Syzygy type string default <empty>\n"
+                     // "option name Threads type TODO default TODO\n"
                      "uciok");
 
         return true;
@@ -201,21 +204,17 @@ private:
             }
         }
 
-        std::thread searchThread([depth] {
-            const auto bestMove = s_evaluator.getBestMove(s_board, depth);
-            fmt::print("bestmove {}", bestMove);
-            if (s_ponderingEnabled) {
-                const auto ponderMove = s_evaluator.getPonderMove();
-                if (ponderMove.has_value()) {
-                    fmt::print(" ponder {}", *ponderMove);
-                }
+        const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+        fmt::print("bestmove {}", bestMove);
+        if (s_ponderingEnabled) {
+            const auto ponderMove = s_evaluator.getPonderMove();
+            if (ponderMove.has_value()) {
+                fmt::print(" ponder {}", *ponderMove);
             }
+        }
 
-            fmt::print("\n");
-            fflush(stdout);
-        });
-
-        searchThread.detach();
+        fmt::print("\n");
+        fflush(stdout);
 
         return true;
     }
@@ -254,6 +253,9 @@ private:
                         fmt::println("failed to init syzygy with path '{}'", path);
                     }
                 }
+            } else if (option == "Threads") {
+                // const auto numThreads = parsing::to_number(parsing::sv_next_split(input).value_or(input));
+                // s_numThreads = numThreads.value_or(1);
             }
         }
 
@@ -271,6 +273,7 @@ private:
         } else if (command == "options") {
             fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
             fmt::println("name Syzygy value {}", s_syzygyPath);
+            // fmt::println("name Threads: {}", s_numThreads);
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
@@ -322,6 +325,7 @@ private:
     /* options */
     static inline bool s_ponderingEnabled { false };
     static inline std::string s_syzygyPath { "<empty>" };
+    static inline uint8_t s_numThreads { 4 };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };
