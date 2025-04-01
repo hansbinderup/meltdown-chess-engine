@@ -39,6 +39,7 @@ TEST_CASE("Scoring", "[scoring]")
     SECTION("Test move ordering")
     {
         evaluation::Evaluator s_evaluator;
+        s_evaluator.initializeSearchers(1);
         s_evaluator.reset();
 
         SECTION("Test capture moves only")
@@ -48,7 +49,7 @@ TEST_CASE("Scoring", "[scoring]")
 
             movegen::ValidMoves moves;
             engine::getAllMoves<movegen::MoveCapture>(*board, moves);
-            s_evaluator.m_moveOrdering.sortMoves(board.value(), moves, 0);
+            s_evaluator.m_searchers.at(0).m_moveOrdering.sortMoves(board.value(), moves, 0);
 
             REQUIRE(moves.count() == 3);
             REQUIRE(moves[0].piece() == WhitePawn);
@@ -66,7 +67,7 @@ TEST_CASE("Scoring", "[scoring]")
 
             movegen::ValidMoves moves;
             engine::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
-            s_evaluator.m_moveOrdering.sortMoves(board.value(), moves, 0);
+            s_evaluator.m_searchers.at(0).m_moveOrdering.sortMoves(board.value(), moves, 0);
 
             REQUIRE(moves[0].piece() == WhitePawn);
             REQUIRE(moves[1].piece() == WhiteKing);
@@ -77,4 +78,3 @@ TEST_CASE("Scoring", "[scoring]")
         }
     }
 }
-

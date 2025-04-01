@@ -81,7 +81,7 @@ private:
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
-            s_isRunning = false;
+            return handleQuit();
         } else {
             // invalid input
             return false;
@@ -180,6 +180,10 @@ private:
 
     static bool handleGo(std::string_view args)
     {
+        if (!s_searchersInitialized) {
+            s_evaluator.initializeSearchers(s_numThreads);
+            s_searchersInitialized = true;
+        }
         std::optional<uint8_t> depth;
 
         s_evaluator.resetTiming();
@@ -234,6 +238,14 @@ private:
     static bool handleStop()
     {
         s_evaluator.stop();
+
+        return true;
+    }
+
+    static bool handleQuit()
+    {
+        s_evaluator.terminate();
+        s_isRunning = false;
 
         return true;
     }
@@ -349,6 +361,10 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
+
+    static inline bool s_searchersInitialized { false };
+    static inline uint8_t s_numThreads { 1 };
+
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 
     /* options used in the UCI handler */
@@ -371,6 +387,6 @@ private:
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
         ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) { s_numThreads = val; }),
     });
 };
-
