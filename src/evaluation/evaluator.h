@@ -94,17 +94,19 @@ public:
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
 
-        std::unique_lock<std::mutex> lock(m_mtx);
-        // Reset promise
-        m_searchPromise = std::promise<int32_t>();
-        m_futureScore = m_searchPromise.get_future();
+        {
+            std::unique_lock<std::mutex> lock(m_mtx);
+            // Reset promise
+            m_searchPromise = std::promise<int32_t>();
+            m_futureScore = m_searchPromise.get_future();
 
-        m_searchDepth = depth;
-        m_alpha = alpha;
-        m_beta = beta;
+            m_searchDepth = depth;
+            m_alpha = alpha;
+            m_beta = beta;
 
-        // Do negamax
-        m_searchState.store(SearchState::Searching, std::memory_order_release);
+            // Do negamax
+            m_searchState.store(SearchState::Searching, std::memory_order_release);
+        }
         m_cv.notify_one();
     }
 
@@ -519,7 +521,7 @@ private:
     }
 
     static uint8_t s_numSearchers;
-    static uint64_t m_nodes;
+    uint64_t m_nodes;
 
     uint8_t m_searcherId {};
     uint8_t m_ply {};
@@ -557,7 +559,6 @@ private:
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 
-uint64_t Searcher::m_nodes { 0 };
 uint8_t Searcher::s_numSearchers { 0 };
 
 template<bool tournamentMode>
@@ -565,12 +566,14 @@ class Evaluator {
 public:
     void initializeSearchers(uint8_t numThreads)
     {
-        for (int i = 0; i < numThreads - 1; ++i) {
-            m_smpSearchers.push_back(Searcher());
+        m_searchers.clear();
+
+        for (int i = 0; i < numThreads; ++i) {
+            m_searchers.push_back(Searcher());
         }
 
-        if (!tournamentMode) {
-            for (auto& searcher : m_smpSearchers) {
+        if constexpr (!tournamentMode) {
+            for (auto& searcher : m_searchers) {
                 searcher.startThreadLoop(m_isStopped);
             }
         }
@@ -591,13 +594,10 @@ public:
         }
 
         uint64_t hash = engine::generateHashKey(board);
-        m_localSearcher.setHashKey(hash);
 
-        if constexpr (!tournamentMode) {
-            for (auto& searcher : m_smpSearchers) {
-                searcher.setHashKey(hash);
-                searcher.setSmpBoard(board);
-            }
+        for (auto& searcher : m_searchers) {
+            searcher.setHashKey(hash);
+            searcher.setSmpBoard(board);
         }
 
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
@@ -607,7 +607,7 @@ public:
     {
         // TODO discuss this logic
         // Ponder move is a backup: we can use the results of any searcher
-        return m_localSearcher.getPonderMove();
+        return m_searchers.at(0).getPonderMove();
     }
 
     /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
@@ -620,7 +620,7 @@ public:
     {
         // Placeholder: print per-searcher for now
         m_isStopped.store(false, std::memory_order_relaxed);
-        for (auto& searcher : m_smpSearchers) {
+        for (auto& searcher : m_searchers) {
             searcher.printEvaluation(board, m_isStopped, depthInput);
         }
     }
@@ -668,8 +668,7 @@ public:
         m_whiteMoveInc = 0;
         m_blackMoveInc = 0;
 
-        m_localSearcher.resetTiming();
-        for (auto& searcher : m_smpSearchers) {
+        for (auto& searcher : m_searchers) {
             searcher.resetTiming();
         }
     }
@@ -677,16 +676,14 @@ public:
     void reset()
     {
         resetTiming(); // full reset required
-        m_localSearcher.reset();
-        for (auto& searcher : m_smpSearchers) {
+        for (auto& searcher : m_searchers) {
             searcher.reset();
         }
     }
 
     void updateRepetition(uint64_t hash)
     {
-        m_localSearcher.updateRepetition(hash);
-        for (auto& searcher : m_smpSearchers) {
+        for (auto& searcher : m_searchers) {
             searcher.updateRepetition(hash);
         }
     }
@@ -779,20 +776,10 @@ private:
                 }
             }
 
-            m_localSearcher.setSearchParams();
-
-            if constexpr (!tournamentMode) {
-                for (auto& searcher : m_smpSearchers) {
-                    searcher.setSearchParams();
-                    searcher.startSmpSearch(d, alpha, beta);
-                }
-            }
-
-            // Get first score
-            int32_t localSearcherScore = m_localSearcher.negamax(d, board, m_isStopped, alpha, beta);
-
-            // If tournamentMode, handle aspiration window using just the one score
             if constexpr (tournamentMode) {
+                Searcher& localSearcher = m_searchers.at(0);
+                localSearcher.setSearchParams();
+                int32_t localSearcherScore = localSearcher.negamax(d, board, m_isStopped, alpha, beta);
                 /* the search fell outside the window - we need to retry a full search */
                 if ((localSearcherScore <= alpha) || (localSearcherScore >= beta)) {
                     alpha = s_minScore;
@@ -805,25 +792,19 @@ private:
                 alpha = localSearcherScore - s_aspirationWindow;
                 beta = localSearcherScore + s_aspirationWindow;
 
-                m_localSearcher.printScoreInfo(board, localSearcherScore, d, m_startTime);
-                bestMove = m_localSearcher.getPvMove();
+                localSearcher.printScoreInfo(board, localSearcherScore, d, m_startTime);
+                bestMove = localSearcher.getPvMove();
             } else {
                 std::map<movegen::Move, uint8_t> movesVotes {};
                 std::map<movegen::Move, int32_t> movesScores {};
                 std::map<movegen::Move, uint8_t> movesIds {};
 
-                // Include local searcher in thread voting
-                /* the search fell within the window - include in voting */
-                if ((localSearcherScore > alpha) && (localSearcherScore < beta)) {
-                    const auto& move = m_localSearcher.getPvMove();
-                    ++movesVotes[move];
-                    // Scores may vary between searches with same pvMove. Use the last one to prepare aspiration windows.
-                    movesScores[move] = localSearcherScore;
-                    movesIds[move] = m_localSearcher.getSearcherId();
+                for (auto& searcher : m_searchers) {
+                    searcher.setSearchParams();
+                    searcher.startSmpSearch(d, alpha, beta);
                 }
 
-                // Include SMP searchers in thread voting
-                for (auto& searcher : m_smpSearchers) {
+                for (auto& searcher : m_searchers) {
                     // If search's score fell outside window, don't include in voting
                     int32_t score = searcher.getBestSmpScore();
 
@@ -851,13 +832,9 @@ private:
                 alpha = movesScores[bestMove] - s_aspirationWindow;
                 beta = movesScores[bestMove] + s_aspirationWindow;
 
-                if (m_localSearcher.getSearcherId() == movesIds[bestMove]) {
-                    m_localSearcher.printScoreInfo(board, movesScores[bestMove], d, m_startTime);
-                } else {
-                    for (auto& searcher : m_smpSearchers) {
-                        if (searcher.getSearcherId() == movesIds[bestMove]) {
-                            searcher.printScoreInfo(board, movesScores[bestMove], d, m_startTime);
-                        }
+                for (auto& searcher : m_searchers) {
+                    if (searcher.getSearcherId() == movesIds[bestMove]) {
+                        searcher.printScoreInfo(board, movesScores[bestMove], d, m_startTime);
                     }
                 }
             }
@@ -898,8 +875,7 @@ private:
         timeHandler.detach();
     }
 
-    Searcher m_localSearcher;
-    std::vector<Searcher> m_smpSearchers {};
+    std::vector<Searcher> m_searchers {}; /* LazySMP: one thread per searcher */
 
     std::atomic_bool m_isStopped { true };
 

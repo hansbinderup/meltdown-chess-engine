@@ -98,7 +98,7 @@ private:
                      "option name Syzygy type string default <empty>");
 
         if constexpr (!tournamentMode) {
-            fmt::println("option name Threads type spin default 1 min 1 max 256");
+            fmt::println("option name Threads type spin default 1 min 1 max 255");
         }
 
         fmt::println("uciok");
@@ -280,11 +280,7 @@ private:
                         const auto numThreads = parsing::to_number(parsing::sv_next_split(input).value_or(input));
 
                         if (numThreads.has_value() && numThreads.value() != 0) {
-                            if (numThreads.value() <= std::thread::hardware_concurrency()) {
-                                s_numThreads = numThreads.value();
-                            } else {
-                                s_numThreads = std::thread::hardware_concurrency();
-                            }
+                            s_numThreads = std::min(static_cast<uint16_t>(numThreads.value()), static_cast<uint16_t>(255));
                         }
                     }
                 }
@@ -306,7 +302,7 @@ private:
             fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
             fmt::println("name Syzygy value {}", s_syzygyPath);
             if constexpr (!tournamentMode) {
-                fmt::println("name Threads: {}", s_numThreads);
+                fmt::println("name Threads value {}", s_numThreads);
             }
         } else if (command == "clear") {
             s_evaluator.reset();
