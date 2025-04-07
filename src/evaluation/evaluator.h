@@ -41,7 +41,10 @@ struct MoveResult {
 class Searcher {
 public:
     Searcher()
-        : m_searcherId(s_numSearchers++) {};
+        : m_searcherId(s_numSearchers++)
+    {
+        m_moveOrdering.setRandSeed(m_searcherId);
+    };
 
     Searcher(const Searcher&) = delete;
 
@@ -521,7 +524,7 @@ private:
     }
 
     static uint8_t s_numSearchers;
-    uint64_t m_nodes;
+    static uint64_t m_nodes;
 
     uint8_t m_searcherId {};
     uint8_t m_ply {};
@@ -560,6 +563,7 @@ private:
 };
 
 uint8_t Searcher::s_numSearchers { 0 };
+uint64_t Searcher::m_nodes { 0 };
 
 template<bool tournamentMode>
 class Evaluator {
