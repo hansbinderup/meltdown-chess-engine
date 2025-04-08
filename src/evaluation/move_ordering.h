@@ -87,47 +87,45 @@ public:
     template<Player player>
     constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
-        int32_t offset = offsetForMove(move);
-
         if (ttMove.has_value() && move == *ttMove) {
-            return ScoreTtHashMove + offset;
+            return ScoreTtHashMove + m_offsets[0];
         }
 
         if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
-            return ScorePvLine + offset;
+            return ScorePvLine + m_offsets[1];
         }
 
         if (move.isCapture()) {
             int32_t seeScore = evaluation::SeeSwap::run(board, move);
 
             if (seeScore >= 0) {
-                return ScoreGoodCapture + seeScore + offset;
+                return ScoreGoodCapture + seeScore + m_offsets[2];
             } else {
-                return ScoreBadCapture + seeScore + offset;
+                return ScoreBadCapture + seeScore + m_offsets[2];
             }
         } else {
             switch (move.promotionType()) {
             case PromotionNone:
                 break;
             case PromotionQueen:
-                return ScoreGoodPromotion;
+                return ScoreGoodPromotion + m_offsets[3];
             case PromotionKnight:
-                return ScoreBadPromotion + 1000 + offset;
+                return ScoreBadPromotion + 1000 + m_offsets[3];
             case PromotionBishop:
-                return ScoreBadPromotion;
+                return ScoreBadPromotion + m_offsets[4];
             case PromotionRook:
-                return ScoreBadPromotion + 2000 + offset;
+                return ScoreBadPromotion + 2000 + m_offsets[4];
             }
 
             const auto killerMoves = m_killerMoves.get(ply);
             if (move == killerMoves.first)
-                return ScoreKillerMove + offset;
+                return ScoreKillerMove + m_offsets[5];
             else if (move == killerMoves.second)
-                return ScoreKillerMove - 1000 + offset;
+                return ScoreKillerMove - 1000 + m_offsets[5];
             else {
                 const auto attacker = board.getAttackerAtSquare<player>(move.fromSquare());
                 if (attacker.has_value()) {
-                    return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos()) + offset;
+                    return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos()) + m_offsets[6];
                 }
             }
         }
@@ -136,7 +134,8 @@ public:
     }
 
     // Helper: calling inside loops will mean redundant colour checks
-    constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
+    constexpr int32_t
+    moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (board.player == PlayerWhite) {
             return moveScore<PlayerWhite>(board, move, ply, ttMove);
@@ -145,21 +144,23 @@ public:
         }
     }
 
-    constexpr void setRandSeed(uint8_t threadId)
+    constexpr void generateOffsets(uint8_t threadId)
     {
         m_randSeed = static_cast<uint32_t>(threadId) * 0x9E3779B1;
-    }
 
-    // xorshift32 pseudo-random generation
-    constexpr int32_t offsetForMove(const movegen::Move& move) const
-    {
-        uint32_t moveData = move.getData();
-        moveData ^= m_randSeed;
-        moveData ^= moveData << 13;
-        moveData ^= moveData >> 17;
-        moveData ^= moveData << 5;
+        // Use some random values
+        m_offsets[0] = 0;
+        m_offsets[1] = 5;
+        m_offsets[2] = 10;
+        m_offsets[3] = -3;
+        m_offsets[4] = -2;
+        m_offsets[5] = 5;
 
-        return static_cast<int32_t>(moveData % (2 * s_offsetRange + 1) - s_offsetRange);
+        for (int32_t& offset : m_offsets) {
+            offset ^= m_randSeed;
+            offset %= s_offsetRange;
+            fmt::print("threadId: {}, move-ordering offset: {}\n", threadId, offset);
+        }
     }
 
 private:
@@ -170,7 +171,8 @@ private:
 
     // For lazySMP, score can be adjusted by [-s_offsetRange, s_offsetRange]
     static uint8_t s_offsetRange;
+    int32_t m_offsets[6] {};
 };
 
-uint8_t MoveOrdering::s_offsetRange { 5 };
+uint8_t MoveOrdering::s_offsetRange { 20 };
 }

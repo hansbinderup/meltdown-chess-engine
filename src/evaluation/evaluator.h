@@ -37,14 +37,20 @@ struct MoveResult {
     BitBoard board;
 };
 
+struct SearcherResult {
+    int32_t score;
+    uint8_t searcherId;
+    movegen::Move pvMove;
+    uint8_t searchedDepth;
+};
+
 /* Base class for searcher */
 class Searcher {
 public:
     Searcher()
-        : m_searcherId(s_numSearchers++)
-    {
-        m_moveOrdering.setRandSeed(m_searcherId);
-    };
+        : m_searcherId(s_numSearchers++) {
+
+        };
 
     Searcher(const Searcher&) = delete;
 
@@ -69,6 +75,11 @@ public:
         return m_searcherId;
     }
 
+    void generateMoveOrderingOffsets()
+    {
+        m_moveOrdering.generateOffsets(m_searcherId);
+    }
+
     void startThreadLoop(std::atomic_bool& isStopped)
     {
         m_workerThread = std::thread([this, &isStopped]() { this->threadLoop(isStopped); });
@@ -84,15 +95,10 @@ public:
         m_hash = hash;
     }
 
-    void setSearchParams()
-    {
-        m_moveOrdering.pvTable().setIsFollowing(true);
-        m_wdl = syzygy::WdlResultTableNotActive;
-        m_dtz = 0;
-    }
-
     void startSmpSearch(uint8_t depth, int32_t alpha, int32_t beta)
     {
+        s_oneFullSearchComplete.store(false, std::memory_order_relaxed);
+
         m_moveOrdering.pvTable().setIsFollowing(true);
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
@@ -100,8 +106,8 @@ public:
         {
             std::unique_lock<std::mutex> lock(m_mtx);
             // Reset promise
-            m_searchPromise = std::promise<int32_t>();
-            m_futureScore = m_searchPromise.get_future();
+            m_searchPromise = std::promise<SearcherResult>();
+            m_futureResult = m_searchPromise.get_future();
 
             m_searchDepth = depth;
             m_alpha = alpha;
@@ -113,9 +119,9 @@ public:
         m_cv.notify_one();
     }
 
-    constexpr int32_t getBestSmpScore()
+    constexpr SearcherResult getSearchResult()
     {
-        return m_futureScore.get();
+        return m_futureResult.get();
     }
 
     constexpr movegen::Move getPvMove() const
@@ -136,7 +142,7 @@ public:
     void
     resetTiming()
     {
-        m_nodes = 0;
+        s_nodes = 0;
         m_selDepth = 0;
     }
 
@@ -162,11 +168,11 @@ public:
         score = syzygy::approximateDtzScore(board, score, m_dtz, m_wdl, tbHit);
 
         if (score > -s_mateValue && score < -s_mateScore)
-            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, m_nodes, tbHit);
+            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, m_selDepth, s_nodes, tbHit);
         else if (score > s_mateScore && score < s_mateValue)
-            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, m_nodes, tbHit);
+            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, m_selDepth, s_nodes, tbHit);
         else
-            fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} tbhits {} pv ", score, timeDiff, currentDepth, m_selDepth, m_nodes, engine::TtHashTable::getHashFull(), tbHit);
+            fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} tbhits {} pv ", score, timeDiff, currentDepth, m_selDepth, s_nodes, engine::TtHashTable::getHashFull(), tbHit);
 
         fmt::println("{}", fmt::join(m_moveOrdering.pvTable(), " "));
 
@@ -211,12 +217,17 @@ public:
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
                      "Static eval:     {}\n",
-            m_nodes, score, fmt::join(m_moveOrdering.pvTable(), " "), staticEvaluation(board));
+            s_nodes, score, fmt::join(m_moveOrdering.pvTable(), " "), staticEvaluation(board));
     }
 
     template<SearchType searchType = SearchType::Default>
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, std::atomic_bool& isStopped, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
+        // Return current alpha if given 'other threads done, terminate' signal
+        if (s_oneFullSearchComplete) {
+            return alpha;
+        }
+
         const bool isRoot = m_ply == 0;
 
         m_moveOrdering.pvTable().updateLength(m_ply);
@@ -227,6 +238,7 @@ public:
         const bool isPv = beta - alpha > 1;
         const auto hashProbe = engine::TtHashTable::probe(m_hash, alpha, beta, depth, m_ply);
         if (hashProbe.has_value()) {
+            ++m_ttHits;
             if (m_ply && !isPv)
                 return hashProbe->first;
 
@@ -244,7 +256,7 @@ public:
             return quiesence(board, isStopped, alpha, beta);
         }
 
-        m_nodes++;
+        s_nodes++;
 
         /* entries for the TT hash */
         engine::TtHashFlag hashFlag = engine::TtHashAlpha;
@@ -401,14 +413,26 @@ public:
         return alpha;
     }
 
+    static std::atomic_bool s_oneFullSearchComplete;
+
 private:
+    // int64_t m_totalUnlockedTime = 0; // in seconds
+
     void threadLoop(std::atomic_bool& isStopped)
     {
         while (m_searchState != SearchState::Kill) {
             std::unique_lock<std::mutex> lock(m_mtx);
-            // Deadlock: doesn't see update when state is set to Searching
             m_cv.wait(lock, [this] { return m_searchState.load(std::memory_order_acquire) == SearchState::Searching; });
-            m_searchPromise.set_value(negamax(m_searchDepth, m_board, isStopped, s_minScore, s_maxScore));
+
+            SearcherResult result;
+            result.score
+                = negamax(m_searchDepth, m_board, isStopped, s_minScore, s_maxScore);
+            result.searcherId = m_searcherId;
+            result.pvMove = m_moveOrdering.pvTable().bestMove();
+            result.searchedDepth = m_moveOrdering.pvTable().size();
+
+            m_searchPromise.set_value(std::move(result));
+            s_oneFullSearchComplete.store(true, std::memory_order_relaxed);
             m_searchState.store(SearchState::Idle);
         }
     }
@@ -417,7 +441,7 @@ private:
     {
         using namespace std::chrono;
 
-        m_nodes++;
+        s_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
 
         const int32_t evaluation = staticEvaluation(board);
@@ -524,7 +548,7 @@ private:
     }
 
     static uint8_t s_numSearchers;
-    static uint64_t m_nodes;
+    static uint64_t s_nodes;
 
     uint8_t m_searcherId {};
     uint8_t m_ply {};
@@ -532,6 +556,7 @@ private:
     MoveOrdering m_moveOrdering {};
     uint8_t m_selDepth {};
     std::optional<movegen::Move> m_ttMove;
+    uint64_t m_ttHits {};
 
     std::thread m_workerThread;
     std::mutex m_mtx;
@@ -544,11 +569,13 @@ private:
     BitBoard m_board;
     uint64_t m_hash;
     uint8_t m_searchDepth;
+    // TOOD relate to m_alpha?
+    int32_t m_bestScore { s_minScore };
     int32_t m_alpha { s_minScore };
     int32_t m_beta { s_maxScore };
 
-    std::promise<int32_t> m_searchPromise;
-    std::future<int32_t> m_futureScore;
+    std::promise<SearcherResult> m_searchPromise;
+    std::future<SearcherResult> m_futureResult;
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
@@ -562,8 +589,9 @@ private:
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 
+std::atomic_bool Searcher::s_oneFullSearchComplete { false };
 uint8_t Searcher::s_numSearchers { 0 };
-uint64_t Searcher::m_nodes { 0 };
+uint64_t Searcher::s_nodes { 0 };
 
 template<bool tournamentMode>
 class Evaluator {
@@ -578,6 +606,7 @@ public:
 
         if constexpr (!tournamentMode) {
             for (auto& searcher : m_searchers) {
+                searcher.generateMoveOrderingOffsets();
                 searcher.startThreadLoop(m_isStopped);
             }
         }
@@ -782,7 +811,8 @@ private:
 
             if constexpr (tournamentMode) {
                 Searcher& localSearcher = m_searchers.at(0);
-                localSearcher.setSearchParams();
+                // Is removal a bug?
+                // localSearcher.setSearchParams();
                 int32_t localSearcherScore = localSearcher.negamax(d, board, m_isStopped, alpha, beta);
                 /* the search fell outside the window - we need to retry a full search */
                 if ((localSearcherScore <= alpha) || (localSearcherScore >= beta)) {
@@ -799,46 +829,66 @@ private:
                 localSearcher.printScoreInfo(board, localSearcherScore, d, m_startTime);
                 bestMove = localSearcher.getPvMove();
             } else {
-                std::map<movegen::Move, uint8_t> movesVotes {};
-                std::map<movegen::Move, int32_t> movesScores {};
-                std::map<movegen::Move, uint8_t> movesIds {};
+                std::vector<SearcherResult> searchResults;
+                std::map<movegen::Move, int64_t> movesVotes;
 
                 for (auto& searcher : m_searchers) {
-                    searcher.setSearchParams();
                     searcher.startSmpSearch(d, alpha, beta);
                 }
 
                 for (auto& searcher : m_searchers) {
-                    // If search's score fell outside window, don't include in voting
-                    int32_t score = searcher.getBestSmpScore();
+                    const auto& result = searcher.getSearchResult();
 
-                    /* the search fell within the window - include in voting */
-                    if ((score > alpha) && (score < beta)) {
-                        const auto& move = searcher.getPvMove();
-                        ++movesVotes[move];
-                        // Scores may vary between searches with same pvMove. Use the last one to prepare aspiration windows.
-                        movesScores[move] = score;
-                        movesIds[move] = searcher.getSearcherId();
+                    // Debug
+                    // searcher.printScoreInfo(board, result.score, d, m_startTime);
+
+                    // If didn't fall out of window, push back to results
+                    if ((result.score > alpha) && (result.score < beta)) {
+                        searchResults.push_back(std::move(result));
                     }
                 }
-                // Thread voting: https://www.chessprogramming.org/Lazy_SMP
-                // Currently selecting the modal move, no tie-break logic
-                uint8_t maxVote = 0;
+
+                for (const auto& result : searchResults) {
+
+                    const int32_t score = result.score;
+                    const uint8_t depth = result.searchedDepth;
+                    const auto move = result.pvMove;
+
+                    // Tweak this
+                    int64_t voteWeight = (score - s_minScore) * depth;
+
+                    movesVotes[move] += voteWeight;
+                }
+
+                int64_t maxVote = -std::numeric_limits<int64_t>::max();
 
                 for (const auto& [move, vote] : movesVotes) {
                     if (vote > maxVote) {
                         maxVote = vote;
                         bestMove = move;
+                        fmt::print("bestMove {}\n", bestMove);
+                    }
+                }
+
+                uint8_t bestWinningDepth = 0;
+                SearcherResult bestWinningResult;
+
+                for (const auto& result : searchResults) {
+                    if (result.pvMove == bestMove) {
+                        if (depth > bestWinningDepth) {
+                            bestWinningResult = result;
+                            bestWinningDepth = depth;
+                        }
                     }
                 }
 
                 /* prepare window for next iteration */
-                alpha = movesScores[bestMove] - s_aspirationWindow;
-                beta = movesScores[bestMove] + s_aspirationWindow;
+                alpha = bestWinningResult.score - s_aspirationWindow;
+                beta = bestWinningResult.score + s_aspirationWindow;
 
                 for (auto& searcher : m_searchers) {
-                    if (searcher.getSearcherId() == movesIds[bestMove]) {
-                        searcher.printScoreInfo(board, movesScores[bestMove], d, m_startTime);
+                    if (searcher.getSearcherId() == bestWinningResult.searcherId) {
+                        searcher.printScoreInfo(board, bestWinningResult.score, d, m_startTime);
                     }
                 }
             }
@@ -853,7 +903,8 @@ private:
         return bestMove;
     }
 
-    void startTimeHandler()
+    void
+    startTimeHandler()
     {
         bool wasStopped = m_isStopped.exchange(false);
         if (!wasStopped) {
