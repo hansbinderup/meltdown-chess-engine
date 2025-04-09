@@ -6,11 +6,36 @@
 #include "parsing/input_parsing.h"
 
 #include "syzygy/syzygy.h"
+#include "uci_options.h"
 #include "version/version.h"
 
 #include <iostream>
 #include <string_view>
 #include <thread>
+
+/* forward declaration for UCI handler callbacks */
+static void ponderCallback(bool);
+
+/* callbacks that are not dependent on UCI handler */
+static void syzygyCallback(std::string_view path)
+{
+    syzygy::deinit();
+
+    if (!path.empty()) {
+        const bool res = syzygy::init(path);
+        if (!res) {
+            fmt::println("Invalid syzygy path: {}", path);
+        }
+    }
+}
+
+/* declare UCI options */
+static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
+    ucioption::make<ucioption::check>("Ponder", false, ponderCallback),
+    ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
+    /* EXAMPLE: how to add with limits:
+     * makeOption<ucioption::spin>("Threads", 1, UciOptionLimits { .min = 1, .max = 256 }, threadsCallback), */
+});
 
 class UciHandler {
 public:
@@ -28,6 +53,11 @@ public:
 
         /* always release resources */
         syzygy::deinit();
+    }
+
+    static void setPondering(bool enabled)
+    {
+        s_ponderingEnabled = enabled;
     }
 
 private:
@@ -91,10 +121,13 @@ private:
     static bool handleUci()
     {
         fmt::println("id engine Meltdown\n"
-                     "id author Hans Binderup\n"
-                     "option name Ponder type check default false\n"
-                     "option name Syzygy type string default <empty>\n"
-                     "uciok");
+                     "id author Hans Binderup");
+
+        for (const auto& option : s_uciOptions) {
+            ucioption::printInfo(option);
+        }
+
+        fmt::println("uciok");
 
         return true;
     }
@@ -234,31 +267,21 @@ private:
 
     static bool handleSetOption(std::string_view input)
     {
-        /* one option is set at a time */
-        const auto type = parsing::sv_next_split(input);
-        if (type == "name") {
-            const auto option = parsing::sv_next_split(input);
-            if (option == "Ponder") {
+        const auto name = parsing::sv_next_split(input);
+        if (name != "name") {
+            return false;
+        }
+
+        const auto inputName = parsing::sv_next_split(input);
+        for (auto& option : s_uciOptions) {
+            if (option.name == inputName) {
                 const auto value = parsing::sv_next_split(input);
-                if (value == "value") {
-                    const auto optionValue = parsing::sv_next_split(input).value_or(input);
-                    if (optionValue == "true") {
-                        s_ponderingEnabled = true;
-                    } else if (optionValue == "false") {
-                        s_ponderingEnabled = false;
-                    }
+                if (value != "value") {
+                    return false;
                 }
-            } else if (option == "Syzygy") {
-                const auto value = parsing::sv_next_split(input);
-                if (value == "value") {
-                    const auto path = parsing::sv_next_split(input).value_or(input);
-                    syzygy::deinit();
-                    if (syzygy::init(path)) {
-                        s_syzygyPath = path;
-                    } else {
-                        fmt::println("failed to init syzygy with path '{}'", path);
-                    }
-                }
+
+                const auto inputValue = parsing::sv_next_split(input).value_or(input);
+                return ucioption::handleInput(option, inputValue);
             }
         }
 
@@ -274,13 +297,13 @@ private:
             const auto depth = parsing::to_number(args);
             s_evaluator.printEvaluation(s_board, depth);
         } else if (command == "options") {
-            fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
-            fmt::println("name Syzygy value {}", s_syzygyPath);
+            for (const auto& option : s_uciOptions) {
+                ucioption::printDebug(option);
+            }
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
         } else if (command == "syzygy") {
-            fmt::println("Syzygy path: {}", s_syzygyPath);
             int32_t score = 0;
             const auto wdl = syzygy::probeWdl(s_board, score);
             fmt::println("wdl: {}, score: {}, table size: {}", magic_enum::enum_name(wdl), score, syzygy::tableSize());
@@ -341,9 +364,14 @@ private:
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
 
-    /* options */
+    /* options used in the UCI handler */
     static inline bool s_ponderingEnabled { false };
-    static inline std::string s_syzygyPath { "<empty>" };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 };
+
+/* implementation of UCI handler callbacks */
+static void ponderCallback(bool enabled)
+{
+    UciHandler::setPondering(enabled);
+}
