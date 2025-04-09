@@ -49,6 +49,7 @@ constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
 template<Player player>
 constexpr static inline TermScore getPawnScore(const BitBoard& board, const uint64_t pawns)
 {
+    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     TermScore score(0, 0);
 
     helper::bitIterate(pawns, [&](BoardPosition pos) {
@@ -63,31 +64,26 @@ constexpr static inline TermScore getPawnScore(const BitBoard& board, const uint
         if ((pawns & s_isolationMaskTable[pos]) == 0)
             ADD_SCORE(isolatedPawnPenalty);
 
+        const auto kingPos = helper::lsbToPosition(board.pieces[ourKing]);
+        if (s_passedPawnMaskTable[player][kingPos] & square) {
+            const uint8_t shieldDistance = std::min(helper::verticalDistance(kingPos, pos), pawnShieldSize);
+            ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
+        }
+
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtPawns, pos);
 
-            if ((board.pieces[BlackPawn] & s_whitePassedPawnMaskTable[pos]) == 0) {
+            if ((board.pieces[BlackPawn] & s_passedPawnMaskTable[player][pos]) == 0) {
                 const uint8_t row = (pos / 8);
                 ADD_SCORE_INDEXED(passedPawnBonus, row);
             }
 
-            const auto kingPos = helper::lsbToPosition(board.pieces[WhiteKing]);
-            if (s_whitePassedPawnMaskTable[kingPos] & square) {
-                const uint8_t shieldDistance = std::min(helper::verticalDistance(kingPos, pos), pawnShieldSize);
-                ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
-            }
         } else {
             ADD_SCORE_INDEXED(psqtPawns, flipPosition(pos));
 
-            if ((board.pieces[WhitePawn] & s_blackPassedPawnMaskTable[pos]) == 0) {
+            if ((board.pieces[WhitePawn] & s_passedPawnMaskTable[player][pos]) == 0) {
                 const uint8_t row = 7 - (pos / 8);
                 ADD_SCORE_INDEXED(passedPawnBonus, row);
-            }
-
-            const auto kingPos = helper::lsbToPosition(board.pieces[BlackKing]);
-            if (s_blackPassedPawnMaskTable[kingPos] & square) {
-                const uint8_t shieldDistance = std::min(helper::verticalDistance(kingPos, pos), pawnShieldSize);
-                ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
             }
         }
     });
