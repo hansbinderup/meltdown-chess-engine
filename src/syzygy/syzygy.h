@@ -186,7 +186,7 @@ inline void printDtzDebug(const BitBoard& board)
             if (!from.has_value() || !to.has_value())
                 continue;
 
-            fmt::println("Move {}->{}, wdl: {} dtz: {}", magic_enum::enum_name(*from), magic_enum::enum_name(*to), magic_enum::enum_name(wdl), TB_GET_DTZ(res));
+            fmt::println("Move {}->{}, wdl: {} dtz: {}", *from, *to, wdl, TB_GET_DTZ(res));
         }
         fmt::print("\n");
     }

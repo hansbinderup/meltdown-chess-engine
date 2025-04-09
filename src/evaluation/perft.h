@@ -4,7 +4,7 @@
 #include "engine/move_handling.h"
 #include <chrono>
 
-#include "fmt/base.h"
+#include "helpers/formatters.h"
 
 class Perft {
 public:
