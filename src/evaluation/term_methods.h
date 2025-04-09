@@ -43,6 +43,8 @@ namespace evaluation {
     return pos ^ 56;
 }
 
+constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
+
 /* TODO: divide into terms instead of pieces.. */
 
 template<Player player>
@@ -51,6 +53,8 @@ constexpr static inline Score getPawnScore(const BitBoard& board, const uint64_t
     Score score(0, 0);
 
     helper::bitIterate(pawns, [&](BoardPosition pos) {
+        const uint64_t square = helper::positionToSquare(pos);
+
         ADD_SCORE_INDEXED(pieceValues, Pawn);
 
         const auto doubledPawns = std::popcount(pawns & s_fileMaskTable[pos]);
@@ -67,12 +71,24 @@ constexpr static inline Score getPawnScore(const BitBoard& board, const uint64_t
                 const uint8_t row = (pos / 8);
                 ADD_SCORE_INDEXED(passedPawnBonus, row);
             }
+
+            const auto kingPos = helper::lsbToPosition(board.pieces[WhiteKing]);
+            if (s_whitePassedPawnMaskTable[kingPos] & square) {
+                const uint8_t shieldDistance = std::min(helper::verticalDistance(kingPos, pos), pawnShieldSize);
+                ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
+            }
         } else {
             ADD_SCORE_INDEXED(psqtPawns, flipPosition(pos));
 
             if ((board.pieces[WhitePawn] & s_blackPassedPawnMaskTable[pos]) == 0) {
                 const uint8_t row = 7 - (pos / 8);
                 ADD_SCORE_INDEXED(passedPawnBonus, row);
+            }
+
+            const auto kingPos = helper::lsbToPosition(board.pieces[BlackKing]);
+            if (s_blackPassedPawnMaskTable[kingPos] & square) {
+                const uint8_t shieldDistance = std::min(helper::verticalDistance(kingPos, pos), pawnShieldSize);
+                ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
             }
         }
     });
@@ -199,18 +215,13 @@ constexpr static inline Score getQueenScore(const BitBoard& board, const uint64_
 }
 
 template<Player player>
-constexpr static inline Score getKingScore(const BitBoard& board, const uint64_t king)
+constexpr static inline Score getKingScore(const uint64_t king)
 {
     Score score(0, 0);
 
     helper::bitIterate(king, [&](BoardPosition pos) {
-        const uint64_t kingShields = movegen::getKingMoves(pos) & board.occupation[player];
-        const int shieldCount = std::popcount(kingShields);
-        ADD_SCORE_INDEXED(kingShieldBonus, shieldCount);
-
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKings, pos);
-
         } else {
             ADD_SCORE_INDEXED(psqtKings, flipPosition(pos));
         }
