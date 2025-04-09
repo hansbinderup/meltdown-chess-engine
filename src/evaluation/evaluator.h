@@ -819,9 +819,6 @@ private:
             for (auto& searcher : m_searchers) {
                 const auto& result = searcher.getSearchResult();
 
-                // Debug
-                searcher.printScoreInfo(board, result.score, d, m_startTime);
-
                 // If didn't fall out of window, push back to results
                 if ((result.score > alpha) && (result.score < beta)) {
                     searchResults.push_back(std::move(result));
@@ -846,7 +843,6 @@ private:
                 if (vote > maxVote) {
                     maxVote = vote;
                     bestMove = move;
-                    fmt::print("bestMove {}\n", bestMove);
                 }
             }
 

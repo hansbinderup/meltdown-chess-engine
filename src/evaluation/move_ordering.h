@@ -158,7 +158,6 @@ public:
         for (int32_t& offset : m_offsets) {
             offset ^= m_randSeed;
             offset %= s_offsetRange;
-            fmt::print("threadId: {}, move-ordering offset: {}\n", threadId, offset);
         }
     }
 
