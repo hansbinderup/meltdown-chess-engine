@@ -2,6 +2,7 @@
 
 #include "evaluation/evaluator.h"
 #include "evaluation/perft.h"
+#include "helpers/formatters.h"
 #include "parsing/fen_parser.h"
 #include "parsing/input_parsing.h"
 
@@ -283,7 +284,7 @@ private:
             fmt::println("Syzygy path: {}", s_syzygyPath);
             int32_t score = 0;
             const auto wdl = syzygy::probeWdl(s_board, score);
-            fmt::println("wdl: {}, score: {}, table size: {}", magic_enum::enum_name(wdl), score, syzygy::tableSize());
+            fmt::println("wdl: {}, score: {}, table size: {}", wdl, score, syzygy::tableSize());
             if (!(wdl == syzygy::WdlResultFailed || wdl == syzygy::WdlResultTableNotActive))
                 syzygy::printDtzDebug(s_board);
         }

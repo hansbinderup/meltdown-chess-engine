@@ -1,12 +1,9 @@
 #pragma once
 
 #include "board_defs.h"
+#include "helpers/bit_operations.h"
 
 #include <cstdint>
-#include <string_view>
-
-#include "fmt/format.h"
-#include "helpers/bit_operations.h"
 
 namespace movegen {
 
@@ -32,7 +29,7 @@ public:
     Move() = default;
 
     explicit Move(uint32_t ext_data)
-        : data(ext_data) {};
+        : data(ext_data) { };
 
     explicit Move(uint64_t from, uint64_t to, uint64_t piece, uint64_t promotion, uint64_t castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
         : data(
@@ -222,21 +219,3 @@ private:
 };
 
 }
-
-template<>
-struct fmt::formatter<movegen::Move> : fmt::formatter<std::string_view> {
-    template<typename FormatContext>
-    auto format(const movegen::Move& m, FormatContext& ctx) const
-    {
-        char fromC = 'a' + (m.fromPos() % 8); // Column
-        char fromR = '1' + (m.fromPos() / 8); // Row
-        char toC = 'a' + (m.toPos() % 8); // Column
-        char toR = '1' + (m.toPos() / 8); // Row
-
-        if (m.promotionType() != PromotionNone) {
-            return fmt::format_to(ctx.out(), "{}{}{}{}{}", fromC, fromR, toC, toR, promotionToString(m.promotionType()));
-        }
-
-        return fmt::format_to(ctx.out(), "{}{}{}{}", fromC, fromR, toC, toR);
-    }
-};

@@ -1,4 +1,3 @@
-
 #include "uci_handler.h"
 #include "version/version.h"
 

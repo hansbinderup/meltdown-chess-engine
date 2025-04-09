@@ -3,11 +3,14 @@
 #include "attack_generation.h"
 #include "bit_board.h"
 #include "engine/zobrist_hashing.h"
-#include "fmt/ranges.h"
-#include "magic_enum/magic_enum.hpp"
+#include "helpers/formatters.h"
 #include "movegen/move_generation.h"
 #include "movegen/move_types.h"
 #include "parsing/piece_parsing.h"
+
+#include "fmt/ranges.h"
+#include "magic_enum/magic_enum.hpp"
+
 #include <cstring>
 
 namespace engine {
@@ -285,7 +288,7 @@ constexpr void printPositionDebug(const BitBoard& board)
         "HalfMoves: {}\n"
         "EnPessant: {}\n"
         "Hash: {}\n",
-        magic_enum::enum_name(board.player),
+        board.player,
         board.fullMoves,
         board.halfMoves,
         board.enPessant ? magic_enum::enum_name(*board.enPessant) : "none",

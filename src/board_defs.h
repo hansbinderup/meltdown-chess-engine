@@ -3,7 +3,6 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <limits>
 
 enum Player {
     PlayerWhite,
