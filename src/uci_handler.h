@@ -12,7 +12,6 @@
 #include <string_view>
 #include <thread>
 
-template<bool tournamentMode>
 class UciHandler {
 public:
     // no need to create an object - the methods are purely to group the
@@ -95,11 +94,8 @@ private:
         fmt::println("id engine Meltdown\n"
                      "id author Hans Binderup\n"
                      "option name Ponder type check default false\n"
-                     "option name Syzygy type string default <empty>");
-
-        if constexpr (!tournamentMode) {
-            fmt::println("option name Threads type spin default 1 min 1 max 255");
-        }
+                     "option name Syzygy type string default <empty>\n"
+                     "option name Threads type spin default 1 min 1 max 255");
 
         fmt::println("uciok");
         return true;
@@ -273,15 +269,13 @@ private:
                     }
                 }
             } else if (option == "Threads") {
-                if constexpr (!tournamentMode) {
-                    const auto value = parsing::sv_next_split(input);
-                    if (value == "value") {
-                        // Parse next entry
-                        const auto numThreads = parsing::to_number(parsing::sv_next_split(input).value_or(input));
+                const auto value = parsing::sv_next_split(input);
+                if (value == "value") {
+                    // Parse next entry
+                    const auto numThreads = parsing::to_number(parsing::sv_next_split(input).value_or(input));
 
-                        if (numThreads.has_value() && numThreads.value() != 0) {
-                            s_numThreads = std::min(static_cast<uint16_t>(numThreads.value()), static_cast<uint16_t>(255));
-                        }
+                    if (numThreads.has_value() && numThreads.value() != 0) {
+                        s_numThreads = std::min(static_cast<uint16_t>(numThreads.value()), static_cast<uint16_t>(255));
                     }
                 }
             }
@@ -301,9 +295,7 @@ private:
         } else if (command == "options") {
             fmt::println("name Ponder value {}", s_ponderingEnabled ? "true" : "false");
             fmt::println("name Syzygy value {}", s_syzygyPath);
-            if constexpr (!tournamentMode) {
-                fmt::println("name Threads value {}", s_numThreads);
-            }
+            fmt::println("name Threads value {}", s_numThreads);
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
@@ -367,7 +359,7 @@ private:
 
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
-    static inline evaluation::Evaluator<tournamentMode> s_evaluator;
+    static inline evaluation::Evaluator s_evaluator;
 
     /* options */
     static inline bool s_ponderingEnabled { false };

@@ -23,7 +23,7 @@ int main(int argc, char** argv)
                "Builtin:     {}\n\n",
         s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
 
-    UciHandler<TOURNAMENT_MODE>::run();
+    UciHandler::run();
 
     return 0;
 }

@@ -6,6 +6,7 @@
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "evaluation/static_evaluation.h"
+
 #include "fmt/ranges.h"
 #include "movegen/move_types.h"
 #include "syzygy/syzygy.h"
@@ -595,7 +596,6 @@ std::atomic_bool Searcher::s_oneFullSearchComplete { false };
 uint8_t Searcher::s_numSearchers { 0 };
 uint64_t Searcher::s_nodes { 0 };
 
-template<bool tournamentMode>
 class Evaluator {
 public:
     void initializeSearchers(uint8_t numThreads)
@@ -606,11 +606,9 @@ public:
             m_searchers.push_back(Searcher());
         }
 
-        if constexpr (!tournamentMode) {
-            for (auto& searcher : m_searchers) {
-                searcher.generateMoveOrderingOffsets();
-                searcher.startThreadLoop();
-            }
+        for (auto& searcher : m_searchers) {
+            searcher.generateMoveOrderingOffsets();
+            searcher.startThreadLoop();
         }
     }
 
@@ -811,87 +809,66 @@ private:
                 }
             }
 
-            if constexpr (tournamentMode) {
-                Searcher& localSearcher = m_searchers.at(0);
-                // Is removal a bug?
-                // localSearcher.setSearchParams();
-                int32_t localSearcherScore = localSearcher.negamax(d, board, alpha, beta);
-                /* the search fell outside the window - we need to retry a full search */
-                if ((localSearcherScore <= alpha) || (localSearcherScore >= beta)) {
-                    alpha = s_minScore;
-                    beta = s_maxScore;
+            std::vector<SearcherResult> searchResults;
+            std::map<movegen::Move, int64_t> movesVotes;
 
-                    continue;
+            for (auto& searcher : m_searchers) {
+                searcher.startSmpSearch(d, alpha, beta);
+            }
+
+            for (auto& searcher : m_searchers) {
+                const auto& result = searcher.getSearchResult();
+
+                // Debug
+                searcher.printScoreInfo(board, result.score, d, m_startTime);
+
+                // If didn't fall out of window, push back to results
+                if ((result.score > alpha) && (result.score < beta)) {
+                    searchResults.push_back(std::move(result));
                 }
+            }
 
-                /* prepare window for next iteration */
-                alpha = localSearcherScore - s_aspirationWindow;
-                beta = localSearcherScore + s_aspirationWindow;
+            for (const auto& result : searchResults) {
 
-                localSearcher.printScoreInfo(board, localSearcherScore, d, m_startTime);
-                bestMove = localSearcher.getPvMove();
-            } else {
-                std::vector<SearcherResult> searchResults;
-                std::map<movegen::Move, int64_t> movesVotes;
+                const int32_t score = result.score;
+                const uint8_t depth = result.searchedDepth;
+                const auto move = result.pvMove;
 
-                for (auto& searcher : m_searchers) {
-                    searcher.startSmpSearch(d, alpha, beta);
+                // Tweak this
+                int64_t voteWeight = (score - s_minScore) * depth;
+
+                movesVotes[move] += voteWeight;
+            }
+
+            int64_t maxVote = -std::numeric_limits<int64_t>::max();
+
+            for (const auto& [move, vote] : movesVotes) {
+                if (vote > maxVote) {
+                    maxVote = vote;
+                    bestMove = move;
+                    fmt::print("bestMove {}\n", bestMove);
                 }
+            }
 
-                for (auto& searcher : m_searchers) {
-                    const auto& result = searcher.getSearchResult();
+            uint8_t bestWinningDepth = 0;
+            SearcherResult bestWinningResult;
 
-                    // Debug
-                    searcher.printScoreInfo(board, result.score, d, m_startTime);
-
-                    // If didn't fall out of window, push back to results
-                    if ((result.score > alpha) && (result.score < beta)) {
-                        searchResults.push_back(std::move(result));
+            for (const auto& result : searchResults) {
+                if (result.pvMove == bestMove) {
+                    if (depth > bestWinningDepth) {
+                        bestWinningResult = result;
+                        bestWinningDepth = depth;
                     }
                 }
+            }
 
-                for (const auto& result : searchResults) {
+            /* prepare window for next iteration */
+            alpha = bestWinningResult.score - s_aspirationWindow;
+            beta = bestWinningResult.score + s_aspirationWindow;
 
-                    const int32_t score = result.score;
-                    const uint8_t depth = result.searchedDepth;
-                    const auto move = result.pvMove;
-
-                    // Tweak this
-                    int64_t voteWeight = (score - s_minScore) * depth;
-
-                    movesVotes[move] += voteWeight;
-                }
-
-                int64_t maxVote = -std::numeric_limits<int64_t>::max();
-
-                for (const auto& [move, vote] : movesVotes) {
-                    if (vote > maxVote) {
-                        maxVote = vote;
-                        bestMove = move;
-                        fmt::print("bestMove {}\n", bestMove);
-                    }
-                }
-
-                uint8_t bestWinningDepth = 0;
-                SearcherResult bestWinningResult;
-
-                for (const auto& result : searchResults) {
-                    if (result.pvMove == bestMove) {
-                        if (depth > bestWinningDepth) {
-                            bestWinningResult = result;
-                            bestWinningDepth = depth;
-                        }
-                    }
-                }
-
-                /* prepare window for next iteration */
-                alpha = bestWinningResult.score - s_aspirationWindow;
-                beta = bestWinningResult.score + s_aspirationWindow;
-
-                for (auto& searcher : m_searchers) {
-                    if (searcher.getSearcherId() == bestWinningResult.searcherId) {
-                        searcher.printScoreInfo(board, bestWinningResult.score, d, m_startTime);
-                    }
+            for (auto& searcher : m_searchers) {
+                if (searcher.getSearcherId() == bestWinningResult.searcherId) {
+                    searcher.printScoreInfo(board, bestWinningResult.score, d, m_startTime);
                 }
             }
 
