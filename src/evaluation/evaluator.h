@@ -64,6 +64,7 @@ public:
     ~Searcher()
     {
         m_searchState.store(SearchState::Kill);
+        m_cv.notify_all();
         if (m_workerThread.joinable()) {
             m_workerThread.join();
         }
@@ -422,9 +423,16 @@ private:
 
     void threadLoop()
     {
-        while (m_searchState != SearchState::Kill) {
+        while (true) {
             std::unique_lock<std::mutex> lock(m_mtx);
-            m_cv.wait(lock, [this] { return m_searchState.load(std::memory_order_acquire) == SearchState::Searching; });
+            m_cv.wait(lock, [this] {
+                const auto state = m_searchState.load(std::memory_order_acquire);
+                return state == SearchState::Searching || state == SearchState::Kill;
+            });
+
+            if (m_searchState == SearchState::Kill) {
+                return;
+            }
 
             SearcherResult result;
             result.score
@@ -603,7 +611,8 @@ public:
         m_searchers.clear();
 
         for (int i = 0; i < numThreads; ++i) {
-            m_searchers.push_back(Searcher());
+            m_searchers.emplace_back();
+            // m_searchers.push_back(Searcher());
         }
 
         for (auto& searcher : m_searchers) {
