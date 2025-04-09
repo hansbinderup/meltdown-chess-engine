@@ -98,10 +98,10 @@ constexpr auto generateIsolationMaskTable()
     return data;
 }
 
-/* Bitmask to find passed pawns (White)
+/* Bitmask to find passed pawns
  * mask is the neighbor files + own file till the end of the board
  *
- * eg: table for F3:
+ * eg: table for F3 (White perspective):
  * -8- 0 0 0 0 1 1 1 0
  * -7- 0 0 0 0 1 1 1 0
  * -6- 0 0 0 0 1 1 1 0
@@ -111,10 +111,22 @@ constexpr auto generateIsolationMaskTable()
  * -2- 0 0 0 0 0 0 0 0
  * -1- 0 0 0 0 0 0 0 0
  *     A B C D E F G H
+ *
+ * eg: table for C7 (Black perspective):
+ * -8- 0 0 0 0 0 0 0 0
+ * -7- 0 0 0 0 0 0 0 0
+ * -6- 0 1 1 1 0 0 0 0
+ * -5- 0 1 1 1 0 0 0 0
+ * -4- 0 1 1 1 0 0 0 0
+ * -3- 0 1 1 1 0 0 0 0
+ * -2- 0 1 1 1 0 0 0 0
+ * -1- 0 1 1 1 0 0 0 0
+ *     A B C D E F G H
  */
-constexpr auto generateWhitePassedPawnMaskTable()
+constexpr auto generatePassedPawnMaskTable()
 {
-    std::array<uint64_t, s_amountSquares> data {};
+    using PassedPawnMaskTable = std::array<uint64_t, s_amountSquares>;
+    std::array<PassedPawnMaskTable, magic_enum::enum_count<Player>()> data {};
 
     for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
         uint8_t passedPos = pos + 8;
@@ -133,26 +145,32 @@ constexpr auto generateWhitePassedPawnMaskTable()
             passedPos += 8;
         }
 
-        data[pos] = mask;
+        data[PlayerWhite][pos] = mask;
+    }
+
+    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
+        uint8_t passedPos = pos - 8;
+        const uint8_t file = passedPos % 8;
+        uint64_t mask {};
+
+        while (passedPos <= H8) {
+            if (file < 7)
+                mask |= 1ULL << (passedPos + 1);
+
+            if (file > 0)
+                mask |= 1ULL << (passedPos - 1);
+
+            mask |= 1ULL << passedPos;
+
+            passedPos -= 8;
+        }
+
+        data[PlayerBlack][pos] = mask;
     }
 
     return data;
 }
 
-/* Bitmask to find passed pawns (White)
- * mask is the neighbor files + own file till the end of the board
- *
- * eg: table for C7:
- * -8- 0 0 0 0 0 0 0 0
- * -7- 0 0 0 0 0 0 0 0
- * -6- 0 1 1 1 0 0 0 0
- * -5- 0 1 1 1 0 0 0 0
- * -4- 0 1 1 1 0 0 0 0
- * -3- 0 1 1 1 0 0 0 0
- * -2- 0 1 1 1 0 0 0 0
- * -1- 0 1 1 1 0 0 0 0
- *     A B C D E F G H
- */
 constexpr auto generateBlackPassedPawnMaskTable()
 {
     std::array<uint64_t, s_amountSquares> data {};
@@ -185,8 +203,7 @@ constexpr auto generateBlackPassedPawnMaskTable()
 constexpr auto s_rowMaskTable = generateRowMaskTable();
 constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
-constexpr auto s_whitePassedPawnMaskTable = generateWhitePassedPawnMaskTable();
-constexpr auto s_blackPassedPawnMaskTable = generateBlackPassedPawnMaskTable();
+constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 
 }
 
