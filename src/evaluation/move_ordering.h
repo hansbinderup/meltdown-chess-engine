@@ -134,8 +134,7 @@ public:
     }
 
     // Helper: calling inside loops will mean redundant colour checks
-    constexpr int32_t
-    moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
+    constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (board.player == PlayerWhite) {
             return moveScore<PlayerWhite>(board, move, ply, ttMove);
@@ -155,6 +154,7 @@ public:
         m_offsets[3] = -3;
         m_offsets[4] = -2;
         m_offsets[5] = 5;
+        m_offsets[6] = -1;
 
         for (int32_t& offset : m_offsets) {
             offset ^= m_randSeed;
@@ -171,7 +171,7 @@ private:
 
     // For lazySMP, score can be adjusted by [-s_offsetRange, s_offsetRange]
     static uint8_t s_offsetRange;
-    int32_t m_offsets[6] {};
+    int32_t m_offsets[7] {};
 };
 
 uint8_t MoveOrdering::s_offsetRange { 20 };
