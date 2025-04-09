@@ -825,6 +825,13 @@ private:
                 }
             }
 
+            if (searchResults.size() == 0) {
+                alpha = s_minScore;
+                beta = s_maxScore;
+
+                continue;
+            }
+
             for (const auto& result : searchResults) {
 
                 const int32_t score = result.score;
