@@ -80,9 +80,9 @@ public:
         m_moveOrdering.generateOffsets(m_searcherId);
     }
 
-    void startThreadLoop(std::atomic_bool& isStopped)
+    void startThreadLoop()
     {
-        m_workerThread = std::thread([this, &isStopped]() { this->threadLoop(isStopped); });
+        m_workerThread = std::thread([this]() { this->threadLoop(); });
     }
 
     void setSmpBoard(const BitBoard& board)
@@ -179,7 +179,7 @@ public:
         fflush(stdout);
     }
 
-    constexpr void printEvaluation(const BitBoard& board, std::atomic_bool& isStopped, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         resetTiming(); /* to reset nodes etc but not tables */
 
@@ -200,13 +200,13 @@ public:
         }
 
         /* no need for time management here - just control the start/stop ourselves */
-        isStopped.store(false, std::memory_order_relaxed);
+        s_isStopped.store(false, std::memory_order_relaxed);
 
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         m_moveOrdering.sortMoves(board, moves, m_ply);
-        const int32_t score = negamax(depth, board, isStopped);
-        isStopped = true;
+        const int32_t score = negamax(depth, board);
+        s_isStopped = true;
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : moves) {
@@ -221,7 +221,7 @@ public:
     }
 
     template<SearchType searchType = SearchType::Default>
-    constexpr int32_t negamax(uint8_t depth, const BitBoard& board, std::atomic_bool& isStopped, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
+    constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
         // Return current alpha if given 'other threads done, terminate' signal
         if (s_oneFullSearchComplete) {
@@ -253,7 +253,7 @@ public:
         }
 
         if (depth == 0) {
-            return quiesence(board, isStopped, alpha, beta);
+            return quiesence(board, alpha, beta);
         }
 
         s_nodes++;
@@ -285,7 +285,7 @@ public:
         /* dangerous to repeat null search on a null search - skip it here */
         if constexpr (searchType != SearchType::NullSearch) {
             if (depth > s_nullMoveReduction && !isChecked && m_ply) {
-                if (const auto nullMoveScore = nullMovePruning(board, isStopped, depth, beta)) {
+                if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
                     return nullMoveScore.value();
                 }
             }
@@ -296,13 +296,13 @@ public:
             int32_t score = staticEval + s_razorMarginShallow;
             if (score < beta) {
                 if (depth == 1) {
-                    int32_t newScore = quiesence(board, isStopped, alpha, beta);
+                    int32_t newScore = quiesence(board, alpha, beta);
                     return (newScore > score) ? newScore : score;
                 }
 
                 score += s_razorMarginDeep;
                 if (score < beta && depth <= s_razorDeepReductionLimit) {
-                    const int32_t newScore = quiesence(board, isStopped, alpha, beta);
+                    const int32_t newScore = quiesence(board, alpha, beta);
                     if (newScore < beta)
                         return (newScore > score) ? newScore : score;
                 }
@@ -346,7 +346,7 @@ public:
              * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction
              */
             if (movesSearched == 0) {
-                score = -negamax(depth - 1, moveRes->board, isStopped, -beta, -alpha);
+                score = -negamax(depth - 1, moveRes->board, -beta, -alpha);
             } else {
                 if (movesSearched >= s_fullDepthMove
                     && depth >= s_reductionLimit
@@ -354,7 +354,7 @@ public:
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
                     /* search current move with reduced depth */
-                    score = -negamax(depth - 2, moveRes->board, isStopped, -alpha - 1, -alpha);
+                    score = -negamax(depth - 2, moveRes->board, -alpha - 1, -alpha);
                 } else {
                     /* TODO: hack to ensure full depth is reached */
                     score = alpha + 1;
@@ -366,18 +366,18 @@ public:
                  * search with a null window
                  */
                 if (score > alpha) {
-                    score = -negamax(depth - 1, moveRes->board, isStopped, -alpha - 1, -alpha);
+                    score = -negamax(depth - 1, moveRes->board, -alpha - 1, -alpha);
 
                     /* if it failed high, do a full re-search */
                     if ((score > alpha) && (score < beta)) {
-                        score = -negamax(depth - 1, moveRes->board, isStopped, -beta, -alpha);
+                        score = -negamax(depth - 1, moveRes->board, -beta, -alpha);
                     }
                 }
             }
 
             undoMove(moveRes->hash);
 
-            if (isStopped)
+            if (s_isStopped.load(std::memory_order_relaxed))
                 return score;
 
             if (score >= beta) {
@@ -413,12 +413,13 @@ public:
         return alpha;
     }
 
+    static std::atomic_bool s_isStopped;
     static std::atomic_bool s_oneFullSearchComplete;
 
 private:
     // int64_t m_totalUnlockedTime = 0; // in seconds
 
-    void threadLoop(std::atomic_bool& isStopped)
+    void threadLoop()
     {
         while (m_searchState != SearchState::Kill) {
             std::unique_lock<std::mutex> lock(m_mtx);
@@ -426,7 +427,7 @@ private:
 
             SearcherResult result;
             result.score
-                = negamax(m_searchDepth, m_board, isStopped, s_minScore, s_maxScore);
+                = negamax(m_searchDepth, m_board, s_minScore, s_maxScore);
             result.searcherId = m_searcherId;
             result.pvMove = m_moveOrdering.pvTable().bestMove();
             result.searchedDepth = m_moveOrdering.pvTable().size();
@@ -437,7 +438,7 @@ private:
         }
     }
 
-    constexpr int32_t quiesence(const BitBoard& board, std::atomic_bool& isStopped, int32_t alpha, int32_t beta)
+    constexpr int32_t quiesence(const BitBoard& board, int32_t alpha, int32_t beta)
     {
         using namespace std::chrono;
 
@@ -468,10 +469,10 @@ private:
                 continue;
             }
 
-            const int32_t score = -quiesence(moveRes->board, isStopped, -beta, -alpha);
+            const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (isStopped)
+            if (s_isStopped.load(std::memory_order_relaxed))
                 return score;
 
             if (score >= beta)
@@ -490,7 +491,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<int32_t> nullMovePruning(const BitBoard& board, std::atomic_bool& isStopped, uint8_t depth, int32_t beta)
+    std::optional<int32_t> nullMovePruning(const BitBoard& board, uint8_t depth, int32_t beta)
     {
         auto nullMoveBoard = board;
         uint64_t oldHash = m_hash;
@@ -509,7 +510,7 @@ private:
         m_repetition.add(oldHash);
 
         /* perform search with reduced depth (based on reduction limit) */
-        int32_t score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, isStopped, -beta, -beta + 1);
+        int32_t score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
 
         m_hash = oldHash;
         m_ply -= 2;
@@ -589,6 +590,7 @@ private:
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 
+std::atomic_bool Searcher::s_isStopped { true };
 std::atomic_bool Searcher::s_oneFullSearchComplete { false };
 uint8_t Searcher::s_numSearchers { 0 };
 uint64_t Searcher::s_nodes { 0 };
@@ -607,7 +609,7 @@ public:
         if constexpr (!tournamentMode) {
             for (auto& searcher : m_searchers) {
                 searcher.generateMoveOrderingOffsets();
-                searcher.startThreadLoop(m_isStopped);
+                searcher.startThreadLoop();
             }
         }
     }
@@ -646,15 +648,15 @@ public:
     /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
     constexpr void stop()
     {
-        m_isStopped.store(true, std::memory_order_relaxed);
+        Searcher::s_isStopped.store(true, std::memory_order_relaxed);
     }
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         // Placeholder: print per-searcher for now
-        m_isStopped.store(false, std::memory_order_relaxed);
+        Searcher::s_isStopped.store(false, std::memory_order_relaxed);
         for (auto& searcher : m_searchers) {
-            searcher.printEvaluation(board, m_isStopped, depthInput);
+            searcher.printEvaluation(board, depthInput);
         }
     }
 
@@ -783,7 +785,7 @@ private:
         uint8_t d = 1;
 
         while (d <= depth) {
-            if (m_isStopped.load(std::memory_order_relaxed))
+            if (Searcher::s_isStopped.load(std::memory_order_relaxed))
                 break;
 
             /* always allow full scan on first move - will be good for the hash table :) */
@@ -813,7 +815,7 @@ private:
                 Searcher& localSearcher = m_searchers.at(0);
                 // Is removal a bug?
                 // localSearcher.setSearchParams();
-                int32_t localSearcherScore = localSearcher.negamax(d, board, m_isStopped, alpha, beta);
+                int32_t localSearcherScore = localSearcher.negamax(d, board, alpha, beta);
                 /* the search fell outside the window - we need to retry a full search */
                 if ((localSearcherScore <= alpha) || (localSearcherScore >= beta)) {
                     alpha = s_minScore;
@@ -840,7 +842,7 @@ private:
                     const auto& result = searcher.getSearchResult();
 
                     // Debug
-                    // searcher.printScoreInfo(board, result.score, d, m_startTime);
+                    searcher.printScoreInfo(board, result.score, d, m_startTime);
 
                     // If didn't fall out of window, push back to results
                     if ((result.score > alpha) && (result.score < beta)) {
@@ -906,20 +908,20 @@ private:
     void
     startTimeHandler()
     {
-        bool wasStopped = m_isStopped.exchange(false);
+        bool wasStopped = Searcher::s_isStopped.exchange(false);
         if (!wasStopped) {
             return; /* nothing to do here */
         }
 
         std::thread timeHandler([this] {
-            while (!m_isStopped.load(std::memory_order_relaxed)) {
+            while (!Searcher::s_isStopped.load(std::memory_order_relaxed)) {
                 {
                     std::scoped_lock lock(m_timeHandleMutex);
-                    if (m_isStopped.load(std::memory_order_relaxed))
+                    if (Searcher::s_isStopped.load(std::memory_order_relaxed))
                         return; /* stopped elsewhere */
 
                     if (std::chrono::system_clock::now() > m_endTime) {
-                        m_isStopped.store(true, std::memory_order_relaxed);
+                        Searcher::s_isStopped.store(true, std::memory_order_relaxed);
                     }
                 }
 
@@ -931,8 +933,6 @@ private:
     }
 
     std::vector<Searcher> m_searchers {}; /* LazySMP: one thread per searcher */
-
-    std::atomic_bool m_isStopped { true };
 
     uint64_t m_whiteTime {};
     uint64_t m_blackTime {};
