@@ -65,7 +65,7 @@ constexpr void subPhaseScore(evaluation::gamephase::Score& score, const std::arr
  * using precomputed PESTO piece-square tables.
  * Also the material score (game phase dependent) is increased whenever probed
  */
-constexpr void addPestoPhaseScore(evaluation::gamephase::Score& score, Piece piece, BoardPosition pos)
+constexpr __attribute__((always_inline)) void addPestoPhaseScore(evaluation::gamephase::Score& score, Piece piece, BoardPosition pos)
 {
     score.mg += evaluation::pesto::s_mgTables[piece][pos];
     score.eg += evaluation::pesto::s_egTables[piece][pos];
@@ -73,4 +73,3 @@ constexpr void addPestoPhaseScore(evaluation::gamephase::Score& score, Piece pie
 }
 
 }
-

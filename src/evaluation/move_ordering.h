@@ -88,44 +88,44 @@ public:
     constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (ttMove.has_value() && move == *ttMove) {
-            return ScoreTtHashMove;
+            return m_scoreTtHashMove;
         }
 
         if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
-            return ScorePvLine;
+            return m_scorePvLine;
         }
 
         if (move.isCapture()) {
             int32_t seeScore = evaluation::SeeSwap::run(board, move);
 
             if (seeScore >= 0) {
-                return ScoreGoodCapture + seeScore;
+                return m_scoreGoodCapture + seeScore;
             } else {
-                return ScoreBadCapture + seeScore;
+                return m_scoreBadCapture + seeScore;
             }
         } else {
             switch (move.promotionType()) {
             case PromotionNone:
                 break;
             case PromotionQueen:
-                return ScoreGoodPromotion;
+                return m_scoreGoodPromotion;
             case PromotionKnight:
-                return ScoreBadPromotion + 1000;
+                return m_scoreBadPromotion + 1000;
             case PromotionBishop:
-                return ScoreBadPromotion;
+                return m_scoreBadPromotion;
             case PromotionRook:
-                return ScoreBadPromotion + 2000;
+                return m_scoreBadPromotion;
             }
 
             const auto killerMoves = m_killerMoves.get(ply);
             if (move == killerMoves.first)
-                return ScoreKillerMove;
+                return m_scoreKillerMove;
             else if (move == killerMoves.second)
-                return ScoreKillerMove - 1000;
+                return m_scoreKillerMove - 1000;
             else {
                 const auto attacker = board.getAttackerAtSquare<player>(move.fromSquare());
                 if (attacker.has_value()) {
-                    return ScoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
+                    return m_scoreHistoryMove + m_historyMoves.get(attacker.value(), move.toPos());
                 }
             }
         }
@@ -143,9 +143,49 @@ public:
         }
     }
 
+    constexpr void generateOffsets(uint8_t threadId)
+    {
+        m_randSeed = static_cast<uint32_t>(threadId) * 0x9E3779B1;
+
+        // TODO bloated, don't like manual matching to number of move scores below
+        std::array<int, 6> offsets { 0, 5, 10, -3, -2, 5 };
+
+        // TODO better PRNG
+        for (int32_t& offset : offsets) {
+            offset ^= m_randSeed;
+            offset %= s_offsetRange;
+        }
+
+        m_scoreTtHashMove += offsets.at(0);
+        m_scorePvLine += offsets.at(1);
+        m_scoreGoodCapture += offsets.at(2);
+        m_scoreBadCapture += offsets.at(2);
+        m_scoreGoodPromotion += offsets.at(3);
+        m_scoreBadPromotion += offsets.at(3);
+        m_scoreKillerMove += offsets.at(4);
+        m_scoreHistoryMove
+            += offsets.at(5);
+    }
+
 private:
+    mutable uint32_t m_randSeed { 0 };
     KillerMoves m_killerMoves {};
     HistoryMoves m_historyMoves {};
     PVTable m_pvTable {};
+
+    // TODO better data structure?
+    int32_t m_scoreTtHashMove { ScoringOffsets::ScoreTtHashMove };
+    int32_t m_scorePvLine { ScoringOffsets::ScorePvLine };
+    int32_t m_scoreGoodCapture { ScoringOffsets::ScoreGoodCapture };
+    int32_t m_scoreBadCapture { ScoringOffsets::ScoreBadCapture };
+    int32_t m_scoreGoodPromotion { ScoringOffsets::ScoreGoodPromotion };
+    int32_t m_scoreBadPromotion { ScoringOffsets::ScoreBadPromotion };
+    int32_t m_scoreKillerMove { ScoringOffsets::ScoreKillerMove };
+    int32_t m_scoreHistoryMove { ScoringOffsets::ScoreHistoryMove };
+
+    // For lazySMP, score can be adjusted by [-s_offsetRange, s_offsetRange]
+    static uint8_t s_offsetRange;
 };
+
+uint8_t MoveOrdering::s_offsetRange { 20 };
 }
