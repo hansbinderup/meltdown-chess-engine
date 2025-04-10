@@ -9,8 +9,6 @@
 
 namespace parsing {
 
-namespace {
-
 std::optional<uint64_t> to_number(std::string_view str)
 {
     int result {};
@@ -22,6 +20,8 @@ std::optional<uint64_t> to_number(std::string_view str)
     }
     return std::nullopt;
 }
+
+namespace {
 
 constexpr std::pair<std::string_view, std::string_view> split_sv_by_space(std::string_view sv)
 {
