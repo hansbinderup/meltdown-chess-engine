@@ -79,7 +79,9 @@ public:
 
     void generateMoveOrderingOffsets()
     {
-        m_moveOrdering.generateOffsets(m_searcherId);
+        if (m_searcherId != 0) {
+            m_moveOrdering.generateOffsets(m_searcherId);
+        }
     }
 
     void startThreadLoop()
@@ -612,7 +614,6 @@ public:
 
         for (int i = 0; i < numThreads; ++i) {
             m_searchers.emplace_back();
-            // m_searchers.push_back(Searcher());
         }
 
         for (auto& searcher : m_searchers) {
