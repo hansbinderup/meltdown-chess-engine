@@ -439,8 +439,6 @@ public:
     static std::atomic_bool s_oneFullSearchComplete;
 
 private:
-    // int64_t m_totalUnlockedTime = 0; // in seconds
-
     void threadLoop()
     {
         while (true) {
@@ -456,7 +454,7 @@ private:
 
             SearcherResult result;
             result.score
-                = negamax(m_searchDepth, m_board, s_minScore, s_maxScore);
+                = negamax(m_searchDepth, m_board, m_alpha, m_beta);
             result.searcherId = m_searcherId;
             result.pvMove = m_moveOrdering.pvTable().bestMove();
             result.searchedDepth = m_moveOrdering.pvTable().size();
