@@ -77,7 +77,7 @@ private:
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
-            s_isRunning = false;
+            return handleQuit();
         } else {
             // invalid input
             return false;
@@ -212,31 +212,36 @@ private:
             }
         }
 
-        auto doSearch =
-            [depth] {
-                const auto bestMove = s_evaluator.getBestMove(s_board, depth);
-                fmt::print("bestmove {}", bestMove);
-                if (s_ponderingEnabled) {
-                    const auto ponderMove = s_evaluator.getPonderMove();
-                    if (ponderMove.has_value()) {
-                        fmt::print(" ponder {}", *ponderMove);
-                    }
+        std::thread searchThread([depth] {
+            const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+            fmt::print("bestmove {}", bestMove);
+            if (s_ponderingEnabled) {
+                const auto ponderMove = s_evaluator.getPonderMove();
+                if (ponderMove.has_value()) {
+                    fmt::print(" ponder {}", *ponderMove);
                 }
+            }
 
-                fmt::print("\n");
-                fflush(stdout);
-            };
+            fmt::print("\n");
+            fflush(stdout);
+        });
 
-        std::thread searchThread(doSearch);
         searchThread.detach();
 
         return true;
     }
 
-    static bool
-    handleStop()
+    static bool handleStop()
     {
         s_evaluator.stop();
+
+        return true;
+    }
+
+    static bool handleQuit()
+    {
+        s_evaluator.terminate();
+        s_isRunning = false;
 
         return true;
     }

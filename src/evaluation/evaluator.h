@@ -61,13 +61,19 @@ public:
     {
     }
 
-    ~Searcher()
+    void killWorkerThread()
     {
         m_searchState.store(SearchState::Kill);
         m_cv.notify_all();
-        if (m_workerThread.joinable()) {
+        if (m_threadActive && m_workerThread.joinable()) {
             m_workerThread.join();
+            m_threadActive = false;
         }
+    }
+
+    ~Searcher()
+    {
+        killWorkerThread();
     }
 
     Searcher& operator=(const Searcher&) = delete;
@@ -75,6 +81,11 @@ public:
     uint8_t getSearcherId()
     {
         return m_searcherId;
+    }
+
+    bool getThreadActive()
+    {
+        return m_threadActive;
     }
 
     void generateMoveOrderingOffsets()
@@ -87,6 +98,7 @@ public:
     void startThreadLoop()
     {
         m_workerThread = std::thread([this]() { this->threadLoop(); });
+        m_threadActive = true;
     }
 
     void setSmpBoard(const BitBoard& board)
@@ -118,7 +130,9 @@ public:
             m_beta = beta;
 
             // Do negamax
-            m_searchState.store(SearchState::Searching, std::memory_order_release);
+            if (m_searchState.load(std::memory_order_relaxed) != SearchState::Kill) {
+                m_searchState.store(SearchState::Searching, std::memory_order_relaxed);
+            }
         }
         m_cv.notify_one();
     }
@@ -164,6 +178,10 @@ public:
     constexpr void printScoreInfo(const BitBoard& board, int32_t score, uint8_t currentDepth, const TimePoint& startTime)
     {
         using namespace std::chrono;
+
+        if (m_searchState.load(std::memory_order_relaxed) == SearchState::Kill) {
+            return;
+        }
 
         const auto endTime = system_clock::now();
         const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
@@ -381,7 +399,7 @@ public:
 
             undoMove(moveRes->hash);
 
-            if (s_isStopped.load(std::memory_order_relaxed))
+            if (s_isStopped.load(std::memory_order_relaxed) || m_searchState.load(std::memory_order_relaxed) == SearchState::Kill)
                 return score;
 
             if (score >= beta) {
@@ -428,7 +446,7 @@ private:
         while (true) {
             std::unique_lock<std::mutex> lock(m_mtx);
             m_cv.wait(lock, [this] {
-                const auto state = m_searchState.load(std::memory_order_acquire);
+                const auto state = m_searchState.load(std::memory_order_relaxed);
                 return state == SearchState::Searching || state == SearchState::Kill;
             });
 
@@ -445,7 +463,9 @@ private:
 
             m_searchPromise.set_value(std::move(result));
             s_oneFullSearchComplete.store(true, std::memory_order_relaxed);
-            m_searchState.store(SearchState::Idle);
+            if (m_searchState.load(std::memory_order_relaxed) != SearchState::Kill) {
+                m_searchState.store(SearchState::Idle);
+            }
         }
     }
 
@@ -483,7 +503,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (s_isStopped.load(std::memory_order_relaxed))
+            if (s_isStopped.load(std::memory_order_relaxed) || m_searchState == SearchState::Kill)
                 return score;
 
             if (score >= beta)
@@ -574,6 +594,7 @@ private:
     std::mutex m_mtx;
     std::condition_variable m_cv;
     std::atomic<SearchState> m_searchState { SearchState::Idle };
+    bool m_threadActive { false };
 
     syzygy::WdlResult m_wdl = syzygy::WdlResultTableNotActive;
     uint8_t m_dtz {};
@@ -657,6 +678,15 @@ public:
     constexpr void stop()
     {
         Searcher::s_isStopped.store(true, std::memory_order_relaxed);
+    }
+
+    constexpr void terminate()
+    {
+        for (auto& searcher : m_searchers) {
+            while (searcher.getThreadActive()) {
+                searcher.killWorkerThread();
+            }
+        }
     }
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
