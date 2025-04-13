@@ -137,4 +137,6 @@ constexpr static inline int32_t s_mateScore { s_maxScore - 2000 };
 
 constexpr static inline uint8_t s_middleGamePhase { 24 };
 
+constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
+
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;

@@ -36,6 +36,11 @@ public:
 
         m_hash = engine::generateHashKey(board);
 
+        /* we're dependent on the hash table - ensure it's initialized! */
+        if (engine::TtHashTable::getSizeMb() == 0) {
+            engine::TtHashTable::setSizeMb(s_defaultTtHashTableSizeMb);
+        }
+
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
     }
 
