@@ -8,6 +8,7 @@
 
 TEST_CASE("Scoring", "[scoring]")
 {
+    engine::TtHashTable::setSizeMb(16);
 
     SECTION("Test flipped score")
     {
