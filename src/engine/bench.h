@@ -14,7 +14,12 @@ public:
     static void run(uint8_t depth = s_defaultSearchDepth)
     {
         s_nodesCount = 0;
-        engine::TtHashTable::clear();
+
+        const size_t previousHashSize = engine::TtHashTable::getSizeMb();
+
+        /* lots of different positions - use a fairly universal size
+         * FIXME: add hash size as an optional argument */
+        engine::TtHashTable::setSizeMb(128);
 
         using namespace std::chrono;
         const auto startTime = system_clock::now();
@@ -50,6 +55,9 @@ public:
 
         /* OpenBench expects this format */
         fmt::println("{} nodes {:.0f} nps", s_nodesCount, nps);
+
+        /* reset to previous size */
+        engine::TtHashTable::setSizeMb(previousHashSize);
     }
 
 private:

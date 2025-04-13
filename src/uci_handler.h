@@ -24,7 +24,7 @@ public:
     static void run()
     {
         s_board.reset();
-        engine::TtHashTable::clear();
+        engine::TtHashTable::setSizeMb(s_defaultTtHashTableSizeMb);
         s_evaluator.reset();
 
         startInputThread();
@@ -372,8 +372,7 @@ private:
     static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
-        /* EXAMPLE: how to add with limits: */
-        /* ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {  }), */
+        ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
     });
 };
 
