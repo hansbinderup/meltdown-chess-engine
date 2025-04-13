@@ -31,7 +31,7 @@ constexpr int32_t staticEvaluation(const BitBoard& board)
             score += getQueenScore<PlayerWhite>(board, board.pieces[piece], phaseScore);
             break;
         case WhiteKing:
-            score += getKingScore<PlayerWhite>(board, board.pieces[piece]);
+            score += getKingScore<PlayerWhite>(board.pieces[piece]);
             break;
 
             /* BLACK PIECES - should all be negated! */
@@ -52,7 +52,7 @@ constexpr int32_t staticEvaluation(const BitBoard& board)
             score -= getQueenScore<PlayerBlack>(board, board.pieces[piece], phaseScore);
             break;
         case BlackKing:
-            score -= getKingScore<PlayerBlack>(board, board.pieces[piece]);
+            score -= getKingScore<PlayerBlack>(board.pieces[piece]);
             break;
         }
     }
