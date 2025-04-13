@@ -113,4 +113,6 @@ constexpr static inline int32_t s_minScore = -s_maxScore; // num limit is +1 hig
 constexpr static inline int32_t s_mateValue { s_maxScore - 1000 };
 constexpr static inline int32_t s_mateScore { s_maxScore - 2000 };
 
+constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
+
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
