@@ -54,6 +54,11 @@ public:
         m_isStopped = true;
     }
 
+    constexpr uint64_t getNodes() const
+    {
+        return m_nodes;
+    }
+
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         resetTiming(); /* to reset nodes etc but not tables */

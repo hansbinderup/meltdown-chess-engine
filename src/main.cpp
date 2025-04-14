@@ -1,3 +1,4 @@
+#include "engine/bench.h"
 #include "uci_handler.h"
 #include "version/version.h"
 
@@ -5,8 +6,13 @@
 
 int main(int argc, char** argv)
 {
-    std::ignore = argc;
-    std::ignore = argv;
+    const auto args = std::span(argv, argc);
+    for (const auto arg : args) {
+        if (std::strcmp(arg, "bench") == 0) {
+            engine::Bench::run();
+            return 0;
+        }
+    }
 
     fmt::print(
         "============================\n"
