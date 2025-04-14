@@ -1,5 +1,6 @@
 #pragma once
 
+#include "engine/bench.h"
 #include "evaluation/evaluator.h"
 #include "evaluation/perft.h"
 #include "helpers/formatters.h"
@@ -75,6 +76,8 @@ private:
             return handleHelp();
         } else if (command == "authors") {
             return handleAuthors();
+        } else if (command == "bench") {
+            return handleBench(args);
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
@@ -304,6 +307,18 @@ private:
         return true;
     }
 
+    static bool handleBench(std::string_view args)
+    {
+        const auto depth = parsing::to_number(args);
+        if (depth.has_value()) {
+            engine::Bench::run(*depth);
+        } else {
+            engine::Bench::run();
+        }
+
+        return true;
+    }
+
     static bool handleVersion()
     {
         fmt::print("Version:     {}\n"
@@ -325,6 +340,7 @@ private:
                    "debug clear         :  clear all scoring tables\n"
                    "debug options       :  print all options\n"
                    "debug syzygy        :  run syzygy evaluation on current position\n"
+                   "bench <depth>       :  run a bench test - depth is optional\n"
                    "authors             :  print author information\n"
                    "version             :  print version information\n"
                    "quit                :  stop the engine\n\n");
