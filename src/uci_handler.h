@@ -1,11 +1,13 @@
 #pragma once
 
+#include "engine/bench.h"
 #include "evaluation/evaluator.h"
 #include "evaluation/perft.h"
 #include "parsing/fen_parser.h"
 #include "parsing/input_parsing.h"
 
 #include "syzygy/syzygy.h"
+#include "version/version.h"
 
 #include <iostream>
 #include <string_view>
@@ -70,6 +72,8 @@ private:
             return handlePerft(args);
         } else if (command == "help") {
             return handleHelp();
+        } else if (command == "bench") {
+            return handleBench(args);
         } else if (command == "quit" || command == "exit") {
             s_isRunning = false;
         } else {
@@ -298,6 +302,28 @@ private:
         return true;
     }
 
+    static bool handleBench(std::string_view args)
+    {
+        const auto depth = parsing::to_number(args);
+        if (depth.has_value()) {
+            engine::Bench::run(*depth);
+        } else {
+            engine::Bench::run();
+        }
+
+        return true;
+    }
+
+    static bool handleVersion()
+    {
+        fmt::print("Version:     {}\n"
+                   "Build hash:  {}\n"
+                   "Build type:  {}\n"
+                   "Builtin:     {}\n\n",
+            s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
+        return true;
+    }
+
     static bool handleHelp()
     {
         fmt::print("\nMeltdown communicates over UCI protocol.\n"
@@ -309,6 +335,7 @@ private:
                    "debug clear         :  clear all scoring tables\n"
                    "debug options       :  print all options\n"
                    "debug syzygy        :  run syzygy evaluation on current position\n"
+                   "bench <depth>       :  run a bench test - depth is optional\n"
                    "version             :  print version information\n"
                    "quit                :  stop the engine\n");
 
