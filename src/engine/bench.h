@@ -37,7 +37,8 @@ public:
         const auto timeDiff = duration_cast<duration<double>>(endTime - startTime).count();
         const double nps = s_nodesCount / timeDiff;
 
-        fmt::println("info string {:.2f} seconds nodes {} nps {:.2f}", timeDiff, s_nodesCount, nps);
+        fmt::println("info string {:.2f} seconds", timeDiff);
+        fmt::println("{} nodes {:.0f} nps", s_nodesCount, nps);
     }
 
 private:
