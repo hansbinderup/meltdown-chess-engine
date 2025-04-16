@@ -180,10 +180,6 @@ private:
 
     static bool handleGo(std::string_view args)
     {
-        if (!s_searchersInitialized) {
-            s_evaluator.initializeSearchers(s_numThreads);
-            s_searchersInitialized = true;
-        }
         std::optional<uint8_t> depth;
 
         s_evaluator.resetTiming();
@@ -361,8 +357,6 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
-
-    static inline bool s_searchersInitialized { false };
     static inline uint8_t s_numThreads { 1 };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
