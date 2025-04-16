@@ -373,7 +373,7 @@ private:
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
         /* EXAMPLE: how to add with limits: */
-        /* ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {  }), */
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t) {}),
     });
 };
 
