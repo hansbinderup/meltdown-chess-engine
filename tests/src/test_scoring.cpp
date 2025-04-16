@@ -38,7 +38,6 @@ TEST_CASE("Scoring", "[scoring]")
     SECTION("Test move ordering")
     {
         evaluation::Evaluator s_evaluator;
-        s_evaluator.initializeSearchers(1);
         s_evaluator.reset();
 
         SECTION("Test capture moves only")

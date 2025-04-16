@@ -182,10 +182,6 @@ private:
 
     static bool handleGo(std::string_view args)
     {
-        if (!s_searchersInitialized) {
-            s_evaluator.initializeSearchers(s_numThreads);
-            s_searchersInitialized = true;
-        }
         std::optional<uint8_t> depth;
 
         s_evaluator.resetTiming();
@@ -363,8 +359,6 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
-
-    static inline bool s_searchersInitialized { false };
     static inline uint8_t s_numThreads { 1 };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
@@ -388,6 +382,9 @@ private:
     static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
-        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) { s_numThreads = val; }),
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {
+            s_numThreads = val;
+            s_evaluator.resizeSearchers(s_numThreads);
+        }),
     });
 };

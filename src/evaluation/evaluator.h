@@ -45,35 +45,113 @@ struct SearcherResult {
     uint8_t searchedDepth;
 };
 
+template<typename T, uint8_t maxSize>
+class StackVector {
+public:
+    uint8_t size() { return m_size; }
+
+    T& at(uint8_t idx) { return m_entries.at(idx); }
+
+    void setSize(uint8_t size) { m_size = size; }
+
+    void incSize() { m_size++; }
+
+    auto* begin() { return m_entries.begin(); }
+
+    auto* end() { return m_entries.begin() + m_size; }
+
+private:
+    std::array<T, maxSize> m_entries;
+    uint8_t m_size { 0 };
+};
+
+template<typename T, typename U, uint8_t maxSize>
+class StackMap {
+public:
+    StackMap() = default;
+
+    StackMap(std::initializer_list<std::pair<T, U>> init)
+    {
+        assert(init.size() < maxSize);
+
+        for (auto& entry : init) {
+            m_entries.at(m_size++) = std::move(entry);
+        }
+    }
+
+    constexpr U& at(const T& ext_key)
+    {
+        for (auto& [key, value] : m_entries) {
+            if (key == ext_key) {
+                return value;
+            }
+        }
+        throw std::out_of_range("No entry matching this key");
+    }
+
+    constexpr bool count(const T& ext_key)
+    {
+        for (auto& [key, value] : m_entries) {
+            if (key == ext_key) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template<class... Args>
+    constexpr void insert(Args&&... args)
+    {
+        assert(m_size < maxSize);
+        m_entries.at(m_size++) = std::pair<T, U>(std::forward<Args>(args)...);
+    }
+
+    uint8_t size() const { return m_size; }
+
+    constexpr void clear()
+    {
+        for (uint8_t i = 0; i < m_size; i++) {
+            m_entries.at(i) = std::pair<T, U> {};
+        }
+        m_size = 0;
+    }
+
+    auto* begin() { return m_entries.begin(); }
+
+    auto* end() { return m_entries.begin() + m_size; }
+
+private:
+    std::array<std::pair<T, U>, maxSize> m_entries {};
+    uint8_t m_size {};
+};
+
 /* Base class for searcher */
 class Searcher {
 public:
     Searcher()
-        : m_searcherId(s_numSearchers++) {
-
-        };
+        : m_searcherId(s_numSearchers++) {};
 
     Searcher(const Searcher&) = delete;
 
-    Searcher(Searcher&& other) noexcept
-        : m_searcherId(std::move(other.m_searcherId))
-        , m_workerThread(std::move(other.m_workerThread))
-    {
-    }
-
     void killWorkerThread()
     {
-        m_searchState.store(SearchState::Kill);
-        m_cv.notify_all();
-        if (m_threadActive && m_workerThread.joinable()) {
-            m_workerThread.join();
-            m_threadActive = false;
+        if (!m_threadActive || !m_workerThread.joinable())
+            return;
+
+        {
+            std::unique_lock<std::mutex> lock(m_mtx);
+            m_searchState.store(SearchState::Kill);
         }
+        m_cv.notify_all();
+        m_workerThread.join();
+        m_threadActive = false;
     }
 
     ~Searcher()
     {
         killWorkerThread();
+
+        s_numSearchers--;
     }
 
     Searcher& operator=(const Searcher&) = delete;
@@ -160,6 +238,17 @@ public:
     {
         m_moveOrdering.reset();
         m_repetition.reset();
+        m_selDepth = 0;
+        m_ttMove.reset();
+
+        m_wdl = syzygy::WdlResultTableNotActive;
+        m_dtz = 0;
+
+        m_board.reset();
+        m_hash = 0;
+        m_searchDepth = 0;
+        m_alpha = s_minScore;
+        m_beta = s_maxScore;
     }
 
     void updateRepetition(uint64_t hash)
@@ -580,7 +669,7 @@ private:
     Repetition m_repetition;
     MoveOrdering m_moveOrdering {};
     uint8_t m_selDepth {};
-    std::optional<movegen::Move> m_ttMove;
+    std::optional<movegen::Move> m_ttMove {};
 
     std::thread m_workerThread;
     std::mutex m_mtx;
@@ -619,22 +708,38 @@ uint64_t Searcher::s_nodes { 0 };
 
 class Evaluator {
 public:
-    void initializeSearchers(uint8_t numThreads)
+    Evaluator()
     {
-        m_searchers.clear();
+        m_searchers.incSize();
+    };
 
-        for (int i = 0; i < numThreads; ++i) {
-            m_searchers.emplace_back();
+    void resizeSearchers(uint8_t size)
+    {
+        if (size == m_searchers.size()) {
+            return;
         }
 
-        for (auto& searcher : m_searchers) {
-            searcher.startThreadLoop();
+        if (size < m_searchers.size()) {
+            for (uint8_t i = size; i < m_searchers.size(); i++) {
+                m_searchers.at(i).killWorkerThread();
+                m_searchers.at(i).reset();
+            }
         }
+
+        m_searchers.setSize(size);
     }
 
-    constexpr movegen::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr movegen::Move
+    getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_startTime = std::chrono::system_clock::now();
+        for (auto& searcher : m_searchers) {
+            if (!searcher.getThreadActive()) {
+                searcher.startThreadLoop();
+            }
+        }
+
+        m_startTime
+            = std::chrono::system_clock::now();
 
         /*
          * if a depth has been provided then make sure that we search to that depth
@@ -837,8 +942,7 @@ private:
             }
 
             /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
-            std::vector<SearcherResult> searchResults;
-            std::map<movegen::Move, int64_t> movesVotes;
+            StackVector<SearcherResult, s_maxThreads> searchResults {};
 
             for (auto& searcher : m_searchers) {
                 searcher.startSearch(d, alpha, beta);
@@ -849,16 +953,18 @@ private:
 
                 // If didn't fall out of window and wasn't an immediate early termination, push back to results
                 if ((result.score > alpha) && (result.score < beta) && result.searchedDepth > 0) {
-                    searchResults.push_back(std::move(result));
+                    searchResults.at(searchResults.size()) = std::move(result);
+                    searchResults.incSize();
                 }
             }
-
             if (searchResults.size() == 0) {
                 alpha = s_minScore;
                 beta = s_maxScore;
 
                 continue;
             }
+
+            m_movesVotes.clear();
 
             for (const auto& result : searchResults) {
 
@@ -869,12 +975,16 @@ private:
                 /* Can be tweaked for optimization */
                 int64_t voteWeight = (score - s_minScore) * depth;
 
-                movesVotes[move] += voteWeight;
+                if (!m_movesVotes.count(move)) {
+                    m_movesVotes.insert(move, voteWeight);
+                } else {
+                    m_movesVotes.at(move) += voteWeight;
+                }
             }
 
             int64_t maxVote = -std::numeric_limits<int64_t>::max();
 
-            for (const auto& [move, vote] : movesVotes) {
+            for (const auto& [move, vote] : m_movesVotes) {
                 if (vote > maxVote) {
                     maxVote = vote;
                     bestMove = move;
@@ -914,8 +1024,7 @@ private:
         return bestMove;
     }
 
-    void
-    startTimeHandler()
+    void startTimeHandler()
     {
         bool wasStopped = Searcher::s_isStopped.exchange(false);
         if (!wasStopped) {
@@ -941,7 +1050,7 @@ private:
         timeHandler.detach();
     }
 
-    std::vector<Searcher> m_searchers {};
+    StackVector<Searcher, s_maxThreads> m_searchers {};
 
     uint64_t m_whiteTime {};
     uint64_t m_blackTime {};
@@ -949,6 +1058,8 @@ private:
     std::optional<uint64_t> m_moveTime {};
     uint64_t m_whiteMoveInc {};
     uint64_t m_blackMoveInc {};
+
+    StackMap<movegen::Move, int64_t, s_maxThreads> m_movesVotes {};
 
     std::optional<movegen::Move> m_ponderMove { std::nullopt };
 
