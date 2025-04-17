@@ -57,7 +57,7 @@ All binaries are statically compiled so it should be easy to run.
 
 ### Compiling without Docker
 
-If you prefer to compile without Docker you must ensure that `meson` (min. v1.1) is installed and your compiler supports cpp26.
+If you prefer to compile without Docker you must ensure that `meson` (min. v1.1) is installed and your compiler supports cpp23.
 You can then run step #3 from above.
 
 ## Nightly builds
