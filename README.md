@@ -31,6 +31,11 @@ Comments:
     * For debugging in gdb: `./scripts/debug.sh`
     * Compile and run unit-tests: `./scripts/unit_test.sh`
 
+### Compiling without Docker
+
+If you prefer to compile without Docker you must ensure that `meson` (min. v1.1) is installed and your compiler supports cpp23.
+You can then run step #3 from above.
+
 ## Nightly builds
 
 Every night at 23:30 a nightly build will be triggered by the github actions scheduler.
