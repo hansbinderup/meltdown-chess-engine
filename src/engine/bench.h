@@ -14,6 +14,7 @@ public:
     static void run(uint8_t depth = s_defaultSearchDepth)
     {
         s_nodesCount = 0;
+        engine::TtHashTable::clear();
 
         using namespace std::chrono;
         const auto startTime = system_clock::now();
