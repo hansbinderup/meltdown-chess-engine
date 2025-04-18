@@ -112,6 +112,9 @@ public:
 
         board.updateOccupation();
 
+        board.attacks[PlayerWhite] = attackgen::getAllAttacks<PlayerWhite>(board);
+        board.attacks[PlayerBlack] = attackgen::getAllAttacks<PlayerBlack>(board);
+
         return true;
     }
 
