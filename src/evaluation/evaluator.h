@@ -12,7 +12,6 @@
 #include "syzygy/syzygy.h"
 #include <atomic>
 #include <engine/zobrist_hashing.h>
-#include <map>
 
 #include <chrono>
 #include <condition_variable>
@@ -331,10 +330,6 @@ public:
     template<SearchType searchType = SearchType::Default>
     constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
     {
-        if (s_oneFullSearchComplete) {
-            return alpha;
-        }
-
         const bool isRoot = m_ply == 0;
 
         m_moveOrdering.pvTable().updateLength(m_ply);
@@ -488,7 +483,7 @@ public:
 
             undoMove(moveRes->hash);
 
-            if (s_isStopped.load(std::memory_order_relaxed) || m_searchState.load(std::memory_order_relaxed) == SearchState::Kill)
+            if (s_isStopped.load(std::memory_order_relaxed) || s_oneFullSearchComplete.load(std::memory_order_relaxed) || m_searchState.load(std::memory_order_relaxed) == SearchState::Kill)
                 return score;
 
             if (score >= beta) {
