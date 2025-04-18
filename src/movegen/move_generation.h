@@ -99,7 +99,7 @@ constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t 
 constexpr static inline void generateCastlingMovesWhite(ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
     constexpr uint64_t queenSideAttackMask { 0x1cULL }; // 0b11100 - fields that can block castling if attacked
-    constexpr uint64_t kingSideAttackMask { 0x30ULL }; // 0b110000 - fields that can block castling if attacked
+    constexpr uint64_t kingSideAttackMask { 0x70ULL }; // 0b1110000 - fields that can block castling if attacked
     constexpr uint64_t queenSideOccupationMask { 0xeULL }; // 0b1110 - fields that can block castling if occupied
     constexpr uint64_t kingSideOccupationMask { 0x60ULL }; // 0b1100000 - fields that can block castling if occupied
 
@@ -125,7 +125,7 @@ constexpr static inline void generateCastlingMovesWhite(ValidMoves& validMoves, 
 constexpr static inline void generateCastlingMovesBlack(ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
     constexpr uint64_t queenSideAttackMask { 0x1cULL << s_eightRow };
-    constexpr uint64_t kingSideAttackMask { 0x30ULL << s_eightRow };
+    constexpr uint64_t kingSideAttackMask { 0x70ULL << s_eightRow };
     constexpr uint64_t queenSideOccupationMask { 0xeULL << s_eightRow };
     constexpr uint64_t kingSideOccupationMask { 0x60ULL << s_eightRow };
 
