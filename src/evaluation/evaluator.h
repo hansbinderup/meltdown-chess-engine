@@ -44,6 +44,7 @@ struct SearcherResult {
     uint8_t searchedDepth;
 };
 
+// Wrapper around a static array for intuitive iteration
 template<typename T, uint8_t maxSize>
 class StackVector {
 public:
@@ -181,6 +182,11 @@ public:
         m_hash = hash;
     }
 
+    constexpr static uint64_t getNodes()
+    {
+        return s_nodes;
+    }
+
     void startSearch(uint8_t depth, int32_t alpha, int32_t beta)
     {
         s_oneFullSearchComplete.store(false, std::memory_order_relaxed);
@@ -279,11 +285,6 @@ public:
         fmt::println("{}", fmt::join(m_moveOrdering.pvTable(), " "));
 
         fflush(stdout);
-    }
-
-    constexpr uint64_t getNodes() const
-    {
-        return m_nodes;
     }
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
@@ -710,7 +711,7 @@ class Evaluator {
 public:
     Evaluator()
     {
-        m_searchers.incSize();
+        resizeSearchers(1);
     };
 
     void resizeSearchers(uint8_t size)
@@ -721,23 +722,34 @@ public:
 
         if (size < m_searchers.size()) {
             for (uint8_t i = size; i < m_searchers.size(); i++) {
-                m_searchers.at(i).killWorkerThread();
+                m_searchers.at(i)->killWorkerThread();
                 m_searchers.at(i).reset();
             }
         }
 
+        else {
+            for (uint i = m_searchers.size(); i < size; i++) {
+                m_searchers.at(i) = std::make_unique<Searcher>();
+            }
+        }
+
         m_searchers.setSize(size);
+
+        for (auto& searcher : m_searchers) {
+            if (!searcher->getThreadActive()) {
+                searcher->startThreadLoop();
+            }
+        }
+    }
+
+    constexpr uint64_t getNodes() const
+    {
+        return Searcher::getNodes();
     }
 
     constexpr movegen::Move
     getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        for (auto& searcher : m_searchers) {
-            if (!searcher.getThreadActive()) {
-                searcher.startThreadLoop();
-            }
-        }
-
         m_startTime
             = std::chrono::system_clock::now();
 
@@ -759,8 +771,8 @@ public:
         }
 
         for (auto& searcher : m_searchers) {
-            searcher.setHashKey(hash);
-            searcher.setSmpBoard(board);
+            searcher->setHashKey(hash);
+            searcher->setSmpBoard(board);
         }
 
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
@@ -780,8 +792,8 @@ public:
     constexpr void terminate()
     {
         for (auto& searcher : m_searchers) {
-            while (searcher.getThreadActive()) {
-                searcher.killWorkerThread();
+            while (searcher->getThreadActive()) {
+                searcher->killWorkerThread();
             }
         }
     }
@@ -791,7 +803,7 @@ public:
         // Placeholder: print per-searcher for now
         Searcher::s_isStopped.store(false, std::memory_order_relaxed);
         for (auto& searcher : m_searchers) {
-            searcher.printEvaluation(board, depthInput);
+            searcher->printEvaluation(board, depthInput);
         }
     }
 
@@ -839,7 +851,7 @@ public:
         m_blackMoveInc = 0;
 
         for (auto& searcher : m_searchers) {
-            searcher.resetTiming();
+            searcher->resetTiming();
         }
     }
 
@@ -847,14 +859,14 @@ public:
     {
         resetTiming(); // full reset required
         for (auto& searcher : m_searchers) {
-            searcher.reset();
+            searcher->reset();
         }
     }
 
     void updateRepetition(uint64_t hash)
     {
         for (auto& searcher : m_searchers) {
-            searcher.updateRepetition(hash);
+            searcher->updateRepetition(hash);
         }
     }
 
@@ -862,6 +874,8 @@ public:
     {
         setupTimeControls(m_startTime, board);
     }
+
+    constexpr static inline uint8_t s_maxThreads { 128 };
 
 private:
     constexpr void setupTimeControls(TimePoint start, const BitBoard& board)
@@ -950,11 +964,11 @@ private:
             StackVector<SearcherResult, s_maxThreads> searchResults {};
 
             for (auto& searcher : m_searchers) {
-                searcher.startSearch(d, alpha, beta);
+                searcher->startSearch(d, alpha, beta);
             }
 
             for (auto& searcher : m_searchers) {
-                const auto& result = searcher.getSearchResult();
+                const auto& result = searcher->getSearchResult();
 
                 // If didn't fall out of window and wasn't an immediate early termination, push back to results
                 if ((result.score > alpha) && (result.score < beta) && result.searchedDepth > 0) {
@@ -962,6 +976,7 @@ private:
                     searchResults.incSize();
                 }
             }
+
             if (searchResults.size() == 0) {
                 alpha = s_minScore;
                 beta = s_maxScore;
@@ -1013,9 +1028,9 @@ private:
             beta = bestWinningResult.score + s_aspirationWindow;
 
             for (auto& searcher : m_searchers) {
-                if (searcher.getSearcherId() == bestWinningResult.searcherId) {
-                    searcher.printScoreInfo(board, bestWinningResult.score, d, m_startTime);
-                    m_ponderMove = searcher.getPonderMove();
+                if (searcher->getSearcherId() == bestWinningResult.searcherId) {
+                    searcher->printScoreInfo(board, bestWinningResult.score, d, m_startTime);
+                    m_ponderMove = searcher->getPonderMove();
                 }
             }
 
@@ -1055,7 +1070,7 @@ private:
         timeHandler.detach();
     }
 
-    StackVector<Searcher, s_maxThreads> m_searchers {};
+    StackVector<std::unique_ptr<Searcher>, s_maxThreads> m_searchers {};
 
     uint64_t m_whiteTime {};
     uint64_t m_blackTime {};
