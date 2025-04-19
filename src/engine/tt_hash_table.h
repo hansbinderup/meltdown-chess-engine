@@ -22,7 +22,6 @@ enum TtHashFlag : uint8_t {
  * depth: 8 bits, i.e. 0000 ... 0000 0000 1111 1111
  * flag: 2 bits, i.e. 0000 ... 0000 0011 1000 0000
  * score: 16 bits for value + 1 for sign (see board_defs.h)
- * generation: 4 bits
  * move: 26 bits (see move_types.h)
  * */
 
@@ -30,13 +29,12 @@ class TtHashEntryData {
 public:
     explicit TtHashEntryData() = default;
 
-    explicit TtHashEntryData(uint64_t depth, uint64_t flag, int64_t score, uint64_t generation, uint64_t move)
+    explicit TtHashEntryData(uint64_t depth, uint64_t flag, int64_t score, uint64_t move)
         : m_data(
               depth
               | flag << s_flagShift
               // Most significant bit: sign (1 if negative)
               | encodeScore(score)
-              | generation << s_generationShift
               | move << s_moveShift)
     {
     }
@@ -64,11 +62,6 @@ public:
         }
     }
 
-    constexpr uint8_t getGeneration() const
-    {
-        return (m_data >> s_generationShift) & s_generationMask;
-    }
-
     constexpr uint32_t getMoveData() const
     {
         return (m_data >> s_moveShift) & s_moveMask;
@@ -90,11 +83,8 @@ private:
     constexpr static uint64_t s_scoreMask { 0x1FFFF };
     constexpr static uint64_t s_scoreShift { 10 };
 
-    constexpr static uint64_t s_generationMask { 0xF };
-    constexpr static uint64_t s_generationShift { 27 };
-
     constexpr static uint64_t s_moveMask { 0x3FFFFFF };
-    constexpr static uint64_t s_moveShift { 31 };
+    constexpr static uint64_t s_moveShift { 27 };
 
     uint64_t m_data {};
 };
@@ -140,12 +130,6 @@ public:
         }
 
         s_hashCount = 0;
-        s_currentGeneration = 0;
-    }
-
-    static void advanceGeneration()
-    {
-        s_currentGeneration = (s_currentGeneration + 1) & s_generationMask; /* Increment and wrap - max gen */
     }
 
     static uint16_t getHashFull()
@@ -168,15 +152,6 @@ public:
         auto entryData = entry.data.load(std::memory_order_relaxed);
 
         if (entryKey != key) {
-            return std::nullopt;
-        }
-
-        /* Entry is outdated (from a previous generation) */
-        if (entryData.getGeneration() != s_currentGeneration) {
-            // Can be racy
-            if (s_hashCount.load(std::memory_order_relaxed) > 0) {
-                --s_hashCount;
-            }
             return std::nullopt;
         }
 
@@ -235,10 +210,7 @@ public:
 
 private:
     static inline std::size_t s_ttHashSize { 0 };
-    constexpr static uint8_t s_generationMask { 0xF }; /* 4-bit wrapping generation (max 16 generations allowed) */
-
     static inline TtHashEntry* s_ttHashTable;
     static inline std::atomic<uint64_t> s_hashCount {};
-    static inline uint8_t s_currentGeneration {};
 };
 }
