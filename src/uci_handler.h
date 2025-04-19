@@ -30,6 +30,7 @@ public:
         startInputThread();
 
         /* always release resources */
+        s_evaluator.terminate();
         syzygy::deinit();
     }
 
@@ -81,7 +82,7 @@ private:
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
-            s_isRunning = false;
+            return handleQuit();
         } else {
             // invalid input
             return false;
@@ -240,6 +241,14 @@ private:
         return true;
     }
 
+    static bool handleQuit()
+    {
+        s_evaluator.terminate();
+        s_isRunning = false;
+
+        return true;
+    }
+
     static bool handleSetOption(std::string_view input)
     {
         const auto name = parsing::sv_next_split(input);
@@ -351,6 +360,8 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
+    static inline uint8_t s_numThreads { 1 };
+
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 
     /* options used in the UCI handler */
@@ -372,8 +383,9 @@ private:
     static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
-        /* EXAMPLE: how to add with limits: */
-        /* ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {  }), */
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {
+            s_numThreads = val;
+            s_evaluator.resizeSearchers(s_numThreads);
+        }),
     });
 };
-

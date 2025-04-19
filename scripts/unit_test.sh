@@ -15,4 +15,4 @@ ln -sf "$BUILD_DIR"/compile_commands.json .
 meson test meltdown_test* -C "$BUILD_DIR" --print-errorlogs --timeout=10
 
 # example: run gdb for a given test
-# meson test meltdown_test_perft --gdb -C "$BUILD_DIR" --print-errorlogs --timeout=10
+# meson test meltdown_test_scoring --gdb -C "$BUILD_DIR" --print-errorlogs --timeout=10 --verbose
