@@ -28,14 +28,14 @@ public:
                 return;
             }
 
-            fmt::println("Position {}/{} [{}]", ++count, s_benchPositions.size(), position);
+            /* fmt::println("Position {}/{} [{}]", ++count, s_benchPositions.size(), position); */
 
             s_evaluator.reset();
             const auto bestMove = s_evaluator.getBestMove(*board, depth);
 
             s_nodesCount += s_evaluator.getNodes();
 
-            fmt::println("bestmove {}\n", bestMove);
+            /* fmt::println("bestmove {}\n", bestMove); */
         }
 
         const auto endTime = system_clock::now();
@@ -43,10 +43,10 @@ public:
         const auto timeDiff = duration_cast<duration<double>>(endTime - startTime).count();
         const double nps = s_nodesCount / timeDiff;
 
-        fmt::println("==========================\n"
-                     "Total time: {:.2f} seconds\n"
-                     "OpenBench result:",
-            timeDiff);
+        /* fmt::println("==========================\n" */
+        /*              "Total time: {:.2f} seconds\n" */
+        /*              "OpenBench result:", */
+        /*     timeDiff); */
 
         /* OpenBench expects this format */
         fmt::println("{} nodes {:.0f} nps", s_nodesCount, nps);

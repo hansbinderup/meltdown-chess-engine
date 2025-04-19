@@ -129,7 +129,7 @@ private:
 class Searcher {
 public:
     Searcher()
-        : m_searcherId(s_numSearchers++) {};
+        : m_searcherId(s_numSearchers++) { };
 
     Searcher(const Searcher&) = delete;
 
@@ -263,6 +263,7 @@ public:
 
     constexpr void printScoreInfo(const BitBoard& board, int32_t score, uint8_t currentDepth, const TimePoint& startTime)
     {
+        return;
         using namespace std::chrono;
 
         if (m_searchState.load(std::memory_order_relaxed) == SearchState::Kill) {
