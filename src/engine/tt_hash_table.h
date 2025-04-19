@@ -141,8 +141,13 @@ public:
         return std::min(permill, maxValue);
     }
 
-    using ProbeResult = std::pair<int32_t, movegen::Move>;
-    constexpr static std::optional<ProbeResult> probe(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
+    struct ProbeResult {
+        int32_t score;
+        TtHashFlag flag;
+        movegen::Move move;
+    };
+
+    constexpr static std::optional<ProbeResult> probe(uint64_t key, uint8_t depth, uint8_t ply)
     {
         assert(s_ttHashSize > 0);
 
@@ -164,17 +169,7 @@ public:
             if (score > s_mateScore)
                 score -= ply;
 
-            if (entryData.getFlag() == TtHashExact) {
-                return std::make_pair(score, movegen::Move(entryData.getMoveData()));
-            }
-
-            if ((entryData.getFlag() == TtHashAlpha) && (score <= alpha)) {
-                return std::make_pair(alpha, movegen::Move(entryData.getMoveData()));
-            }
-
-            if ((entryData.getFlag() == TtHashBeta) && (score >= beta)) {
-                return std::make_pair(beta, movegen::Move(entryData.getMoveData()));
-            }
+            return ProbeResult { .score = score, .flag = entryData.getFlag(), .move = movegen::Move(entryData.getMoveData()) };
         }
 
         return std::nullopt;
@@ -196,7 +191,7 @@ public:
             ++s_hashCount;
         }
 
-        TtHashEntryData newData { depth, flag, score, s_currentGeneration, move.getData() };
+        TtHashEntryData newData { depth, flag, score, move.getData() };
 
         // Can be racy
         entry.key.store(key, std::memory_order_relaxed);
