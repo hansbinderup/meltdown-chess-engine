@@ -20,7 +20,6 @@ enum TtHashFlag : uint8_t {
  * depth: 8 bits, i.e. 0000 ... 0000 0000 1111 1111
  * flag: 2 bits, i.e. 0000 ... 0000 0011 1000 0000
  * score: 16 bits for value + 1 for sign (see board_defs.h)
- * generation: 4 bits
  * move: 26 bits (see move_types.h)
  * */
 
@@ -28,13 +27,12 @@ class TtHashEntryData {
 public:
     explicit TtHashEntryData() = default;
 
-    explicit TtHashEntryData(uint64_t depth, uint64_t flag, int64_t score, uint64_t generation, uint64_t move)
+    explicit TtHashEntryData(uint64_t depth, uint64_t flag, int64_t score, uint64_t move)
         : m_data(
               depth
               | flag << s_flagShift
               // Most significant bit: sign (1 if negative)
               | encodeScore(score)
-              | generation << s_generationShift
               | move << s_moveShift)
     {
     }
@@ -62,11 +60,6 @@ public:
         }
     }
 
-    constexpr uint8_t getGeneration() const
-    {
-        return (m_data >> s_generationShift) & s_generationMask;
-    }
-
     constexpr uint32_t getMoveData() const
     {
         return (m_data >> s_moveShift) & s_moveMask;
@@ -88,11 +81,8 @@ private:
     constexpr static uint64_t s_scoreMask { 0x1FFFF };
     constexpr static uint64_t s_scoreShift { 10 };
 
-    constexpr static uint64_t s_generationMask { 0xF };
-    constexpr static uint64_t s_generationShift { 27 };
-
     constexpr static uint64_t s_moveMask { 0x3FFFFFF };
-    constexpr static uint64_t s_moveShift { 31 };
+    constexpr static uint64_t s_moveShift { 27 };
 
     uint64_t m_data {};
 };
@@ -114,12 +104,6 @@ public:
             entry.data = TtHashEntryData();
         }
         s_hashCount = 0;
-        s_currentGeneration = 0;
-    }
-
-    static void advanceGeneration()
-    {
-        s_currentGeneration = (s_currentGeneration + 1) & s_generationMask; /* Increment and wrap - max gen */
     }
 
     static uint16_t getHashFull()
@@ -131,8 +115,13 @@ public:
         return std::min(permill, maxValue);
     }
 
-    using ProbeResult = std::pair<int32_t, movegen::Move>;
-    constexpr static std::optional<ProbeResult> probe(uint64_t key, int32_t alpha, int32_t beta, uint8_t depth, uint8_t ply)
+    struct ProbeResult {
+        int32_t score;
+        TtHashFlag flag;
+        movegen::Move move;
+    };
+
+    constexpr static std::optional<ProbeResult> probe(uint64_t key, uint8_t depth, uint8_t ply)
     {
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
@@ -140,15 +129,6 @@ public:
         auto entryData = entry.data.load(std::memory_order_relaxed);
 
         if (entryKey != key) {
-            return std::nullopt;
-        }
-
-        /* Entry is outdated (from a previous generation) */
-        if (entryData.getGeneration() != s_currentGeneration) {
-            // Can be racy
-            if (s_hashCount.load(std::memory_order_relaxed) > 0) {
-                --s_hashCount;
-            }
             return std::nullopt;
         }
 
@@ -161,17 +141,7 @@ public:
             if (score > s_mateScore)
                 score -= ply;
 
-            if (entryData.getFlag() == TtHashExact) {
-                return std::make_pair(score, movegen::Move(entryData.getMoveData()));
-            }
-
-            if ((entryData.getFlag() == TtHashAlpha) && (score <= alpha)) {
-                return std::make_pair(alpha, movegen::Move(entryData.getMoveData()));
-            }
-
-            if ((entryData.getFlag() == TtHashBeta) && (score >= beta)) {
-                return std::make_pair(beta, movegen::Move(entryData.getMoveData()));
-            }
+            return ProbeResult { .score = score, .flag = entryData.getFlag(), .move = movegen::Move(entryData.getMoveData()) };
         }
 
         return std::nullopt;
@@ -191,7 +161,7 @@ public:
             ++s_hashCount;
         }
 
-        TtHashEntryData newData { depth, flag, score, s_currentGeneration, move.getData() };
+        TtHashEntryData newData { depth, flag, score, move.getData() };
 
         // Can be racy
         entry.key.store(key, std::memory_order_relaxed);
@@ -201,10 +171,8 @@ public:
 private:
     constexpr static std::size_t s_hashTableSizeMb { 128 };
     constexpr static std::size_t s_ttHashSize { (s_hashTableSizeMb * 1024 * 1024) / sizeof(TtHashEntry) };
-    constexpr static uint8_t s_generationMask { 0xF }; /* 4-bit wrapping generation (max 16 generations allowed) */
 
     static inline std::array<TtHashEntry, s_ttHashSize> s_ttHashTable; /* TODO: make dynamic so size can be adjusted from UCI */
     static inline std::atomic<uint64_t> s_hashCount {};
-    static inline uint8_t s_currentGeneration {};
 };
 }

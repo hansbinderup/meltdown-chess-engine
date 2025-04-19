@@ -138,7 +138,6 @@ private:
             s_board.reset();
 
             s_evaluator.reset();
-            engine::TtHashTable::advanceGeneration();
 
             const auto subCommand = parsing::sv_next_split(args);
             if (subCommand == "moves") {
@@ -150,7 +149,6 @@ private:
                 s_board = std::move(board.value());
 
                 s_evaluator.reset();
-                engine::TtHashTable::advanceGeneration();
 
                 using namespace std::string_view_literals;
                 const auto movesPos = args.rfind("moves ");
