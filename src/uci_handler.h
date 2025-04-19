@@ -30,6 +30,7 @@ public:
         startInputThread();
 
         /* always release resources */
+        s_evaluator.terminate();
         syzygy::deinit();
     }
 
