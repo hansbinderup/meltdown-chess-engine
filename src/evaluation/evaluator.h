@@ -191,12 +191,12 @@ public:
     {
         s_oneFullSearchComplete.store(false, std::memory_order_relaxed);
 
-        m_moveOrdering.pvTable().setIsFollowing(true);
-        m_wdl = syzygy::WdlResultTableNotActive;
-        m_dtz = 0;
-
         {
             std::unique_lock<std::mutex> lock(m_mtx);
+
+            m_moveOrdering.pvTable().setIsFollowing(true);
+            m_wdl = syzygy::WdlResultTableNotActive;
+            m_dtz = 0;
 
             m_searchPromise = std::promise<SearcherResult>();
             m_futureResult = m_searchPromise.get_future();
@@ -745,14 +745,17 @@ public:
     constexpr movegen::Move
     getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_startTime
-            = std::chrono::system_clock::now();
-
+        {
+            std::unique_lock<std::mutex> lock(m_timeHandleMutex);
+            m_startTime
+                = std::chrono::system_clock::now();
+        }
         /*
          * if a depth has been provided then make sure that we search to that depth
          * timeout will be 10 minutes
          */
         if (depthInput.has_value()) {
+            std::unique_lock<std::mutex> lock(m_timeHandleMutex);
             m_endTime = m_startTime + std::chrono::minutes(10);
         } else {
             setupTimeControls(m_startTime, board);
