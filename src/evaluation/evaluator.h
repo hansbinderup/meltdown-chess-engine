@@ -308,8 +308,11 @@ private:
         const bool isRoot = m_ply == 0;
 
         m_moveOrdering.pvTable().updateLength(m_ply);
-        if (m_ply && m_repetition.isRepetition(m_hash)) {
-            return 0; /* draw score */
+        if (m_ply) {
+            /* FIXME: make a little more sophisticated with material count etc */
+            const bool isDraw = m_repetition.isRepetition(m_hash) || board.halfMoves >= 100;
+            if (isDraw)
+                return 0; /* draw score */
         }
 
         const bool isPv = beta - alpha > 1;
