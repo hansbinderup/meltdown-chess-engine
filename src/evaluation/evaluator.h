@@ -321,14 +321,13 @@ private:
         }
 
         const bool isPv = beta - alpha > 1;
-        const auto hashProbe = engine::TtHashTable::probe(m_hash, alpha, beta, depth, m_ply);
-        if (hashProbe.has_value()) {
-            if (m_ply && !isPv)
-                return hashProbe->first;
-
-            m_ttMove = hashProbe->second;
-        } else {
-            m_ttMove.reset();
+        const auto hashProbe = engine::TtHashTable::probe(m_hash, depth, m_ply);
+        if (hashProbe.has_value() && m_ply && !isPv) {
+            if ((hashProbe->flag == engine::TtHashExact)
+                || (hashProbe->flag == engine::TtHashAlpha && hashProbe->score <= alpha)
+                || (hashProbe->flag == engine::TtHashBeta && hashProbe->score >= beta)) {
+                return hashProbe->score;
+            }
         }
 
         // Engine is not designed to search deeper than this! Make sure to stop before it's too late
@@ -415,7 +414,8 @@ private:
                 m_moveOrdering.pvTable().updatePvScoring(moves, m_ply);
             }
 
-            m_moveOrdering.sortMoves(board, moves, m_ply, m_ttMove);
+            const auto ttMove = hashProbe.has_value() ? std::make_optional(hashProbe->move) : std::nullopt;
+            m_moveOrdering.sortMoves(board, moves, m_ply, ttMove);
         }
 
         for (const auto& move : moves) {
@@ -645,7 +645,6 @@ private:
     std::atomic_bool m_isStopped { true };
     uint64_t m_hash {};
     uint8_t m_selDepth {};
-    std::optional<movegen::Move> m_ttMove;
 
     syzygy::WdlResult m_wdl = syzygy::WdlResultTableNotActive;
     uint8_t m_dtz {};
