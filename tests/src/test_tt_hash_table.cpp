@@ -14,7 +14,7 @@ constexpr uint8_t ply = 2;
 
 TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
 {
-    TtHashTable::TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0x123456789ABCDEF;
     int32_t score = 42;
@@ -32,7 +32,7 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
 
 TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
 {
-    TtHashTable::TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0x123456789ABCDEF;
     int32_t score = s_maxScore;
@@ -50,7 +50,7 @@ TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
 
 TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
 {
-    TtHashTable::TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0x123456789ABCDEF;
     int32_t score = s_minScore;
@@ -68,7 +68,7 @@ TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
 
 TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
 {
-    TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0xDEADBEEFCAFEBABE;
     int32_t oldScore = 10;
@@ -88,7 +88,7 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
 
 TEST_CASE("Transposition Table - Collision Handling", "[TT]")
 {
-    TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     uint64_t key1 = 0x1111111111111111;
     uint64_t key2 = key1 + TtHashTable::s_ttHashSize; // Forces collision
@@ -111,7 +111,7 @@ TEST_CASE("Transposition Table - Collision Handling", "[TT]")
 
 TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
 {
-    TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     constexpr int32_t nearMate = s_mateValue - 10;
 
@@ -153,7 +153,7 @@ TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
 
 TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
 {
-    TtHashTable::clear();
+    engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0xF00DBABE12345678;
     const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
