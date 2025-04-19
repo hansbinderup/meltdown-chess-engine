@@ -336,6 +336,14 @@ private:
             return staticEvaluation(board);
         }
 
+        const bool isChecked = engine::isKingAttacked(board);
+        if (isChecked) {
+            /* Dangerous position - increase search depth
+             * NOTE: there's rarely many legal moves in this position
+             * so it's quite cheap to extend the search a bit */
+            depth++;
+        }
+
         if (depth == 0) {
             return quiesence(board, alpha, beta);
         }
@@ -348,12 +356,6 @@ private:
 
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
-        const bool isChecked = engine::isKingAttacked(board);
-
-        // Dangerous position - increase search depth
-        if (isChecked) {
-            depth++;
-        }
 
         const int32_t staticEval = staticEvaluation(board);
 
