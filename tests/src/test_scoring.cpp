@@ -55,7 +55,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(moves[1].piece() == WhiteKing);
             REQUIRE(moves[2].piece() == WhiteRook);
 
-            const auto move = s_evaluator.getBestMove(board.value(), 4);
+            const auto move = s_evaluator.getBestMove(board.value(), 1, 4);
             REQUIRE(move.piece() == WhitePawn);
         }
 
@@ -72,7 +72,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(moves[1].piece() == WhiteKing);
             REQUIRE(moves[2].piece() == WhiteRook);
 
-            const auto move = s_evaluator.getBestMove(board.value(), 4);
+            const auto move = s_evaluator.getBestMove(board.value(), 1, 4);
             REQUIRE(move.piece() == WhiteQueen); // evading attack + checking king = better move!
         }
     }

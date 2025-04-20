@@ -28,7 +28,9 @@ enum SearchType {
 
 enum SearchState {
     Idle,
-    Searching,
+    Search,
+    Done,
+    Stop,
     Kill
 };
 
@@ -44,33 +46,15 @@ struct SearcherResult {
     uint8_t searchedDepth;
 };
 
-// Wrapper around a static array for intuitive iteration
-template<typename T, uint8_t maxSize>
-class StackVector {
+template<uint8_t maxSize>
+class MoveVoteMap {
+
+    using MoveVotePair = std::pair<movegen::Move, uint8_t>;
+
 public:
-    uint8_t size() { return m_size; }
+    MoveVoteMap() = default;
 
-    T& at(uint8_t idx) { return m_entries.at(idx); }
-
-    void setSize(uint8_t size) { m_size = size; }
-
-    void incSize() { m_size++; }
-
-    auto* begin() { return m_entries.begin(); }
-
-    auto* end() { return m_entries.begin() + m_size; }
-
-private:
-    std::array<T, maxSize> m_entries;
-    uint8_t m_size { 0 };
-};
-
-template<typename T, typename U, uint8_t maxSize>
-class StackMap {
-public:
-    StackMap() = default;
-
-    StackMap(std::initializer_list<std::pair<T, U>> init)
+    MoveVoteMap(std::initializer_list<MoveVotePair> init)
     {
         assert(init.size() < maxSize);
 
@@ -79,39 +63,36 @@ public:
         }
     }
 
-    constexpr U& at(const T& ext_key)
+    constexpr uint8_t& at(const movegen::Move& ext_move)
     {
-        for (auto& [key, value] : m_entries) {
-            if (key == ext_key) {
-                return value;
+        for (auto& [move, vote] : m_entries) {
+            if (move == ext_move) {
+                return vote;
             }
         }
-        throw std::out_of_range("No entry matching this key");
+        assert(false);
     }
 
-    constexpr bool count(const T& ext_key)
+    constexpr bool count(const movegen::Move& ext_move)
     {
-        for (auto& [key, value] : m_entries) {
-            if (key == ext_key) {
+        for (auto& [move, vote] : m_entries) {
+            if (move == ext_move) {
                 return true;
             }
         }
         return false;
     }
 
-    template<class... Args>
-    constexpr void insert(Args&&... args)
+    constexpr void insert(movegen::Move move, uint8_t vote)
     {
         assert(m_size < maxSize);
-        m_entries.at(m_size++) = std::pair<T, U>(std::forward<Args>(args)...);
+        m_entries.at(m_size++) = MoveVotePair(move, vote);
     }
-
-    uint8_t size() const { return m_size; }
 
     constexpr void clear()
     {
         for (uint8_t i = 0; i < m_size; i++) {
-            m_entries.at(i) = std::pair<T, U> {};
+            m_entries.at(i) = MoveVotePair {};
         }
         m_size = 0;
     }
@@ -121,7 +102,7 @@ public:
     auto* end() { return m_entries.begin() + m_size; }
 
 private:
-    std::array<std::pair<T, U>, maxSize> m_entries {};
+    std::array<MoveVotePair, maxSize> m_entries {};
     uint8_t m_size {};
 };
 
@@ -129,22 +110,22 @@ private:
 class Searcher {
 public:
     Searcher()
-        : m_searcherId(s_numSearchers++) {};
+        : m_searcherId(s_numSearchers)
+    {
+
+        m_workerThread = std::jthread([this]() { this->threadLoop(); });
+        ++s_numSearchers;
+    }
 
     Searcher(const Searcher&) = delete;
 
     void killWorkerThread()
     {
-        if (!m_threadActive || !m_workerThread.joinable())
-            return;
-
         {
             std::unique_lock<std::mutex> lock(m_mtx);
-            m_searchState.store(SearchState::Kill);
+            s_searchState.store(SearchState::Kill);
         }
         m_cv.notify_all();
-        m_workerThread.join();
-        m_threadActive = false;
     }
 
     ~Searcher()
@@ -159,17 +140,6 @@ public:
     uint8_t getSearcherId()
     {
         return m_searcherId;
-    }
-
-    bool getThreadActive()
-    {
-        return m_threadActive;
-    }
-
-    void startThreadLoop()
-    {
-        m_workerThread = std::thread([this]() { this->threadLoop(); });
-        m_threadActive = true;
     }
 
     void setSmpBoard(const BitBoard& board)
@@ -189,8 +159,6 @@ public:
 
     void startSearch(uint8_t depth, int32_t alpha, int32_t beta)
     {
-        s_oneFullSearchComplete.store(false, std::memory_order_relaxed);
-
         {
             std::unique_lock<std::mutex> lock(m_mtx);
 
@@ -198,21 +166,18 @@ public:
             m_wdl = syzygy::WdlResultTableNotActive;
             m_dtz = 0;
 
-            m_searchPromise = std::promise<SearcherResult>();
+            m_oneFullSearchComplete.store(false, std::memory_order_relaxed);
+            m_searchPromise = std::promise<std::optional<SearcherResult>>();
             m_futureResult = m_searchPromise.get_future();
 
             m_searchDepth = depth;
             m_alpha = alpha;
             m_beta = beta;
-
-            if (m_searchState.load(std::memory_order_relaxed) != SearchState::Kill) {
-                m_searchState.store(SearchState::Searching, std::memory_order_relaxed);
-            }
         }
         m_cv.notify_one();
     }
 
-    constexpr SearcherResult getSearchResult()
+    constexpr std::optional<SearcherResult> getSearchResult()
     {
         return m_futureResult.get();
     }
@@ -265,7 +230,7 @@ public:
     {
         using namespace std::chrono;
 
-        if (m_searchState.load(std::memory_order_relaxed) == SearchState::Kill) {
+        if (s_searchState.load(std::memory_order_relaxed) == SearchState::Kill) {
             return;
         }
 
@@ -308,13 +273,21 @@ public:
         }
 
         /* no need for time management here - just control the start/stop ourselves */
-        s_isStopped.store(false, std::memory_order_relaxed);
+        for (auto expected : {
+                 SearchState::Idle, SearchState::Done, SearchState::Stop }) {
+            s_searchState.compare_exchange_weak(expected, SearchState::Search, std::memory_order_relaxed, std::memory_order_relaxed);
+        }
 
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         m_moveOrdering.sortMoves(board, moves, m_ply);
         const int32_t score = negamax(depth, board);
-        s_isStopped = true;
+
+        for (auto expected : {
+                 SearchState::Search, SearchState::Done }) {
+
+            s_searchState.compare_exchange_weak(expected, SearchState::Stop, std::memory_order_relaxed, std::memory_order_relaxed);
+        }
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : moves) {
@@ -484,7 +457,7 @@ public:
 
             undoMove(moveRes->hash);
 
-            if (s_isStopped.load(std::memory_order_relaxed) || s_oneFullSearchComplete.load(std::memory_order_relaxed) || m_searchState.load(std::memory_order_relaxed) == SearchState::Kill)
+            if (s_searchState >= SearchState::Done)
                 return score;
 
             if (score >= beta) {
@@ -520,8 +493,7 @@ public:
         return alpha;
     }
 
-    static std::atomic_bool s_isStopped;
-    static std::atomic_bool s_oneFullSearchComplete;
+    static std::atomic<SearchState> s_searchState;
 
 private:
     void threadLoop()
@@ -529,25 +501,36 @@ private:
         while (true) {
             std::unique_lock<std::mutex> lock(m_mtx);
             m_cv.wait(lock, [this] {
-                const auto state = m_searchState.load(std::memory_order_relaxed);
-                return state == SearchState::Searching || state == SearchState::Kill;
+                const auto state = s_searchState.load(std::memory_order_relaxed);
+
+                return state == SearchState::Kill || !m_oneFullSearchComplete.load(std::memory_order_relaxed);
             });
 
-            if (m_searchState == SearchState::Kill) {
+            if (s_searchState.load(std::memory_order_relaxed) == SearchState::Kill) {
                 return;
             }
 
-            SearcherResult result;
-            result.score
-                = negamax(m_searchDepth, m_board, m_alpha, m_beta);
-            result.searcherId = m_searcherId;
-            result.pvMove = m_moveOrdering.pvTable().bestMove();
-            result.searchedDepth = m_moveOrdering.pvTable().size();
+            if (s_searchState.load(std::memory_order_relaxed) == SearchState::Done) {
 
-            m_searchPromise.set_value(std::move(result));
-            s_oneFullSearchComplete.store(true, std::memory_order_relaxed);
-            if (m_searchState.load(std::memory_order_relaxed) != SearchState::Kill) {
-                m_searchState.store(SearchState::Idle);
+                m_oneFullSearchComplete.store(true, std::memory_order_relaxed);
+
+                m_searchPromise.set_value(std::nullopt);
+            }
+
+            else {
+                SearcherResult result;
+                result.score
+                    = negamax(m_searchDepth, m_board, m_alpha, m_beta);
+                result.searcherId = m_searcherId;
+                result.pvMove = m_moveOrdering.pvTable().bestMove();
+                result.searchedDepth = m_moveOrdering.pvTable().size();
+
+                auto expected = SearchState::Search;
+                s_searchState.compare_exchange_weak(expected, SearchState::Done, std::memory_order_relaxed, std::memory_order_relaxed);
+
+                m_oneFullSearchComplete.store(true, std::memory_order_relaxed);
+
+                m_searchPromise.set_value(result);
             }
         }
     }
@@ -586,7 +569,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (s_isStopped.load(std::memory_order_relaxed) || m_searchState == SearchState::Kill)
+            if (s_searchState.load(std::memory_order_relaxed) != SearchState::Search)
                 return score;
 
             if (score >= beta)
@@ -672,13 +655,13 @@ private:
     uint8_t m_selDepth {};
     std::optional<movegen::Move> m_ttMove {};
 
-    std::thread m_workerThread;
+    std::jthread m_workerThread;
     std::mutex m_mtx;
     std::condition_variable m_cv;
-    std::atomic<SearchState> m_searchState { SearchState::Idle };
-    bool m_threadActive { false };
+    std::atomic_bool m_oneFullSearchComplete { true };
 
-    syzygy::WdlResult m_wdl = syzygy::WdlResultTableNotActive;
+    syzygy::WdlResult m_wdl
+        = syzygy::WdlResultTableNotActive;
     uint8_t m_dtz {};
 
     BitBoard m_board;
@@ -687,8 +670,8 @@ private:
     int32_t m_alpha { s_minScore };
     int32_t m_beta { s_maxScore };
 
-    std::promise<SearcherResult> m_searchPromise;
-    std::future<SearcherResult> m_futureResult;
+    std::promise<std::optional<SearcherResult>> m_searchPromise;
+    std::future<std::optional<SearcherResult>> m_futureResult;
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
@@ -702,8 +685,7 @@ private:
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 
-std::atomic_bool Searcher::s_isStopped { true };
-std::atomic_bool Searcher::s_oneFullSearchComplete { false };
+std::atomic<SearchState> Searcher::s_searchState { SearchState::Idle };
 uint8_t Searcher::s_numSearchers { 0 };
 uint64_t Searcher::s_nodes { 0 };
 
@@ -723,23 +705,16 @@ public:
         if (size < m_searchers.size()) {
             for (uint8_t i = size; i < m_searchers.size(); i++) {
                 m_searchers.at(i)->killWorkerThread();
-                m_searchers.at(i).reset();
             }
         }
 
         else {
-            for (uint i = m_searchers.size(); i < size; i++) {
-                m_searchers.at(i) = std::make_unique<Searcher>();
+            for (uint8_t i = m_searchers.size(); i < size; i++) {
+                m_searchers.emplace_back(std::make_unique<Searcher>());
             }
         }
 
-        m_searchers.setSize(size);
-
-        for (auto& searcher : m_searchers) {
-            if (!searcher->getThreadActive()) {
-                searcher->startThreadLoop();
-            }
-        }
+        m_searchers.resize(size);
     }
 
     constexpr uint64_t getNodes() const
@@ -747,31 +722,30 @@ public:
         return Searcher::getNodes();
     }
 
-    constexpr movegen::Move
-    getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    constexpr SearchState getSearchState() const
     {
-        {
-            std::unique_lock<std::mutex> lock(m_timeHandleMutex);
-            m_startTime
-                = std::chrono::system_clock::now();
-        }
+        return Searcher::s_searchState.load(std::memory_order_relaxed);
+    }
+
+    constexpr movegen::Move
+    getBestMove(const BitBoard& board, uint8_t numThreads, std::optional<uint8_t> depthInput = std::nullopt)
+    {
+        m_startTime
+            = std::chrono::system_clock::now();
+
+        resizeSearchers(numThreads);
+
         /*
          * if a depth has been provided then make sure that we search to that depth
          * timeout will be 10 minutes
          */
         if (depthInput.has_value()) {
-            std::unique_lock<std::mutex> lock(m_timeHandleMutex);
             m_endTime = m_startTime + std::chrono::minutes(10);
         } else {
             setupTimeControls(m_startTime, board);
         }
 
         uint64_t hash = engine::generateHashKey(board);
-
-        /* we're dependent on the hash table - ensure it's initialized! */
-        if (engine::TtHashTable::getSizeMb() == 0) {
-            engine::TtHashTable::setSizeMb(s_defaultTtHashTableSizeMb);
-        }
 
         for (auto& searcher : m_searchers) {
             searcher->setHashKey(hash);
@@ -789,22 +763,26 @@ public:
     /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
     constexpr void stop()
     {
-        Searcher::s_isStopped.store(true, std::memory_order_relaxed);
+        auto expected = SearchState::Search;
+
+        Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Stop, std::memory_order_relaxed, std::memory_order_relaxed);
     }
 
     constexpr void terminate()
     {
         for (auto& searcher : m_searchers) {
-            while (searcher->getThreadActive()) {
-                searcher->killWorkerThread();
-            }
+            searcher->killWorkerThread();
         }
     }
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        // Placeholder: print per-searcher for now
-        Searcher::s_isStopped.store(false, std::memory_order_relaxed);
+        if (Searcher::s_searchState.load(std::memory_order_relaxed) == SearchState::Kill)
+            return;
+
+        auto expected = SearchState::Search;
+
+        Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Stop, std::memory_order_relaxed, std::memory_order_relaxed);
         for (auto& searcher : m_searchers) {
             searcher->printEvaluation(board, depthInput);
         }
@@ -937,8 +915,9 @@ private:
         uint8_t d = 1;
 
         while (d <= depth) {
-            if (Searcher::s_isStopped.load(std::memory_order_relaxed))
+            if (Searcher::s_searchState.load(std::memory_order_relaxed) >= SearchState::Done) {
                 break;
+            }
 
             /* always allow full scan on first move - will be good for the hash table :) */
             if (board.fullMoves > 0) {
@@ -964,23 +943,33 @@ private:
             }
 
             /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
-            StackVector<SearcherResult, s_maxThreads> searchResults {};
+            std::array<SearcherResult, s_maxThreads> searchResults {};
+            uint8_t numSearchResults {};
+
+            for (auto expected : { SearchState::Idle, SearchState::Stop, SearchState::Done }) {
+                Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Search, std::memory_order_relaxed, std::memory_order_relaxed);
+            }
 
             for (auto& searcher : m_searchers) {
                 searcher->startSearch(d, alpha, beta);
             }
 
             for (auto& searcher : m_searchers) {
+                // If a result has been produced
                 const auto& result = searcher->getSearchResult();
-
-                // If didn't fall out of window and wasn't an immediate early termination, push back to results
-                if ((result.score > alpha) && (result.score < beta) && result.searchedDepth > 0) {
-                    searchResults.at(searchResults.size()) = std::move(result);
-                    searchResults.incSize();
+                if (result.has_value()) {
+                    // If didn't fall out of window and wasn't an immediate early termination, push back to results
+                    if ((result.value().score > alpha) && (result.value().score < beta) && result.value().searchedDepth > 0) {
+                        searchResults.at(numSearchResults) = result.value();
+                        ++numSearchResults;
+                    }
                 }
             }
 
-            if (searchResults.size() == 0) {
+            auto expected = SearchState::Done;
+            Searcher::s_searchState.compare_exchange_weak(expected, Idle, std::memory_order_relaxed, std::memory_order_relaxed);
+
+            if (numSearchResults == 0) {
                 alpha = s_minScore;
                 beta = s_maxScore;
 
@@ -989,7 +978,9 @@ private:
 
             m_movesVotes.clear();
 
-            for (const auto& result : searchResults) {
+            for (uint8_t i = 0; i < numSearchResults; i++) {
+
+                const auto& result = searchResults.at(i);
 
                 const int32_t score = result.score;
                 const uint8_t depth = result.searchedDepth;
@@ -1017,10 +1008,10 @@ private:
             uint8_t bestWinningDepth = 0;
             SearcherResult bestWinningResult;
 
-            for (const auto& result : searchResults) {
-                if (result.pvMove == bestMove) {
+            for (uint8_t i = 0; i < numSearchResults; i++) {
+                if (searchResults.at(i).pvMove == bestMove) {
                     if (depth > bestWinningDepth) {
-                        bestWinningResult = result;
+                        bestWinningResult = searchResults.at(i);
                         bestWinningDepth = depth;
                     }
                 }
@@ -1031,7 +1022,7 @@ private:
             beta = bestWinningResult.score + s_aspirationWindow;
 
             for (auto& searcher : m_searchers) {
-                if (searcher->getSearcherId() == bestWinningResult.searcherId) {
+                if (searcher->getSearcherId() == bestWinningResult.searcherId && Searcher::s_searchState.load(std::memory_order_relaxed) != SearchState::Kill) {
                     searcher->printScoreInfo(board, bestWinningResult.score, d, m_startTime);
                     m_ponderMove = searcher->getPonderMove();
                 }
@@ -1049,20 +1040,22 @@ private:
 
     void startTimeHandler()
     {
-        bool wasStopped = Searcher::s_isStopped.exchange(false);
-        if (!wasStopped) {
+        auto stoppedState = Searcher::s_searchState.exchange(SearchState::Idle);
+        if (stoppedState != SearchState::Stop) {
             return; /* nothing to do here */
         }
 
         std::thread timeHandler([this] {
-            while (!Searcher::s_isStopped.load(std::memory_order_relaxed)) {
+            while (Searcher::s_searchState.load(std::memory_order_relaxed) != SearchState::Stop) {
                 {
                     std::scoped_lock lock(m_timeHandleMutex);
-                    if (Searcher::s_isStopped.load(std::memory_order_relaxed))
+                    if (Searcher::s_searchState.load(std::memory_order_relaxed) == SearchState::Stop)
                         return; /* stopped elsewhere */
 
                     if (std::chrono::system_clock::now() > m_endTime) {
-                        Searcher::s_isStopped.store(true, std::memory_order_relaxed);
+                        auto expected = SearchState::Search;
+
+                        Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Stop, std::memory_order_relaxed, std::memory_order_relaxed);
                     }
                 }
 
@@ -1073,7 +1066,7 @@ private:
         timeHandler.detach();
     }
 
-    StackVector<std::unique_ptr<Searcher>, s_maxThreads> m_searchers {};
+    std::vector<std::unique_ptr<Searcher>> m_searchers {};
 
     uint64_t m_whiteTime {};
     uint64_t m_blackTime {};
@@ -1082,7 +1075,7 @@ private:
     uint64_t m_whiteMoveInc {};
     uint64_t m_blackMoveInc {};
 
-    StackMap<movegen::Move, int64_t, s_maxThreads> m_movesVotes {};
+    MoveVoteMap<s_maxThreads> m_movesVotes {};
 
     std::optional<movegen::Move> m_ponderMove { std::nullopt };
 

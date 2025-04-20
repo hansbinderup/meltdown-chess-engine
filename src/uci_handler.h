@@ -214,7 +214,11 @@ private:
         }
 
         std::thread searchThread([depth] {
-            const auto bestMove = s_evaluator.getBestMove(s_board, depth);
+            const auto bestMove = s_evaluator.getBestMove(s_board, s_numThreads, depth);
+            if (s_evaluator.getSearchState() == evaluation::SearchState::Kill) {
+                return;
+            }
+
             fmt::print("bestmove {}", bestMove);
             if (s_ponderingEnabled) {
                 const auto ponderMove = s_evaluator.getPonderMove();
@@ -318,9 +322,9 @@ private:
     {
         const auto depth = parsing::to_number(args);
         if (depth.has_value()) {
-            engine::Bench::run(*depth);
+            engine::Bench::run(s_numThreads, *depth);
         } else {
-            engine::Bench::run();
+            engine::Bench::run(s_numThreads);
         }
 
         return true;

@@ -11,7 +11,7 @@ namespace engine {
 
 class Bench {
 public:
-    static void run(uint8_t depth = s_defaultSearchDepth)
+    static void run(uint8_t numThreads, uint8_t depth = s_defaultSearchDepth)
     {
         s_nodesCount = 0;
 
@@ -36,7 +36,7 @@ public:
             fmt::println("Position {}/{} [{}]", ++count, s_benchPositions.size(), position);
 
             s_evaluator.reset();
-            const auto bestMove = s_evaluator.getBestMove(*board, depth);
+            const auto bestMove = s_evaluator.getBestMove(*board, numThreads, depth);
 
             s_nodesCount += s_evaluator.getNodes();
 
