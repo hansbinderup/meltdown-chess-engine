@@ -124,7 +124,7 @@ public:
 
     static std::size_t getSizeMb()
     {
-        return s_ttHashSize;
+        return (s_ttHashSize / 1024 / 1024) * sizeof(TtHashEntry);
     }
 
     static void clear()
