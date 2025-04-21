@@ -102,6 +102,11 @@ public:
      * NOTE: NOT THREAD SAFE */
     static void setSizeMb(std::size_t sizeMb)
     {
+        if (sizeMb <= 0) {
+            fmt::println("Invalid size: {}mb", sizeMb);
+            return;
+        }
+
         if (s_ttHashSize > 0) {
             helper::alignedFree(s_ttHashTable);
         }

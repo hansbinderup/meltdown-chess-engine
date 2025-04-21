@@ -56,8 +56,9 @@ public:
         /* OpenBench expects this format */
         fmt::println("{} nodes {:.0f} nps", s_nodesCount, nps);
 
-        /* reset to previous size */
-        engine::TtHashTable::setSizeMb(previousHashSize);
+        if (previousHashSize > 0) {
+            engine::TtHashTable::setSizeMb(previousHashSize);
+        }
     }
 
 private:
