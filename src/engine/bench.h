@@ -15,7 +15,7 @@ public:
     {
         s_nodesCount = 0;
 
-        const size_t previousHashSize = engine::TtHashTable::getSizeMb();
+        const std::size_t previousHashSize = engine::TtHashTable::getSizeMb();
 
         /* lots of different positions - use a fairly universal size
          * FIXME: add hash size as an optional argument */
