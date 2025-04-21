@@ -208,6 +208,13 @@ constexpr static inline Score getKingScore(const BitBoard& board, const uint64_t
         const int shieldCount = std::popcount(kingShields);
         ADD_SCORE_INDEXED(kingShieldBonus, shieldCount);
 
+        /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
+        const uint64_t virtualMoves
+            = movegen::getBishopMoves(pos, board.occupation[Both])
+            | movegen::getRookMoves(pos, board.occupation[Both]);
+        const int movesCount = std::popcount(virtualMoves);
+        ADD_SCORE_INDEXED(kingVirtualMobilityScore, movesCount);
+
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKings, pos);
 
