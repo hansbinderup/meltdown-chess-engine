@@ -6,15 +6,13 @@
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "evaluation/static_evaluation.h"
+#include "evaluation/time_manager.h"
 #include "fmt/ranges.h"
 #include "movegen/move_types.h"
 #include "syzygy/syzygy.h"
-#include <atomic>
 #include <engine/zobrist_hashing.h>
 
 #include <chrono>
-#include <mutex>
-#include <thread>
 
 namespace evaluation {
 
@@ -22,16 +20,11 @@ class Evaluator {
 public:
     constexpr movegen::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_startTime = std::chrono::system_clock::now();
-
-        /*
-         * if a depth has been provided then make sure that we search to that depth
-         * timeout will be 10 minutes
-         */
+        /* if a depth has been provided then make sure that we search to that depth no matter what */
         if (depthInput.has_value()) {
-            m_endTime = m_startTime + std::chrono::minutes(10);
+            TimeManager::startInifite();
         } else {
-            setupTimeControls(m_startTime, board);
+            TimeManager::start(board);
         }
 
         m_hash = engine::generateHashKey(board);
@@ -51,12 +44,6 @@ public:
         }
 
         return std::nullopt;
-    }
-
-    /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
-    constexpr void stop()
-    {
-        m_isStopped = true;
     }
 
     constexpr uint64_t getNodes() const
@@ -84,14 +71,14 @@ public:
             fmt::print("\n\n");
         }
 
-        /* no need for time management here - just control the start/stop ourselves */
-        m_isStopped = false;
+        TimeManager::startInifite();
 
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         m_moveOrdering.sortMoves(board, moves, m_ply);
         const int32_t score = negamax(depth, board);
-        stop();
+
+        TimeManager::stop();
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : moves) {
@@ -105,48 +92,13 @@ public:
             m_nodes, score, fmt::join(m_moveOrdering.pvTable(), " "), staticEvaluation(board));
     }
 
-    void setWhiteTime(uint64_t time)
-    {
-        m_whiteTime = time;
-    }
-
-    void setBlackTime(uint64_t time)
-    {
-        m_blackTime = time;
-    }
-
-    void setMovesToGo(uint64_t moves)
-    {
-        m_movesToGo = moves;
-    }
-
-    void setMoveTime(uint64_t time)
-    {
-        m_moveTime = time;
-    }
-
-    void setWhiteMoveInc(uint64_t inc)
-    {
-        m_whiteMoveInc = inc;
-    }
-
-    void setBlackMoveInc(uint64_t inc)
-    {
-        m_blackMoveInc = inc;
-    }
-
     /*
      * This method will reset search parameters
      * to be called before starting a scan
      */
     void resetTiming()
     {
-        m_whiteTime = 0;
-        m_blackTime = 0;
-        m_movesToGo = 0;
-        m_moveTime.reset();
-        m_whiteMoveInc = 0;
-        m_blackMoveInc = 0;
+        TimeManager::reset();
         m_nodes = 0;
         m_selDepth = 0;
     }
@@ -165,55 +117,12 @@ public:
 
     void ponderhit(const BitBoard& board)
     {
-        setupTimeControls(m_startTime, board);
+        TimeManager::start(board);
     }
 
 private:
-    constexpr void setupTimeControls(TimePoint start, const BitBoard& board)
-    {
-        std::scoped_lock lock(m_timeHandleMutex);
-
-        using namespace std::chrono;
-
-        /* allow some extra time for processing etc */
-        constexpr auto buffer = 50ms;
-
-        const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
-        const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
-
-        if (m_moveTime) {
-            m_endTime = start + milliseconds(m_moveTime.value()) - buffer + timeInc;
-        } else if (m_movesToGo) {
-            const auto time = timeLeft / m_movesToGo;
-            m_endTime = start + time - buffer + timeInc;
-        } else {
-            /* Dynamic time allocation based on game phase */
-            constexpr uint32_t openingMoves = 20;
-            constexpr uint32_t lateGameMoves = 50;
-
-            /* Estimate remaining moves */
-            uint32_t movesRemaining = std::clamp(s_defaultAmountMoves - board.fullMoves, openingMoves, lateGameMoves);
-
-            /* Allocate time proportionally */
-            const auto time = timeLeft / movesRemaining;
-
-            /* Adjust based on game phase (early = slightly faster, late = slightly deeper) */
-            const float phaseFactor = 1.0 + (static_cast<float>(board.fullMoves) / s_defaultAmountMoves) * 0.5;
-            const auto adjustedTime = duration_cast<milliseconds>(time * phaseFactor);
-
-            m_endTime = start + adjustedTime - buffer + timeInc;
-        }
-
-        /* just to make sure that we actually search something - better to run out of time than to not search any moves.. */
-        if (m_endTime <= start) {
-            m_endTime = start + milliseconds(250) + timeInc;
-        }
-    };
-
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        startTimeHandler();
-
         int32_t alpha = s_minScore;
         int32_t beta = s_maxScore;
 
@@ -224,31 +133,9 @@ private:
 
         uint8_t d = 1;
         while (d <= depth) {
-            if (m_isStopped)
+            /* always search at least one ply */
+            if (d > 1 && TimeManager::isSearchDone(board))
                 break;
-
-            /* always allow full scan on first move - will be good for the hash table :) */
-            if (board.fullMoves > 0) {
-                const auto now = std::chrono::system_clock::now();
-                const auto timeLeft = m_endTime - now;
-                const auto timeSpent = now - m_startTime;
-
-                /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
-                 * might need tweaking - will do when game phases are implemented */
-                const auto timeLimit = timeSpent / 1.9;
-
-                /* uncommment for debugging */
-
-                /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
-
-                if (timeLeft < timeLimit) {
-                    /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
-                    break;
-                }
-            }
 
             m_moveOrdering.pvTable().setIsFollowing(true);
             m_wdl = syzygy::WdlResultTableNotActive;
@@ -275,17 +162,14 @@ private:
         }
 
         /* in case we're scanning to a certain depth we need to ensure that we're stopping the time handler */
-        stop();
+        TimeManager::stop();
 
         return m_moveOrdering.pvTable().bestMove();
     }
 
     constexpr void printScoreInfo(const BitBoard& board, int32_t score, uint8_t currentDepth)
     {
-        using namespace std::chrono;
-
-        const auto endTime = system_clock::now();
-        const auto timeDiff = duration_cast<milliseconds>(endTime - m_startTime).count();
+        const auto timeDiff = TimeManager::timeSearchedMs().count();
 
         uint8_t tbHit = 0;
         score = syzygy::approximateDtzScore(board, score, m_dtz, m_wdl, tbHit);
@@ -463,7 +347,7 @@ private:
 
             undoMove(moveRes->hash);
 
-            if (m_isStopped)
+            if (TimeManager::isStopped())
                 return score;
 
             if (score >= beta) {
@@ -533,7 +417,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (m_isStopped)
+            if (TimeManager::isStopped())
                 return score;
 
             if (score >= beta)
@@ -614,35 +498,8 @@ private:
         m_ply--;
     }
 
-    void startTimeHandler()
-    {
-        bool wasStopped = m_isStopped.exchange(false);
-        if (!wasStopped) {
-            return; /* nothing to do here */
-        }
-
-        std::thread timeHandler([this] {
-            while (!m_isStopped) {
-                {
-                    std::scoped_lock lock(m_timeHandleMutex);
-                    if (m_isStopped)
-                        return; /* stopped elsewhere */
-
-                    if (std::chrono::system_clock::now() > m_endTime) {
-                        m_isStopped = true;
-                    }
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-        });
-
-        timeHandler.detach();
-    }
-
     uint64_t m_nodes {};
     uint8_t m_ply {};
-    std::atomic_bool m_isStopped { true };
     uint64_t m_hash {};
     uint8_t m_selDepth {};
 
@@ -651,17 +508,6 @@ private:
 
     MoveOrdering m_moveOrdering {};
     Repetition m_repetition;
-
-    uint64_t m_whiteTime {};
-    uint64_t m_blackTime {};
-    uint64_t m_movesToGo {};
-    std::optional<uint64_t> m_moveTime {};
-    uint64_t m_whiteMoveInc {};
-    uint64_t m_blackMoveInc {};
-
-    TimePoint m_startTime;
-    TimePoint m_endTime;
-    std::mutex m_timeHandleMutex;
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
