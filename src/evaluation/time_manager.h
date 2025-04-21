@@ -2,102 +2,90 @@
 
 #include "bit_board.h"
 #include "board_defs.h"
-#include <mutex>
-#include <thread>
+#include <atomic>
 
 namespace evaluation {
 
 class TimeManager {
 public:
-    static void startInifite()
+    static bool startInifite()
     {
-        using namespace std::chrono;
+        const bool wasStopped = m_isStopped.exchange(false);
+        if (!wasStopped)
+            return false;
 
-        m_startTime = system_clock::now();
-        m_endTime = std::numeric_limits<TimePoint>::max();
+        m_startTime = std::chrono::system_clock::now();
+        m_endTime = TimePoint::max();
 
-        startTimeHandler();
+        return true;
     }
 
-    static void start(const BitBoard& board)
+    static bool start(const BitBoard& board)
     {
-        using namespace std::chrono;
+        const bool wasStopped = m_isStopped.exchange(false);
+        if (!wasStopped)
+            return false;
 
-        m_startTime = system_clock::now();
+        m_startTime = std::chrono::system_clock::now();
+        updateEndTime(board, m_startTime);
 
-        /* allow some extra time for processing etc */
-        constexpr auto buffer = 50ms;
-
-        const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
-        const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
-
-        if (m_moveTime) {
-            m_endTime = m_startTime + milliseconds(m_moveTime.value()) - buffer + timeInc;
-        } else if (m_movesToGo) {
-            const auto time = timeLeft / m_movesToGo;
-            m_endTime = m_startTime + time - buffer + timeInc;
-        } else {
-            /* Dynamic time allocation based on game phase */
-            constexpr uint32_t openingMoves = 20;
-            constexpr uint32_t lateGameMoves = 50;
-            constexpr uint8_t defaultAmountMoves = 75;
-
-            /* Estimate remaining moves */
-            uint32_t movesRemaining = std::clamp(defaultAmountMoves - board.fullMoves, openingMoves, lateGameMoves);
-
-            /* Allocate time proportionally */
-            const auto time = timeLeft / movesRemaining;
-
-            /* Adjust based on game phase (early = slightly faster, late = slightly deeper) */
-            const float phaseFactor = 1.0 + (static_cast<float>(board.fullMoves) / defaultAmountMoves) * 0.5;
-            const auto adjustedTime = duration_cast<milliseconds>(time * phaseFactor);
-
-            m_endTime = m_startTime + adjustedTime - buffer + timeInc;
-        }
-
-        /* just to make sure that we actually search something - better to run out of time than to not search any moves.. */
-        if (m_endTime <= m_startTime) {
-            m_endTime = m_startTime + milliseconds(250) + timeInc;
-        }
-
-        startTimeHandler();
+        return true;
     }
 
-    static bool isSearchDone(const BitBoard& board)
+    /* will continue the search, if running, and update the end time to be based on the current time
+     * useful for eg. pondering */
+    static bool continueIfRunning(const BitBoard& board)
     {
-        if (m_isStopped)
-            return true;
-
-        /* always allow full scan on first move - will be good for the hash table :) */
-        if (board.fullMoves == 0)
+        if (!isRunning())
             return false;
 
         const auto now = std::chrono::system_clock::now();
-        const auto timeLeft = m_endTime - now;
+        updateEndTime(board, now);
+
+        return true;
+    }
+
+    static bool timeForAnotherSearch(const BitBoard& board)
+    {
+        if (m_isStopped)
+            return false;
+
+        /* always allow full scan on first move - will be good for the hash table :) */
+        if (board.fullMoves == 0)
+            return true;
+
+        const auto now = std::chrono::system_clock::now();
+        const auto timeLeft = m_endTime.load(std::memory_order_relaxed) - now;
         const auto timeSpent = now - m_startTime;
 
         /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
          * might need tweaking - will do when game phases are implemented */
         const auto timeLimit = timeSpent / 1.9;
 
-        /* uncommment for debugging */
-
-        /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
-        /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
-        /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
-        /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
-
         if (timeLeft < timeLimit) {
-            /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
-            return true;
+            return false;
         }
 
-        return false;
+        return true;
     }
 
-    static bool isStopped()
+    /* lightweight check for stop - should be called from engine loop */
+    static bool checkStopCondition(bool forceUpdate = false)
     {
+        const uint64_t checkCounter = m_checkStopCount.fetch_add(1, std::memory_order_relaxed);
+        if (forceUpdate || checkCounter % 2048 == 0) {
+            const auto timeNow = std::chrono::system_clock::now();
+            if (timeNow >= m_endTime.load(std::memory_order_relaxed)) {
+                m_isStopped = true;
+            }
+        }
+
         return m_isStopped;
+    }
+
+    static bool isRunning()
+    {
+        return !m_isStopped;
     }
 
     static auto timeSearchedMs()
@@ -138,13 +126,16 @@ public:
 
     static void reset()
     {
+        if (isRunning())
+            return;
+
         m_whiteTime = 0;
         m_blackTime = 0;
         m_movesToGo = 0;
         m_moveTime.reset();
         m_whiteMoveInc = 0;
         m_blackMoveInc = 0;
-        m_isStopped = false;
+        m_checkStopCount = 0;
     }
 
     static void stop()
@@ -153,37 +144,58 @@ public:
     }
 
 private:
-    static void startTimeHandler()
+    static void updateEndTime(const BitBoard& board, const TimePoint& start)
     {
-        bool wasStopped = m_isStopped.exchange(false);
-        if (!wasStopped) {
-            return; /* nothing to do here */
+        using namespace std::chrono;
+
+        /* allow some extra time for processing etc */
+        constexpr auto buffer = 50ms;
+
+        const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
+        const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
+
+        /* no time provided - search for as long as possible */
+        if (timeLeft == 0ms && timeInc == 0ms) {
+            m_endTime = TimePoint::max();
+            return;
         }
 
-        std::thread timeHandler([] {
-            while (!m_isStopped) {
-                {
-                    std::scoped_lock lock(m_timeHandleMutex);
-                    if (m_isStopped)
-                        return; /* stopped elsewhere */
+        if (m_moveTime) {
+            m_endTime = start + milliseconds(m_moveTime.value()) - buffer + timeInc;
+        } else if (m_movesToGo) {
+            const auto time = timeLeft / m_movesToGo;
+            m_endTime = start + time - buffer + timeInc;
+        } else {
+            /* Dynamic time allocation based on game phase */
+            constexpr uint32_t openingMoves = 20;
+            constexpr uint32_t lateGameMoves = 50;
+            constexpr uint8_t defaultAmountMoves = 75;
 
-                    if (std::chrono::system_clock::now() > m_endTime) {
-                        m_isStopped = true;
-                    }
-                }
+            /* Estimate remaining moves */
+            uint32_t movesRemaining = std::clamp(defaultAmountMoves - board.fullMoves, openingMoves, lateGameMoves);
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-        });
+            /* Allocate time proportionally */
+            const auto time = timeLeft / movesRemaining;
 
-        timeHandler.detach();
+            /* Adjust based on game phase (early = slightly faster, late = slightly deeper) */
+            const float phaseFactor = 1.0 + (static_cast<float>(board.fullMoves) / defaultAmountMoves) * 0.5;
+            const auto adjustedTime = duration_cast<milliseconds>(time * phaseFactor);
+
+            m_endTime = start + adjustedTime - buffer + timeInc;
+        }
+
+        /* just to make sure that we actually search something - better to run out of time than to not search any moves..
+         * FIXME: RACY but here to test regression */
+        if (m_endTime.load() <= start) {
+            m_endTime = start + milliseconds(250) + timeInc;
+        }
     }
 
     static inline std::atomic_bool m_isStopped { true };
-    static inline std::mutex m_timeHandleMutex;
+    static inline std::atomic_uint64_t m_checkStopCount;
 
     static inline TimePoint m_startTime;
-    static inline TimePoint m_endTime;
+    static inline std::atomic<TimePoint> m_endTime;
 
     static inline uint64_t m_whiteTime {};
     static inline uint64_t m_blackTime {};

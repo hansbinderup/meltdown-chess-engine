@@ -115,11 +115,6 @@ public:
         m_repetition.add(hash);
     }
 
-    void ponderhit(const BitBoard& board)
-    {
-        TimeManager::start(board);
-    }
-
 private:
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
@@ -133,8 +128,7 @@ private:
 
         uint8_t d = 1;
         while (d <= depth) {
-            /* always search at least one ply */
-            if (d > 1 && TimeManager::isSearchDone(board))
+            if (!TimeManager::timeForAnotherSearch(board))
                 break;
 
             m_moveOrdering.pvTable().setIsFollowing(true);
@@ -347,7 +341,7 @@ private:
 
             undoMove(moveRes->hash);
 
-            if (TimeManager::isStopped())
+            if (TimeManager::checkStopCondition())
                 return score;
 
             if (score >= beta) {
@@ -417,7 +411,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (TimeManager::isStopped())
+            if (TimeManager::checkStopCondition())
                 return score;
 
             if (score >= beta)

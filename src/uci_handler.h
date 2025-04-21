@@ -173,13 +173,14 @@ private:
 
     static bool handlePonderhit()
     {
-        s_evaluator.ponderhit(s_board);
-
-        return true;
+        return evaluation::TimeManager::continueIfRunning(s_board);
     }
 
     static bool handleGo(std::string_view args)
     {
+        if (evaluation::TimeManager::isRunning())
+            return false;
+
         std::optional<uint8_t> depth;
 
         s_evaluator.resetTiming();
