@@ -192,6 +192,18 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
+        /* racy */
+        const uint64_t prevKey = entry.key.load(std::memory_order_relaxed);
+        const auto prevDepth = entry.data.load(std::memory_order_relaxed).getDepth();
+        constexpr uint8_t depthOffset { 2 };
+
+        /* if key already exists then only allow overwriting if we actually found a move that is better (or at least close to) */
+        if (flag != TtHashExact
+            && key == prevKey
+            && depth < (prevDepth - depthOffset)) {
+            return;
+        }
+
         if (entry.key.load(std::memory_order_relaxed) == 0) {
             ++s_hashCount;
         }
