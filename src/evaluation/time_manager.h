@@ -166,28 +166,26 @@ private:
             const auto time = timeLeft / m_movesToGo;
             m_endTime = start + time - buffer + timeInc;
         } else {
-            /* Dynamic time allocation based on game phase */
-            constexpr uint32_t openingMoves = 20;
-            constexpr uint32_t lateGameMoves = 50;
-            constexpr uint8_t defaultAmountMoves = 75;
+            /* based on time used by grandmasters
+             * FIXME: not very precise  (manually extracted data from plot) */
+            constexpr auto movesLeft = std::to_array<uint8_t>(
+                { 50, 49, 48, 47, 46, 45, 44, 43, 42,
+                    41, 40, 39, 38, 37, 36, 35, 34, 33, 32,
+                    31, 30, 29, 28, 27, 26, 25, 24, 23, 22,
+                    21, 20, 19, 18, 17, 16, 15, 14, 13, 12,
+                    11, 10, 10, 10, 10, 10, 9, 9, 9, 9,
+                    9, 9, 9, 8, 8, 8, 8, 8, 8, 8,
+                    7, 7, 7, 7, 7, 7, 8, 8, 8, 8,
+                    8, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+                    10, 10, 10, 10, 10, 10, 10, 10, 10, 11,
+                    11, 11, 11, 11, 11, 11, 11, 11, 11, 12 });
 
-            /* Estimate remaining moves */
-            uint32_t movesRemaining = std::clamp(defaultAmountMoves - board.fullMoves, openingMoves, lateGameMoves);
+            const uint32_t moveIndex = std::min(board.fullMoves, static_cast<uint32_t>(movesLeft.size() - 1));
+            const uint8_t movesRemaining = movesLeft[moveIndex];
 
             /* Allocate time proportionally */
             const auto time = timeLeft / movesRemaining;
-
-            /* Adjust based on game phase (early = slightly faster, late = slightly deeper) */
-            const float phaseFactor = 1.0 + (static_cast<float>(board.fullMoves) / defaultAmountMoves) * 0.5;
-            const auto adjustedTime = duration_cast<milliseconds>(time * phaseFactor);
-
-            m_endTime = start + adjustedTime - buffer + timeInc;
-        }
-
-        /* just to make sure that we actually search something - better to run out of time than to not search any moves..
-         * FIXME: RACY but here to test regression */
-        if (m_endTime.load() <= start) {
-            m_endTime = start + milliseconds(250) + timeInc;
+            m_endTime = start + time - buffer + timeInc;
         }
     }
 
