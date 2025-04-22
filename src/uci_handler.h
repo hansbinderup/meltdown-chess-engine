@@ -38,10 +38,13 @@ private:
     {
         s_isRunning = true;
 
-        std::thread inputThread([] {
+        std::jthread inputThread([] {
             std::array<char, s_inputBufferSize> buffer;
             while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
                 processInput(std::string_view(buffer.data()));
+
+                /* ensure responses are printed immediately */
+                fflush(stdout);
             }
         });
 
@@ -51,6 +54,23 @@ private:
     static bool processInput(std::string_view input)
     {
         const auto [command, args] = parsing::split_sv_by_space(input);
+
+        /* first check commands that are allowed during a search */
+        if (command == "") {
+            return true;
+        } else if (command == "stop") {
+            return handleStop();
+        } else if (command == "ponderhit") {
+            return handlePonderhit();
+        } else if (command == "quit" || command == "exit") {
+            s_isRunning = false;
+            return true;
+        }
+
+        if (evaluation::TimeManager::isRunning()) {
+            fmt::println("{} is not allowed during a search, ignored", command);
+            return false;
+        }
 
         if (command == "uci") {
             return handleUci();
@@ -62,10 +82,6 @@ private:
             return handleUcinewgame();
         } else if (command == "go") {
             return handleGo(args);
-        } else if (command == "ponderhit") {
-            return handlePonderhit();
-        } else if (command == "stop") {
-            return handleStop();
         } else if (command == "setoption") {
             return handleSetOption(args);
         } else if (command == "debug") {
@@ -80,15 +96,10 @@ private:
             return handleBench(args);
         } else if (command == "version") {
             return handleVersion();
-        } else if (command == "quit" || command == "exit") {
-            s_isRunning = false;
         } else {
             // invalid input
             return false;
         }
-
-        /* ensure responses are printed immediately */
-        fflush(stdout);
 
         return true;
     }
@@ -215,7 +226,7 @@ private:
             }
         }
 
-        std::thread searchThread([depth] {
+        std::jthread searchThread([depth] {
             const auto bestMove = s_evaluator.getBestMove(s_board, depth);
             fmt::print("bestmove {}", bestMove);
             if (s_ponderingEnabled) {
