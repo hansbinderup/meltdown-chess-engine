@@ -1040,8 +1040,8 @@ private:
 
     void startTimeHandler()
     {
-        auto stoppedState = Searcher::s_searchState.exchange(SearchState::Idle);
-        if (stoppedState != SearchState::Stop) {
+        const auto prevState = Searcher::s_searchState.exchange(SearchState::Idle);
+        if (prevState == SearchState::Search) {
             return; /* nothing to do here */
         }
 
