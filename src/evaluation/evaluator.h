@@ -128,8 +128,7 @@ private:
 
         uint8_t d = 1;
         while (d <= depth) {
-            /* always search at least one ply */
-            if (d > 1 && !TimeManager::timeForAnotherSearch(board))
+            if (!TimeManager::timeForAnotherSearch(board))
                 break;
 
             m_moveOrdering.pvTable().setIsFollowing(true);
