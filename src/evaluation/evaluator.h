@@ -569,7 +569,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (s_searchState.load(std::memory_order_relaxed) != SearchState::Search)
+            if (s_searchState >= SearchState::Done)
                 return score;
 
             if (score >= beta)
