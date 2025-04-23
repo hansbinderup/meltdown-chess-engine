@@ -353,6 +353,7 @@ private:
 
     /* options used in the UCI handler */
     static inline bool s_ponderingEnabled { false };
+    static inline uint32_t s_threadCount { 1 };
 
     /* UCI options callbacks */
     static inline void syzygyCallback(std::string_view path)

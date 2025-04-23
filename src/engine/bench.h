@@ -39,7 +39,6 @@ public:
             const auto bestMove = s_evaluator.getBestMove(*board, depth);
 
             s_nodesCount += s_evaluator.getNodes();
-
             fmt::println("bestmove {}\n", bestMove);
         }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/move_handling.h"
+#include "engine/thread_pool.h"
 #include "engine/tt_hash_table.h"
 #include "evaluation/move_ordering.h"
 #include "evaluation/pv_table.h"
