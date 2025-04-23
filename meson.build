@@ -10,7 +10,7 @@ add_project_arguments('-fconstexpr-loop-limit=2147483647', language: 'cpp')
 add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
 
 if get_option('buildtype') != 'debug'
-  add_project_arguments('-flto=auto', '-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
+  add_project_arguments('-flto=auto', '-Ofast', '-DNDEBUG', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 endif
 
 # magic_enum
