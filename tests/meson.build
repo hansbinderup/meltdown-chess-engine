@@ -12,6 +12,7 @@ unit_test_names = [
   'test_pv_table',
   'test_see_swap',
   'test_scoring',
+  'test_thread_pool',
 ]
 
 foreach test_name : unit_test_names

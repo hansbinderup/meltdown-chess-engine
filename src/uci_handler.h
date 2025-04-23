@@ -3,7 +3,6 @@
 #include "engine/bench.h"
 #include "evaluation/evaluator.h"
 #include "evaluation/perft.h"
-#include "helpers/formatters.h"
 #include "parsing/fen_parser.h"
 #include "parsing/input_parsing.h"
 
@@ -212,21 +211,7 @@ private:
             }
         }
 
-        std::thread searchThread([depth] {
-            const auto bestMove = s_evaluator.getBestMove(s_board, depth);
-            fmt::print("bestmove {}", bestMove);
-            if (s_ponderingEnabled) {
-                const auto ponderMove = s_evaluator.getPonderMove();
-                if (ponderMove.has_value()) {
-                    fmt::print(" ponder {}", *ponderMove);
-                }
-            }
-
-            fmt::print("\n");
-            fflush(stdout);
-        });
-
-        searchThread.detach();
+        s_evaluator.getBestMoveAsync(s_board, depth);
 
         return true;
     }

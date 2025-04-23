@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/move_handling.h"
+#include "engine/thread_pool.h"
 #include "engine/tt_hash_table.h"
 #include "evaluation/move_ordering.h"
 #include "evaluation/pv_table.h"
@@ -42,6 +43,15 @@ public:
         }
 
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
+    }
+
+    constexpr bool getBestMoveAsync(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
+    {
+        return m_threadPool.submit([this, board, depthInput] {
+            const auto move = getBestMove(board, depthInput);
+            fmt::println("bestmove {}", move);
+            fflush(stdout);
+        });
     }
 
     constexpr std::optional<movegen::Move> getPonderMove() const
@@ -252,7 +262,7 @@ private:
             m_wdl = syzygy::WdlResultTableNotActive;
             m_dtz = 0;
 
-            int32_t score = negamax(d, board, alpha, beta);
+            const int32_t score = negamax(d, board, alpha, beta);
 
             /* the search fell outside the window - we need to retry a full search */
             if ((score <= alpha) || (score >= beta)) {
@@ -660,6 +670,8 @@ private:
     TimePoint m_startTime;
     TimePoint m_endTime;
     std::mutex m_timeHandleMutex;
+
+    ThreadPool m_threadPool { 1 };
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
