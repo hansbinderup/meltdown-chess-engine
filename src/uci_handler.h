@@ -39,10 +39,13 @@ private:
     {
         s_isRunning = true;
 
-        std::thread inputThread([] {
+        std::jthread inputThread([] {
             std::array<char, s_inputBufferSize> buffer;
             while (s_isRunning && std::cin.getline(buffer.data(), buffer.size())) {
                 processInput(std::string_view(buffer.data()));
+
+                /* ensure responses are printed immediately */
+                fflush(stdout);
             }
         });
 
@@ -52,6 +55,23 @@ private:
     static bool processInput(std::string_view input)
     {
         const auto [command, args] = parsing::split_sv_by_space(input);
+
+        /* first check commands that are allowed during a search */
+        if (command == "") {
+            return true;
+        } else if (command == "stop") {
+            return handleStop();
+        } else if (command == "ponderhit") {
+            return handlePonderhit();
+        } else if (command == "quit" || command == "exit") {
+            s_isRunning = false;
+            return true;
+        }
+
+        if (evaluation::TimeManager::isRunning()) {
+            fmt::println("{} is not allowed during a search, ignored", command);
+            return false;
+        }
 
         if (command == "uci") {
             return handleUci();
@@ -63,10 +83,6 @@ private:
             return handleUcinewgame();
         } else if (command == "go") {
             return handleGo(args);
-        } else if (command == "ponderhit") {
-            return handlePonderhit();
-        } else if (command == "stop") {
-            return handleStop();
         } else if (command == "setoption") {
             return handleSetOption(args);
         } else if (command == "debug") {
@@ -81,15 +97,10 @@ private:
             return handleBench(args);
         } else if (command == "version") {
             return handleVersion();
-        } else if (command == "quit" || command == "exit") {
-            return handleQuit();
         } else {
             // invalid input
             return false;
         }
-
-        /* ensure responses are printed immediately */
-        fflush(stdout);
 
         return true;
     }
@@ -174,13 +185,14 @@ private:
 
     static bool handlePonderhit()
     {
-        s_evaluator.ponderhit(s_board);
-
-        return true;
+        return evaluation::TimeManager::continueIfRunning(s_board);
     }
 
     static bool handleGo(std::string_view args)
     {
+        if (evaluation::TimeManager::isRunning())
+            return false;
+
         std::optional<uint8_t> depth;
 
         s_evaluator.resetTiming();
@@ -196,18 +208,20 @@ private:
             const auto value = parsing::sv_next_split(args);
             const auto valNum = parsing::to_number(value.value_or(args));
 
+            using evaluation::TimeManager;
+
             if (setting == "wtime") {
-                s_evaluator.setWhiteTime(valNum.value_or(0));
+                TimeManager::setWhiteTime(valNum.value_or(0));
             } else if (setting == "btime") {
-                s_evaluator.setBlackTime(valNum.value_or(0));
+                TimeManager::setBlackTime(valNum.value_or(0));
             } else if (setting == "movestogo") {
-                s_evaluator.setMovesToGo(valNum.value_or(0));
+                TimeManager::setMovesToGo(valNum.value_or(0));
             } else if (setting == "movetime") {
-                s_evaluator.setMoveTime(valNum.value_or(0));
+                TimeManager::setMoveTime(valNum.value_or(0));
             } else if (setting == "winc") {
-                s_evaluator.setWhiteMoveInc(valNum.value_or(0));
+                TimeManager::setWhiteMoveInc(valNum.value_or(0));
             } else if (setting == "binc") {
-                s_evaluator.setBlackMoveInc(valNum.value_or(0));
+                TimeManager::setBlackMoveInc(valNum.value_or(0));
             } else if (setting == "depth") {
                 depth = valNum;
             }
@@ -389,3 +403,4 @@ private:
         ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) { s_numThreads = val; }),
     });
 };
+

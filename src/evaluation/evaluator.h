@@ -6,6 +6,7 @@
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "evaluation/static_evaluation.h"
+#include "evaluation/time_manager.h"
 
 #include "fmt/ranges.h"
 #include "movegen/move_types.h"
@@ -226,7 +227,7 @@ public:
         m_repetition.add(hash);
     }
 
-    constexpr void printScoreInfo(const BitBoard& board, int32_t score, uint8_t currentDepth, const TimePoint& startTime)
+    constexpr void printScoreInfo(const BitBoard& board, int32_t score, uint8_t currentDepth)
     {
         using namespace std::chrono;
 
@@ -234,8 +235,7 @@ public:
             return;
         }
 
-        const auto endTime = system_clock::now();
-        const auto timeDiff = duration_cast<milliseconds>(endTime - startTime).count();
+        const auto timeDiff = TimeManager::timeSearchedMs().count();
 
         uint8_t tbHit = 0;
         score = syzygy::approximateDtzScore(board, score, m_dtz, m_wdl, tbHit);
@@ -457,7 +457,7 @@ public:
 
             undoMove(moveRes->hash);
 
-            if (s_searchState >= SearchState::Done)
+            if (checkIfStopped())
                 return score;
 
             if (score >= beta) {
@@ -496,6 +496,11 @@ public:
     static std::atomic<SearchState> s_searchState;
 
 private:
+    constexpr bool checkIfStopped()
+    {
+        return s_searchState >= SearchState::Done || TimeManager::checkStopCondition();
+    }
+
     void threadLoop()
     {
         while (true) {
@@ -569,7 +574,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (s_searchState.load(std::memory_order_relaxed) != SearchState::Search)
+            if (checkIfStopped())
                 return score;
 
             if (score >= beta)
@@ -730,9 +735,6 @@ public:
     constexpr movegen::Move
     getBestMove(const BitBoard& board, uint8_t numThreads, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_startTime
-            = std::chrono::system_clock::now();
-
         resizeSearchers(numThreads);
 
         /*
@@ -740,13 +742,15 @@ public:
          * timeout will be 10 minutes
          */
         if (depthInput.has_value()) {
-            m_endTime = m_startTime + std::chrono::minutes(10);
+            TimeManager::startInifite();
         } else {
-            setupTimeControls(m_startTime, board);
+            TimeManager::start(board);
         }
 
         uint64_t hash = engine::generateHashKey(board);
 
+        /* load searchers */
+        Searcher::s_searchState.store(SearchState::Idle);
         for (auto& searcher : m_searchers) {
             searcher->setHashKey(hash);
             searcher->setSmpBoard(board);
@@ -760,12 +764,11 @@ public:
         return m_ponderMove;
     }
 
-    /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
     constexpr void stop()
     {
-        auto expected = SearchState::Search;
-
-        Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Stop, std::memory_order_relaxed, std::memory_order_relaxed);
+        /* FIXME: force stop?? */
+        Searcher::s_searchState.store(SearchState::Stop, std::memory_order_relaxed);
+        TimeManager::stop();
     }
 
     constexpr void terminate()
@@ -788,49 +791,13 @@ public:
         }
     }
 
-    void setWhiteTime(uint64_t time)
-    {
-        m_whiteTime = time;
-    }
-
-    void setBlackTime(uint64_t time)
-    {
-        m_blackTime = time;
-    }
-
-    void setMovesToGo(uint64_t moves)
-    {
-        m_movesToGo = moves;
-    }
-
-    void setMoveTime(uint64_t time)
-    {
-        m_moveTime = time;
-    }
-
-    void setWhiteMoveInc(uint64_t inc)
-    {
-        m_whiteMoveInc = inc;
-    }
-
-    void setBlackMoveInc(uint64_t inc)
-    {
-        m_blackMoveInc = inc;
-    }
-
     /*
      * This method will reset search parameters
      * to be called before starting a scan
      */
     void resetTiming()
     {
-        m_whiteTime = 0;
-        m_blackTime = 0;
-        m_movesToGo = 0;
-        m_moveTime.reset();
-        m_whiteMoveInc = 0;
-        m_blackMoveInc = 0;
-
+        TimeManager::reset();
         for (auto& searcher : m_searchers) {
             searcher->resetTiming();
         }
@@ -851,59 +818,11 @@ public:
         }
     }
 
-    void ponderhit(const BitBoard& board)
-    {
-        setupTimeControls(m_startTime, board);
-    }
-
     constexpr static inline uint8_t s_maxThreads { 128 };
 
 private:
-    constexpr void setupTimeControls(TimePoint start, const BitBoard& board)
-    {
-        std::scoped_lock lock(m_timeHandleMutex);
-
-        using namespace std::chrono;
-
-        /* allow some extra time for processing etc */
-        constexpr auto buffer = 50ms;
-
-        const auto timeLeft = board.player == PlayerWhite ? milliseconds(m_whiteTime) : milliseconds(m_blackTime);
-        const auto timeInc = board.player == PlayerWhite ? milliseconds(m_whiteMoveInc) : milliseconds(m_blackMoveInc);
-
-        if (m_moveTime) {
-            m_endTime = start + milliseconds(m_moveTime.value()) - buffer + timeInc;
-        } else if (m_movesToGo) {
-            const auto time = timeLeft / m_movesToGo;
-            m_endTime = start + time - buffer + timeInc;
-        } else {
-            /* Dynamic time allocation based on game phase */
-            constexpr uint32_t openingMoves = 20;
-            constexpr uint32_t lateGameMoves = 50;
-
-            /* Estimate remaining moves */
-            uint32_t movesRemaining = std::clamp(s_defaultAmountMoves - board.fullMoves, openingMoves, lateGameMoves);
-
-            /* Allocate time proportionally */
-            const auto time = timeLeft / movesRemaining;
-
-            /* Adjust based on game phase (early = slightly faster, late = slightly deeper) */
-            const float phaseFactor = 1.0 + (static_cast<float>(board.fullMoves) / s_defaultAmountMoves) * 0.5;
-            const auto adjustedTime = duration_cast<milliseconds>(time * phaseFactor);
-
-            m_endTime = start + adjustedTime - buffer + timeInc;
-        }
-
-        /* just to make sure that we actually search something - better to run out of time than to not search any moves.. */
-        if (m_endTime <= start) {
-            m_endTime = start + milliseconds(250) + timeInc;
-        }
-    };
-
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        startTimeHandler();
-
         int32_t alpha = s_minScore;
         int32_t beta = s_maxScore;
 
@@ -915,31 +834,9 @@ private:
         uint8_t d = 1;
 
         while (d <= depth) {
-            if (Searcher::s_searchState.load(std::memory_order_relaxed) >= SearchState::Done) {
+            if (Searcher::s_searchState.load(std::memory_order_relaxed) >= SearchState::Done
+                || !TimeManager::timeForAnotherSearch(board)) {
                 break;
-            }
-
-            /* always allow full scan on first move - will be good for the hash table :) */
-            if (board.fullMoves > 0) {
-                const auto now = std::chrono::system_clock::now();
-                const auto timeLeft = m_endTime - now;
-                const auto timeSpent = now - m_startTime;
-
-                /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
-                 * might need tweaking - will do when game phases are implemented */
-                const auto timeLimit = timeSpent / 1.9;
-
-                /* uncommment for debugging */
-
-                /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
-
-                if (timeLeft < timeLimit) {
-                    /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
-                    break;
-                }
             }
 
             /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
@@ -1023,7 +920,7 @@ private:
 
             for (auto& searcher : m_searchers) {
                 if (searcher->getSearcherId() == bestWinningResult.searcherId && Searcher::s_searchState.load(std::memory_order_relaxed) != SearchState::Kill) {
-                    searcher->printScoreInfo(board, bestWinningResult.score, d, m_startTime);
+                    searcher->printScoreInfo(board, bestWinningResult.score, d);
                     m_ponderMove = searcher->getPonderMove();
                 }
             }
@@ -1033,55 +930,15 @@ private:
         }
 
         /* in case we're scanning to a certain depth we need to ensure that we're stopping the time handler */
-        stop();
+        TimeManager::stop();
 
         return bestMove;
     }
 
-    void startTimeHandler()
-    {
-        auto stoppedState = Searcher::s_searchState.exchange(SearchState::Idle);
-        if (stoppedState != SearchState::Stop) {
-            return; /* nothing to do here */
-        }
-
-        std::thread timeHandler([this] {
-            while (Searcher::s_searchState.load(std::memory_order_relaxed) != SearchState::Stop) {
-                {
-                    std::scoped_lock lock(m_timeHandleMutex);
-                    if (Searcher::s_searchState.load(std::memory_order_relaxed) == SearchState::Stop)
-                        return; /* stopped elsewhere */
-
-                    if (std::chrono::system_clock::now() > m_endTime) {
-                        auto expected = SearchState::Search;
-
-                        Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Stop, std::memory_order_relaxed, std::memory_order_relaxed);
-                    }
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-        });
-
-        timeHandler.detach();
-    }
-
     std::vector<std::unique_ptr<Searcher>> m_searchers {};
-
-    uint64_t m_whiteTime {};
-    uint64_t m_blackTime {};
-    uint64_t m_movesToGo {};
-    std::optional<uint64_t> m_moveTime {};
-    uint64_t m_whiteMoveInc {};
-    uint64_t m_blackMoveInc {};
-
     MoveVoteMap<s_maxThreads> m_movesVotes {};
 
     std::optional<movegen::Move> m_ponderMove { std::nullopt };
-
-    TimePoint m_startTime;
-    TimePoint m_endTime;
-    std::mutex m_timeHandleMutex;
 
     constexpr static inline uint32_t s_defaultAmountMoves { 75 };
     constexpr static inline uint8_t s_aspirationWindow { 50 };

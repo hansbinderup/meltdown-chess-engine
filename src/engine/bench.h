@@ -36,7 +36,9 @@ public:
             fmt::println("Position {}/{} [{}]", ++count, s_benchPositions.size(), position);
 
             s_evaluator.reset();
+
             const auto bestMove = s_evaluator.getBestMove(*board, numThreads, depth);
+            evaluation::TimeManager::stop();
 
             s_nodesCount += s_evaluator.getNodes();
 
