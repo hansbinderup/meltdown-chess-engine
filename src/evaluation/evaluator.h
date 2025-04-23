@@ -752,6 +752,10 @@ public:
             searcher->setSmpBoard(board);
         }
 
+        if (m_searchers.size() == 1) {
+            return scanForBestMoveSingle(depthInput.value_or(s_maxSearchDepth), board);
+        }
+
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
     }
 
@@ -899,6 +903,88 @@ private:
             m_endTime = start + milliseconds(250) + timeInc;
         }
     };
+
+    constexpr movegen::Move scanForBestMoveSingle(uint8_t depth, const BitBoard& board)
+    {
+        startTimeHandler();
+
+        int32_t alpha = s_minScore;
+        int32_t beta = s_maxScore;
+
+        /*
+         * iterative deeping - with aspiration window
+         * https://web.archive.org/web/20070705134903/www.seanet.com/%7Ebrucemo/topics/aspiration.htm
+         */
+        movegen::Move bestMove;
+        uint8_t d = 1;
+
+        const auto& searcher = m_searchers.front();
+
+        while (d <= depth) {
+            if (Searcher::s_searchState.load(std::memory_order_relaxed) >= SearchState::Done) {
+                break;
+            }
+
+            /* always allow full scan on first move - will be good for the hash table :) */
+            if (board.fullMoves > 0) {
+                const auto now = std::chrono::system_clock::now();
+                const auto timeLeft = m_endTime - now;
+                const auto timeSpent = now - m_startTime;
+
+                /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
+                 * might need tweaking - will do when game phases are implemented */
+                const auto timeLimit = timeSpent / 1.9;
+
+                /* uncommment for debugging */
+
+                /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
+                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
+                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
+                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
+
+                if (timeLeft < timeLimit) {
+                    /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
+                    break;
+                }
+            }
+
+            /* for (auto expected : { SearchState::Idle, SearchState::Stop, SearchState::Done }) { */
+            /*     Searcher::s_searchState.compare_exchange_weak(expected, SearchState::Search, std::memory_order_relaxed, std::memory_order_relaxed); */
+            /* } */
+
+            Searcher::s_searchState.store(SearchState::Search, std::memory_order_relaxed);
+
+            searcher->startSearch(d, alpha, beta);
+            const auto result = searcher->getSearchResult();
+
+            auto expected = SearchState::Done;
+            Searcher::s_searchState.compare_exchange_weak(expected, Idle, std::memory_order_relaxed, std::memory_order_relaxed);
+
+            /* the search fell outside the window - we need to retry a full search */
+            if (!result.has_value() || (result->score <= alpha) || (result->score >= beta)) {
+                alpha = s_minScore;
+                beta = s_maxScore;
+
+                continue;
+            }
+
+            /* prepare window for next iteration */
+            alpha = result->score - s_aspirationWindow;
+            beta = result->score + s_aspirationWindow;
+
+            searcher->printScoreInfo(board, result->score, d, m_startTime);
+
+            bestMove = searcher->getPvMove();
+
+            /* only increment depth, if we didn't fall out of the window */
+            d++;
+        }
+
+        /* in case we're scanning to a certain depth we need to ensure that we're stopping the time handler */
+        stop();
+
+        return bestMove;
+    }
 
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
