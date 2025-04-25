@@ -24,15 +24,14 @@ public:
     constexpr movegen::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         m_startTime = std::chrono::system_clock::now();
+        m_isStopped = false;
 
-        /*
-         * if a depth has been provided then make sure that we search to that depth
-         * timeout will be 10 minutes
-         */
+        /* if a depth has been provided then make sure that we search to that depth */
         if (m_isPondering || depthInput.has_value()) {
-            m_endTime = m_startTime + std::chrono::minutes(10);
+            m_endTime = TimePoint::max();
         } else {
             setupTimeControls(m_startTime, board);
+            startTimeHandler();
         }
 
         m_hash = engine::generateHashKey(board);
@@ -247,7 +246,6 @@ private:
 
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        startTimeHandler();
 
         int32_t alpha = s_minScore;
         int32_t beta = s_maxScore;
@@ -654,12 +652,8 @@ private:
 
     void startTimeHandler()
     {
-        bool wasStopped = m_isStopped.exchange(false);
-        if (!wasStopped) {
-            return; /* nothing to do here */
-        }
-
-        std::thread timeHandler([this] {
+        /* we only have two slots - so if we can't start the thread then it must already be running */
+        std::ignore = m_threadPool.submit([this] {
             while (!m_isStopped) {
                 {
                     std::scoped_lock lock(m_timeHandleMutex);
@@ -674,8 +668,6 @@ private:
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         });
-
-        timeHandler.detach();
     }
 
     uint64_t m_nodes {};
@@ -701,7 +693,7 @@ private:
     TimePoint m_endTime;
     std::mutex m_timeHandleMutex;
 
-    ThreadPool m_threadPool { 1 };
+    ThreadPool m_threadPool { 2 }; /* searcher and time handler */
     bool m_isPondering { false };
     bool m_ponderingEnabled { false };
 
