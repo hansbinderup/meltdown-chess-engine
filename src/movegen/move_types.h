@@ -137,6 +137,11 @@ public:
         return data & takeEnPessantMask;
     }
 
+    constexpr inline bool isNull() const
+    {
+        return data == 0;
+    }
+
     constexpr inline std::array<char, 6> toString() const
     {
         std::array<char, 6> buffer {};

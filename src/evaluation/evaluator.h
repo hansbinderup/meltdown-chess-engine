@@ -29,7 +29,7 @@ public:
          * if a depth has been provided then make sure that we search to that depth
          * timeout will be 10 minutes
          */
-        if (depthInput.has_value()) {
+        if (m_isPondering || depthInput.has_value()) {
             m_endTime = m_startTime + std::chrono::minutes(10);
         } else {
             setupTimeControls(m_startTime, board);
@@ -45,13 +45,47 @@ public:
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
     }
 
+    constexpr bool startPondering(const BitBoard& board)
+    {
+        if (m_isPondering || !m_ponderingEnabled)
+            return false;
+
+        m_isPondering = true;
+        return getBestMoveAsync(board);
+    }
+
     constexpr bool getBestMoveAsync(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
         return m_threadPool.submit([this, board, depthInput] {
             const auto move = getBestMove(board, depthInput);
-            fmt::println("bestmove {}", move);
+            fmt::print("bestmove {}", move);
+            if (m_ponderingEnabled) {
+                const auto ponderMove = m_moveOrdering.pvTable().ponderMove();
+                if (!ponderMove.isNull()) {
+                    fmt::print(" ponder {}", ponderMove);
+                }
+            }
+
+            fmt::println("");
+
             fflush(stdout);
         });
+    }
+
+    void onPonderHit(const BitBoard& board)
+    {
+        if (m_ponderingEnabled) {
+            m_isPondering = false;
+
+            const auto now = std::chrono::system_clock::now();
+            setupTimeControls(now, board);
+            startTimeHandler();
+        }
+    }
+
+    void setPondering(bool enabled)
+    {
+        m_ponderingEnabled = enabled;
     }
 
     constexpr std::optional<movegen::Move> getPonderMove() const
@@ -66,6 +100,7 @@ public:
     /* TODO: ensure time handler is stopped as well - not just assumed stopped. This is racy */
     constexpr void stop()
     {
+        m_isPondering = false;
         m_isStopped = true;
     }
 
@@ -171,11 +206,6 @@ public:
     void updateRepetition(uint64_t hash)
     {
         m_repetition.add(hash);
-    }
-
-    void ponderhit(const BitBoard& board)
-    {
-        setupTimeControls(m_startTime, board);
     }
 
 private:
@@ -672,6 +702,8 @@ private:
     std::mutex m_timeHandleMutex;
 
     ThreadPool m_threadPool { 1 };
+    bool m_isPondering { false };
+    bool m_ponderingEnabled { false };
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };

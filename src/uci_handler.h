@@ -172,7 +172,7 @@ private:
 
     static bool handlePonderhit()
     {
-        s_evaluator.ponderhit(s_board);
+        s_evaluator.onPonderHit(s_board);
 
         return true;
     }
@@ -183,10 +183,12 @@ private:
 
         s_evaluator.resetTiming();
 
+        bool ponder = false;
+
         while (const auto setting = parsing::sv_next_split(args)) {
             /* single word settings first */
             if (setting == "ponder") {
-                depth = s_maxSearchDepth; /* continue searching until told to stop */
+                ponder = true;
                 continue;
             }
 
@@ -211,7 +213,11 @@ private:
             }
         }
 
-        s_evaluator.getBestMoveAsync(s_board, depth);
+        if (ponder) {
+            s_evaluator.startPondering(s_board);
+        } else {
+            s_evaluator.getBestMoveAsync(s_board, depth);
+        }
 
         return true;
     }
@@ -336,9 +342,6 @@ private:
     static inline evaluation::Evaluator s_evaluator;
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 
-    /* options used in the UCI handler */
-    static inline bool s_ponderingEnabled { false };
-
     /* UCI options callbacks */
     static inline void syzygyCallback(std::string_view path)
     {
@@ -353,7 +356,7 @@ private:
 
     /* declare UCI options */
     static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
-        ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_ponderingEnabled = enabled; }),
+        ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_evaluator.setPondering(enabled); }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
         ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
     });

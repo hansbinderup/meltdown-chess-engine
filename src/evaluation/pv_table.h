@@ -34,6 +34,11 @@ public:
         return m_pvTable.at(0).at(0);
     }
 
+    movegen::Move ponderMove() const
+    {
+        return m_pvTable.at(0).at(1);
+    }
+
     void updateLength(uint8_t ply)
     {
         m_pvLength.at(ply) = ply;
