@@ -51,7 +51,8 @@ All binaries are statically compiled so it should be easy to run.
 1. Setup [docker](https://docs.docker.com/get-started/get-docker/)
 2. Run docker iteractively: `./docker/run.sh`
 3. Run one of the 3 build scripts:
-    * For release/optimized build: `./scripts/build.sh -r` (-r is optional and will run the compiled executable)
+    * Release build: `./scripts/build.sh --release <-r | optional: run the executable>`
+    * Development build: `./scripts/build.sh <-r | optional: run the executable>`
     * For debugging in gdb: `./scripts/debug.sh`
     * Compile and run unit-tests: `./scripts/unit_test.sh`
 
