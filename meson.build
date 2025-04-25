@@ -11,7 +11,13 @@ add_project_arguments('-fconstexpr-ops-limit=100000000000', language: 'cpp')
 
 if get_option('buildtype') != 'debug'
   add_project_arguments('-flto=auto', '-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
+
+  # allows developers to have a safer build - easier to debug with minimal runtime cost
+  if get_option('developer-build') == false
+    add_project_arguments('-DNDEBUG',  language : 'cpp')
+  endif
 endif
+
 
 # magic_enum
 magic_enum = subproject('magic_enum', default_options: ['test=false'])
