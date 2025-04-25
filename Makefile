@@ -6,6 +6,6 @@ $(error Makefile is only for OpenBench support - please check the README for how
 endif
 
 openbench:
-	meson setup .openbench --cross-file targets/linux-native.txt --buildtype=release
+	meson setup .openbench --cross-file targets/linux-native.txt --wipe --buildtype=release
 	meson compile -C .openbench
 	cp .openbench/meltdown-chess-engine $(EXE)
