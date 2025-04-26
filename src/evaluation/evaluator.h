@@ -644,8 +644,13 @@ public:
     constexpr movegen::Move
     getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        m_startTime
-            = std::chrono::system_clock::now();
+        m_startTime = std::chrono::system_clock::now();
+
+        bool wasStopped = m_isStopped.exchange(false);
+        if (!wasStopped) {
+            /* should not happen! */
+            abort();
+        }
 
         /*
          * if a depth has been provided then make sure that we search to that depth
@@ -655,6 +660,7 @@ public:
             m_endTime = m_startTime + std::chrono::minutes(10);
         } else {
             setupTimeControls(m_startTime, board);
+            startTimeHandler();
         }
 
         uint64_t hash = engine::generateHashKey(board);
@@ -804,7 +810,6 @@ private:
 
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        startTimeHandler();
 
         int32_t alpha = s_minScore;
         int32_t beta = s_maxScore;
@@ -936,11 +941,6 @@ private:
 
     void startTimeHandler()
     {
-        bool wasStopped = m_isStopped.exchange(false);
-        if (!wasStopped) {
-            return; /* nothing to do here */
-        }
-
         std::ignore = Searcher::s_threadPool.submit([this] {
             while (!m_isStopped.load(std::memory_order_relaxed)) {
                 {
