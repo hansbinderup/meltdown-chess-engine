@@ -95,4 +95,3 @@ private:
     std::mutex queueMutex;
     std::condition_variable_any cv;
 };
-

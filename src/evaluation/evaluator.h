@@ -633,7 +633,7 @@ public:
         }
 
         m_searchers.resize(size);
-        Searcher::s_threadPool.resize(size + 1);
+        Searcher::s_threadPool.resize(size + 2);
     }
 
     constexpr uint64_t getNodes() const
@@ -941,7 +941,7 @@ private:
             return; /* nothing to do here */
         }
 
-        std::thread timeHandler([this] {
+        std::ignore = Searcher::s_threadPool.submit([this] {
             while (!m_isStopped.load(std::memory_order_relaxed)) {
                 {
                     std::scoped_lock lock(m_timeHandleMutex);
@@ -956,8 +956,6 @@ private:
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         });
-
-        timeHandler.detach();
     }
 
     std::vector<std::unique_ptr<Searcher>> m_searchers {};
