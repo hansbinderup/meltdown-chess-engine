@@ -54,9 +54,21 @@ public:
         }
     }
 
+    constexpr uint8_t at(const movegen::Move& ext_move) const
+    {
+        for (const auto& [move, vote] : *this) {
+            if (move == ext_move) {
+                return vote;
+            }
+        }
+        assert(false);
+
+        return m_entries.at(0).second;
+    }
+
     constexpr uint8_t& at(const movegen::Move& ext_move)
     {
-        for (auto& [move, vote] : m_entries) {
+        for (auto& [move, vote] : *this) {
             if (move == ext_move) {
                 return vote;
             }
@@ -68,7 +80,7 @@ public:
 
     constexpr bool count(const movegen::Move& ext_move)
     {
-        for (auto& [move, vote] : m_entries) {
+        for (auto& [move, vote] : *this) {
             if (move == ext_move) {
                 return true;
             }
@@ -84,15 +96,14 @@ public:
 
     constexpr void clear()
     {
-        for (uint8_t i = 0; i < m_size; i++) {
-            m_entries.at(i) = MoveVotePair {};
-        }
         m_size = 0;
     }
 
     auto* begin() { return m_entries.begin(); }
-
     auto* end() { return m_entries.begin() + m_size; }
+
+    auto* begin() const { return m_entries.begin(); }
+    auto* end() const { return m_entries.begin() + m_size; }
 
 private:
     std::array<MoveVotePair, maxSize> m_entries {};
