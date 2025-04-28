@@ -14,15 +14,15 @@ RESULT_OUTPUT="$OUTPUT_DIR/results_$FILENAME_SUFFIX.txt"
 PGN_OUTPUT="$OUTPUT_DIR/games_$FILENAME_SUFFIX.pgn"
 
 # engine settings
-ENGINE1_NAME=$(jq -r '.new_engine.name' "$CONFIG_FILE")
-ENGINE1_PATH=$(jq -r '.new_engine.path' "$CONFIG_FILE")
-for option in $(jq -r '.new_engine.options[]' "$CONFIG_FILE"); do
+ENGINE1_NAME=$(jq -r '.dev_engine.name' "$CONFIG_FILE")
+ENGINE1_PATH=$(jq -r '.dev_engine.path' "$CONFIG_FILE")
+for option in $(jq -r '.dev_engine.options[]' "$CONFIG_FILE"); do
     ENGINE1_OPTIONS="$ENGINE1_OPTIONS option.$option"
 done
 
-ENGINE2_NAME=$(jq -r '.baseline_engine.name' "$CONFIG_FILE")
-ENGINE2_PATH=$(jq -r '.baseline_engine.path' "$CONFIG_FILE")
-for option in $(jq -r '.baseline_engine.options[]' "$CONFIG_FILE"); do
+ENGINE2_NAME=$(jq -r '.base_engine.name' "$CONFIG_FILE")
+ENGINE2_PATH=$(jq -r '.base_engine.path' "$CONFIG_FILE")
+for option in $(jq -r '.base_engine.options[]' "$CONFIG_FILE"); do
     ENGINE2_OPTIONS="$ENGINE2_OPTIONS option.$option"
 done
 
@@ -56,7 +56,7 @@ cutechess-cli \
   -engine cmd="$ENGINE1_PATH" name="$ENGINE1_NAME" $ENGINE1_OPTIONS \
   -engine cmd="$ENGINE2_PATH" name="$ENGINE2_NAME" $ENGINE2_OPTIONS \
   -each proto=uci $TIME_CONTROL \
-  -concurrency $CONCURRENCY -rounds $ROUNDS -repeat 2 -games 2 \
+  -concurrency $CONCURRENCY -rounds $ROUNDS -repeat 2 -games 2 -recover \
   $SPRT_STRING \
   -openings file=$OPENING_BOOK plies=$OPENING_BOOK_MOVES order=random policy=round \
   -ratinginterval $CONCURRENCY -outcomeinterval $CONCURRENCY -pgnout "$PGN_OUTPUT" -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE -maxmoves 200 \
