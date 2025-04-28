@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - 'feature/**'
 
 concurrency:
   group: ${{ github.head_ref }}
