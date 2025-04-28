@@ -32,8 +32,15 @@ OPENING_BOOK=$(jq -r '.tournament.opening_book' "$CONFIG_FILE")
 OPENING_BOOK_MOVES=$(jq -r '.tournament.opening_book_moves' "$CONFIG_FILE")
 CONCURRENCY=$(jq -r '.tournament.concurrency' "$CONFIG_FILE")
 TIME_CONTROL=$(jq -r '.tournament.time_control' "$CONFIG_FILE")
+
+# resign settings
 RESIGN_MOVES=$(jq -r '.tournament.resign_move_count' "$CONFIG_FILE")
 RESIGN_SCORE=$(jq -r '.tournament.resign_score' "$CONFIG_FILE")
+
+# draw settings
+DRAW_MOVE_NUMBER=$(jq -r '.tournament.draw_move_number' "$CONFIG_FILE")
+DRAW_MOVES=$(jq -r '.tournament.draw_move_count' "$CONFIG_FILE")
+DRAW_SCORE=$(jq -r '.tournament.draw_score' "$CONFIG_FILE")
 
 # sprt settings
 SPRT_STRING=""
@@ -57,9 +64,11 @@ cutechess-cli \
   -engine cmd="$ENGINE2_PATH" name="$ENGINE2_NAME" $ENGINE2_OPTIONS \
   -each proto=uci $TIME_CONTROL \
   -concurrency $CONCURRENCY -rounds $ROUNDS -repeat 2 -games 2 \
+  -draw movenumber="$DRAW_MOVE_NUMBER" movecount="$DRAW_MOVES" score="$DRAW_SCORE" \
+  -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE \
   $SPRT_STRING \
   -openings file=$OPENING_BOOK plies=$OPENING_BOOK_MOVES order=random policy=round \
-  -ratinginterval $CONCURRENCY -outcomeinterval $CONCURRENCY -pgnout "$PGN_OUTPUT" -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE -maxmoves 200 \
+  -ratinginterval $CONCURRENCY -outcomeinterval $CONCURRENCY -pgnout "$PGN_OUTPUT" \
   -resultformat default > $RESULT_OUTPUT
 
 echo "Tournament finished!"
