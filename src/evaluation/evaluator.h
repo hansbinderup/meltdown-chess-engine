@@ -801,11 +801,6 @@ private:
 
             m_endTime = start + adjustedTime - buffer + timeInc;
         }
-
-        /* just to make sure that we actually search something - better to run out of time than to not search any moves.. */
-        if (m_endTime <= start) {
-            m_endTime = start + milliseconds(250) + timeInc;
-        }
     };
 
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
@@ -822,34 +817,36 @@ private:
         uint8_t d = 1;
 
         while (d <= depth) {
-            if (m_isStopped.load(std::memory_order_relaxed)) {
-                break;
-            } else {
-                Searcher::s_searchStopped.store(false, std::memory_order_relaxed);
-            }
-
-            /* always allow full scan on first move - will be good for the hash table :) */
-            if (board.fullMoves > 0) {
-                const auto now = std::chrono::system_clock::now();
-                const auto timeLeft = m_endTime - now;
-                const auto timeSpent = now - m_startTime;
-
-                /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
-                 * might need tweaking - will do when game phases are implemented */
-                const auto timeLimit = timeSpent / 1.9;
-
-                /* uncommment for debugging */
-
-                /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
-                /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
-
-                if (timeLeft < timeLimit) {
-                    /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
+            if (d > 1) {
+                if (m_isStopped.load(std::memory_order_relaxed)) {
                     break;
                 }
+
+                /* always allow full scan on first move - will be good for the hash table :) */
+                if (board.fullMoves > 0) {
+                    const auto now = std::chrono::system_clock::now();
+                    const auto timeLeft = m_endTime - now;
+                    const auto timeSpent = now - m_startTime;
+
+                    /* factor is "little less than half" meaning that we give juuust about half the time we spent to search a new depth
+                     * might need tweaking - will do when game phases are implemented */
+                    const auto timeLimit = timeSpent / 1.9;
+
+                    /* uncommment for debugging */
+
+                    /* m_logger.log("d: {}, timeLeft: {}, timeSpent: {}, timeLimit: {}", d, */
+                    /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft), */
+                    /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeSpent), */
+                    /*     std::chrono::duration_cast<std::chrono::milliseconds>(timeLimit)); */
+
+                    if (timeLeft < timeLimit) {
+                        /* m_logger.log("Stopped early; saved: {}", std::chrono::duration_cast<std::chrono::milliseconds>(timeLeft)); */
+                        break;
+                    }
+                }
             }
+
+            Searcher::s_searchStopped.store(false, std::memory_order_relaxed);
 
             /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
             std::array<SearcherResult, s_maxThreads> searchResults {};
