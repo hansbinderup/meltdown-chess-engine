@@ -17,6 +17,9 @@
         "opening_book_moves": 8,
         "resign_move_count": 3,
         "resign_score": 400,
+        "draw_move_number": 40,
+        "draw_move_count": 5,
+        "draw_score": 0
     },
     "sprt": {
         "enabled": true,
