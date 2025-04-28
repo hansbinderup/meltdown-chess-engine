@@ -83,7 +83,7 @@ cutechess-cli \
   -engine cmd="$ENGINE1_PATH" name="$ENGINE1_NAME" $ENGINE1_OPTIONS \
   -engine cmd="$ENGINE2_PATH" name="$ENGINE2_NAME" $ENGINE2_OPTIONS \
   -each proto=uci $TIME_CONTROL \
-  -concurrency $CONCURRENCY -rounds $ROUNDS -repeat 2 -games 2 \
+  -concurrency $CONCURRENCY -rounds $ROUNDS -repeat 2 -games 2 -recover \
   -draw movenumber="$DRAW_MOVE_NUMBER" movecount="$DRAW_MOVES" score="$DRAW_SCORE" \
   -resign movecount=$RESIGN_MOVES score=$RESIGN_SCORE \
   $SPRT_STRING \
