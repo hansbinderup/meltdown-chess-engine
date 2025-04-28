@@ -1,10 +1,10 @@
 {
-    "new_engine": {
+    "dev_engine": {
         "name": "Engine to be tested",
         "path": "/absolute/path/to/engine",
         "options": ["Syzygy=/path/to/syzygy/tables", "Ponder=false"]
     },
-    "baseline_engine": {
+    "base_engine": {
         "name": "Engine to test against",
         "path": "/absolute/path/to/engine",
         "options": []
@@ -15,8 +15,8 @@
         "time_control": "tc=0/8+0.08 (NOTE: can also be st=0.3 for eg. 300ms / move)",
         "opening_book": "tests/books/8moves_v3.pgn",
         "opening_book_moves": 8,
-        "resign_move_count": 5,
-        "resign_score": 1000
+        "resign_move_count": 3,
+        "resign_score": 400,
     },
     "sprt": {
         "enabled": true,

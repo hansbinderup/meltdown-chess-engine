@@ -14,15 +14,15 @@ RESULT_OUTPUT="$OUTPUT_DIR/results_$FILENAME_SUFFIX.txt"
 PGN_OUTPUT="$OUTPUT_DIR/games_$FILENAME_SUFFIX.pgn"
 
 # engine settings
-ENGINE1_NAME=$(jq -r '.new_engine.name' "$CONFIG_FILE")
-ENGINE1_PATH=$(jq -r '.new_engine.path' "$CONFIG_FILE")
-for option in $(jq -r '.new_engine.options[]' "$CONFIG_FILE"); do
+ENGINE1_NAME=$(jq -r '.dev_engine.name' "$CONFIG_FILE")
+ENGINE1_PATH=$(jq -r '.dev_engine.path' "$CONFIG_FILE")
+for option in $(jq -r '.dev_engine.options[]' "$CONFIG_FILE"); do
     ENGINE1_OPTIONS="$ENGINE1_OPTIONS option.$option"
 done
 
-ENGINE2_NAME=$(jq -r '.baseline_engine.name' "$CONFIG_FILE")
-ENGINE2_PATH=$(jq -r '.baseline_engine.path' "$CONFIG_FILE")
-for option in $(jq -r '.baseline_engine.options[]' "$CONFIG_FILE"); do
+ENGINE2_NAME=$(jq -r '.base_engine.name' "$CONFIG_FILE")
+ENGINE2_PATH=$(jq -r '.base_engine.path' "$CONFIG_FILE")
+for option in $(jq -r '.base_engine.options[]' "$CONFIG_FILE"); do
     ENGINE2_OPTIONS="$ENGINE2_OPTIONS option.$option"
 done
 
