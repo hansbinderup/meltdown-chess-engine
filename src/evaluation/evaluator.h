@@ -78,9 +78,9 @@ public:
         return m_entries.at(0).second;
     }
 
-    constexpr bool count(const movegen::Move& ext_move)
+    constexpr bool count(const movegen::Move& ext_move) const
     {
-        for (auto& [move, vote] : *this) {
+        for (const auto& [move, vote] : *this) {
             if (move == ext_move) {
                 return true;
             }
@@ -142,7 +142,23 @@ public:
         return s_nodes;
     }
 
-    void startSearch(uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
+    SearcherResult inline startSearch(uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
+    {
+        m_moveOrdering.pvTable().setIsFollowing(true);
+        m_wdl = syzygy::WdlResultTableNotActive;
+        m_dtz = 0;
+
+        const int32_t score = negamax(depth, board, alpha, beta);
+
+        return SearcherResult {
+            .score = score,
+            .searcherId = m_searcherId,
+            .pvMove = m_moveOrdering.pvTable().bestMove(),
+            .searchedDepth = m_moveOrdering.pvTable().size(),
+        };
+    }
+
+    void inline startSearchAsync(uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
     {
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
@@ -166,8 +182,7 @@ public:
         });
     }
 
-    constexpr std::optional<SearcherResult>
-    getSearchResult()
+    constexpr std::optional<SearcherResult> getSearchResult()
     {
         return m_futureResult.get();
     }
@@ -616,7 +631,7 @@ private:
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 
-ThreadPool Searcher::s_threadPool { 1 };
+ThreadPool Searcher::s_threadPool { 3 };
 
 uint8_t Searcher::s_numSearchers { 0 };
 uint64_t Searcher::s_nodes { 0 };
@@ -816,7 +831,6 @@ private:
 
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-
         int32_t alpha = s_minScore;
         int32_t beta = s_maxScore;
 
@@ -826,6 +840,7 @@ private:
          */
         movegen::Move bestMove;
         uint8_t d = 1;
+        const auto& singleSearcher = m_searchers.front();
 
         while (d <= depth) {
             if (d > 1) {
@@ -857,83 +872,103 @@ private:
                 }
             }
 
-            Searcher::s_searchStopped.store(false, std::memory_order_relaxed);
+            if (m_searchers.size() == 1) {
+                Searcher::s_searchStopped.store(false, std::memory_order_relaxed);
+                const auto res = singleSearcher->startSearch(d, board, alpha, beta);
 
-            /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
-            std::array<SearcherResult, s_maxThreads> searchResults {};
-            uint8_t numSearchResults {};
+                if ((res.score <= alpha) || (res.score >= beta)) {
+                    alpha = s_minScore;
+                    beta = s_maxScore;
 
-            for (auto& searcher : m_searchers) {
-                searcher->startSearch(d, board, alpha, beta);
-            }
+                    continue;
+                }
 
-            for (auto& searcher : m_searchers) {
-                const auto& result = searcher->getSearchResult();
-                if (result.has_value()) {
-                    // If didn't fall out of window and wasn't an immediate early termination, push back to results
-                    if ((result.value().score > alpha) && (result.value().score < beta) && result.value().searchedDepth > 0) {
-                        searchResults.at(numSearchResults) = result.value();
-                        ++numSearchResults;
+                /* prepare window for next iteration */
+                alpha = res.score - s_aspirationWindow;
+                beta = res.score + s_aspirationWindow;
+
+                singleSearcher->printScoreInfo(board, res.score, d, m_startTime);
+                bestMove = singleSearcher->getPvMove();
+
+            } else {
+                Searcher::s_searchStopped.store(false, std::memory_order_relaxed);
+
+                /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
+                std::array<SearcherResult, s_maxThreads> searchResults {};
+                uint8_t numSearchResults {};
+
+                for (auto& searcher : m_searchers) {
+                    searcher->startSearchAsync(d, board, alpha, beta);
+                }
+
+                for (auto& searcher : m_searchers) {
+                    const auto& result = searcher->getSearchResult();
+                    if (result.has_value()) {
+                        // If didn't fall out of window and wasn't an immediate early termination, push back to results
+                        if ((result.value().score > alpha) && (result.value().score < beta) && result.value().searchedDepth > 0) {
+                            searchResults.at(numSearchResults) = result.value();
+                            ++numSearchResults;
+                        }
                     }
                 }
-            }
 
-            if (numSearchResults == 0) {
-                alpha = s_minScore;
-                beta = s_maxScore;
+                if (numSearchResults == 0) {
+                    alpha = s_minScore;
+                    beta = s_maxScore;
 
-                continue;
-            }
-
-            m_movesVotes.clear();
-
-            for (uint8_t i = 0; i < numSearchResults; i++) {
-
-                const auto& result = searchResults.at(i);
-
-                const int32_t score = result.score;
-                const uint8_t depth = result.searchedDepth;
-                const auto move = result.pvMove;
-
-                /* Can be tweaked for optimization */
-                int64_t voteWeight = (score - s_minScore) * depth;
-
-                if (!m_movesVotes.count(move)) {
-                    m_movesVotes.insert(move, voteWeight);
-                } else {
-                    m_movesVotes.at(move) += voteWeight;
+                    continue;
                 }
-            }
 
-            int64_t maxVote = -std::numeric_limits<int64_t>::max();
+                m_movesVotes.clear();
 
-            for (const auto& [move, vote] : m_movesVotes) {
-                if (vote > maxVote) {
-                    maxVote = vote;
-                    bestMove = move;
-                }
-            }
+                for (uint8_t i = 0; i < numSearchResults; i++) {
 
-            uint8_t bestWinningDepth = 0;
-            SearcherResult bestWinningResult;
+                    const auto& result = searchResults.at(i);
 
-            for (uint8_t i = 0; i < numSearchResults; i++) {
-                if (searchResults.at(i).pvMove == bestMove) {
-                    if (depth > bestWinningDepth) {
-                        bestWinningResult = searchResults.at(i);
-                        bestWinningDepth = depth;
+                    const int32_t score = result.score;
+                    const uint8_t depth = result.searchedDepth;
+                    const auto move = result.pvMove;
+
+                    /* Can be tweaked for optimization */
+                    int64_t voteWeight = (score - s_minScore) * depth;
+
+                    if (!m_movesVotes.count(move)) {
+                        m_movesVotes.insert(move, voteWeight);
+                    } else {
+                        m_movesVotes.at(move) += voteWeight;
                     }
                 }
-            }
 
-            /* prepare window for next iteration */
-            alpha = bestWinningResult.score - s_aspirationWindow;
-            beta = bestWinningResult.score + s_aspirationWindow;
+                int64_t maxVote = -std::numeric_limits<int64_t>::max();
 
-            for (auto& searcher : m_searchers) {
-                if (searcher->getSearcherId() == bestWinningResult.searcherId && !Searcher::s_killed.load(std::memory_order_relaxed)) {
-                    searcher->printScoreInfo(board, bestWinningResult.score, d, m_startTime);
-                    m_ponderMove = searcher->getPonderMove();
+                for (const auto& [move, vote] : m_movesVotes) {
+                    if (vote > maxVote) {
+                        maxVote = vote;
+                        bestMove = move;
+                    }
+                }
+
+                uint8_t bestWinningDepth = 0;
+                SearcherResult bestWinningResult;
+
+                for (uint8_t i = 0; i < numSearchResults; i++) {
+                    if (searchResults.at(i).pvMove == bestMove) {
+                        if (depth > bestWinningDepth) {
+                            bestWinningResult = searchResults.at(i);
+                            bestWinningDepth = depth;
+                        }
+                    }
+                }
+
+                /* prepare window for next iteration */
+                alpha = bestWinningResult.score - s_aspirationWindow;
+                beta = bestWinningResult.score + s_aspirationWindow;
+
+                for (auto& searcher : m_searchers) {
+                    if (searcher->getSearcherId() == bestWinningResult.searcherId && !Searcher::s_killed.load(std::memory_order_relaxed)) {
+                        searcher->printScoreInfo(board, bestWinningResult.score, d, m_startTime);
+                        m_ponderMove = searcher->getPonderMove();
+                    }
                 }
             }
 
@@ -961,7 +996,7 @@ private:
                     }
                 }
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_for(std::chrono::nanoseconds(10));
             }
         });
     }

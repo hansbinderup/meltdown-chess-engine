@@ -213,8 +213,6 @@ private:
             }
         }
 
-        s_evaluator.resizeSearchers(s_numSearchers);
-
         evaluation::Searcher::s_threadPool.submit([depth] {
             const auto bestMove = s_evaluator.getBestMove(s_board, depth);
 
