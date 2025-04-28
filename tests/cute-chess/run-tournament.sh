@@ -1,27 +1,45 @@
 #!/bin/bash
 
-# Get relative path from caller
-SOURCE_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
+set -e
+
+# usage: ./run-tournament.sh <base branch | option branch to build base engine>
+#
+# The script will run a tournament based on the config.json
+# If a base branch is provided, the script will build the currently checked out branch as dev
+# and the provided branch as base
+
+# Get path from caller
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check for input
+if [ "$1" ]; then
+    echo "Building engines..."
+
+    # output is redirected as it's very noisy..
+    # remove for debugging etc.
+    "$SCRIPT_DIR/build-engines.sh" "$1" > /dev/null
+fi
+
 
 # Load configuration from JSON
-CONFIG_FILE="$SOURCE_DIR/config.json"
+CONFIG_FILE="$SCRIPT_DIR/config.json"
 
 # Output files
-OUTPUT_DIR="$SOURCE_DIR/outputs"
+OUTPUT_DIR="$SCRIPT_DIR/outputs"
 mkdir -p "$OUTPUT_DIR"
 FILENAME_SUFFIX="$(date +"%d%m%Y-%H%M%S")"
 RESULT_OUTPUT="$OUTPUT_DIR/results_$FILENAME_SUFFIX.txt"
 PGN_OUTPUT="$OUTPUT_DIR/games_$FILENAME_SUFFIX.pgn"
 
 # engine settings
-ENGINE1_NAME=$(jq -r '.dev_engine.name' "$CONFIG_FILE")
-ENGINE1_PATH=$(jq -r '.dev_engine.path' "$CONFIG_FILE")
+ENGINE1_NAME="meltdown-dev"
+ENGINE1_PATH="$SCRIPT_DIR/meltdown-dev"
 for option in $(jq -r '.dev_engine.options[]' "$CONFIG_FILE"); do
     ENGINE1_OPTIONS="$ENGINE1_OPTIONS option.$option"
 done
 
-ENGINE2_NAME=$(jq -r '.base_engine.name' "$CONFIG_FILE")
-ENGINE2_PATH=$(jq -r '.base_engine.path' "$CONFIG_FILE")
+ENGINE2_NAME="meltdown-base"
+ENGINE2_PATH="$SCRIPT_DIR/meltdown-base"
 for option in $(jq -r '.base_engine.options[]' "$CONFIG_FILE"); do
     ENGINE2_OPTIONS="$ENGINE2_OPTIONS option.$option"
 done
@@ -56,6 +74,8 @@ fi
 
 echo "Running tournament $ENGINE1_NAME VS $ENGINE2_NAME - SPRT enabled: $SPRT_ENABLED"
 echo "Games: $ROUNDS, Opening book: $OPENING_BOOK, Time Control: $TIME_CONTROL"
+echo "Follow using:"
+echo "tail -f $RESULT_OUTPUT"
 echo "<ctrl-c> will stop tests early"
 
 # Run the tournament
