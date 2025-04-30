@@ -28,7 +28,7 @@ public:
         if (m_isPondering || depthInput.has_value()) {
             TimeManager::startInfinite();
         } else {
-            TimeManager::start(board, m_threadPool);
+            TimeManager::start(board);
         }
 
         const uint64_t hash = engine::generateHashKey(board);
@@ -73,7 +73,7 @@ public:
         if (m_ponderingEnabled) {
             m_isPondering = false;
 
-            TimeManager::start(board, m_threadPool);
+            TimeManager::start(board);
         }
     }
 
@@ -86,6 +86,7 @@ public:
     {
         m_isPondering = false;
         TimeManager::stop();
+        Searcher::setSearchStopped(true);
     }
 
     void kill()
@@ -159,6 +160,7 @@ private:
                 break;
             }
 
+            Searcher::setSearchStopped(false);
             const int32_t score = m_searcher.startSearch(d, board, alpha, beta);
 
             if ((score <= alpha) || (score >= beta)) {
@@ -187,7 +189,7 @@ private:
     Searcher m_searcher {};
     std::atomic_bool m_killed { false };
 
-    ThreadPool m_threadPool { 2 }; /* Search and time handler */
+    ThreadPool m_threadPool { 1 }; /* single searcher */
     bool m_isPondering { false };
     bool m_ponderingEnabled { false };
 
