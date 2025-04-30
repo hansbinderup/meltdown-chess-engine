@@ -7,11 +7,11 @@
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "evaluation/static_evaluation.h"
+#include "time_manager.h"
 
 #include "fmt/ranges.h"
 #include "movegen/move_types.h"
 #include "syzygy/syzygy.h"
-#include <atomic>
 #include <engine/zobrist_hashing.h>
 
 namespace evaluation {
@@ -45,11 +45,6 @@ public:
     constexpr uint8_t getSelDepth() const
     {
         return m_selDepth;
-    }
-
-    static constexpr void setSearchStopped(bool value)
-    {
-        s_searchStopped.store(value, std::memory_order_relaxed);
     }
 
     int32_t inline startSearch(uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
@@ -128,14 +123,14 @@ public:
             fmt::print("\n\n");
         }
 
-        /* no need for time management here - just control the start/stop ourselves */
-        s_searchStopped.store(false, std::memory_order_relaxed);
+        TimeManager::startInfinite();
 
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         m_moveOrdering.sortMoves(board, moves, m_ply);
         const int32_t score = negamax(depth, board);
-        s_searchStopped.store(true, std::memory_order_relaxed);
+
+        TimeManager::stop();
 
         fmt::println("Move evaluations [{}]:", depth);
         for (const auto& move : moves) {
@@ -305,7 +300,7 @@ public:
 
             undoMove(moveRes->hash);
 
-            if (s_searchStopped.load(std::memory_order_relaxed))
+            if (TimeManager::hasTimedOut())
                 return score;
 
             if (score >= beta) {
@@ -376,7 +371,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (s_searchStopped.load(std::memory_order_relaxed))
+            if (TimeManager::hasTimedOut())
                 return score;
 
             if (score >= beta)
@@ -453,8 +448,6 @@ private:
     }
 
     static inline uint8_t s_numSearchers {};
-
-    static inline std::atomic_bool s_searchStopped { true };
 
     uint64_t m_nodes {};
     uint8_t m_ply {};
