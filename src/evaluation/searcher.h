@@ -47,6 +47,11 @@ public:
         return m_selDepth;
     }
 
+    static constexpr void setSearchStopped(bool value)
+    {
+        s_searchStopped.store(value, std::memory_order_relaxed);
+    }
+
     int32_t inline startSearch(uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
     {
         m_moveOrdering.pvTable().setIsFollowing(true);
@@ -300,7 +305,7 @@ public:
 
             undoMove(moveRes->hash);
 
-            if (TimeManager::hasTimedOut())
+            if (isSearchStopped())
                 return score;
 
             if (score >= beta) {
@@ -371,7 +376,7 @@ private:
             const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
-            if (TimeManager::hasTimedOut())
+            if (isSearchStopped())
                 return score;
 
             if (score >= beta)
@@ -447,7 +452,20 @@ private:
         m_ply--;
     }
 
+    inline bool isSearchStopped() const
+    {
+        if (s_searchStopped.load(std::memory_order_relaxed))
+            return true;
+
+        if (m_nodes % 2048 == 0) {
+            TimeManager::updateTimeout();
+        }
+
+        return TimeManager::hasTimedOut();
+    }
+
     static inline uint8_t s_numSearchers {};
+    static inline std::atomic_bool s_searchStopped { true };
 
     uint64_t m_nodes {};
     uint8_t m_ply {};
