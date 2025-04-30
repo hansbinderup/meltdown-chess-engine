@@ -198,17 +198,17 @@ private:
             const auto valNum = parsing::to_number(value.value_or(args));
 
             if (setting == "wtime") {
-                s_evaluator.setWhiteTime(valNum.value_or(0));
+                TimeManager::setWhiteTime(valNum.value_or(0));
             } else if (setting == "btime") {
-                s_evaluator.setBlackTime(valNum.value_or(0));
+                TimeManager::setBlackTime(valNum.value_or(0));
             } else if (setting == "movestogo") {
-                s_evaluator.setMovesToGo(valNum.value_or(0));
+                TimeManager::setMovesToGo(valNum.value_or(0));
             } else if (setting == "movetime") {
-                s_evaluator.setMoveTime(valNum.value_or(0));
+                TimeManager::setMoveTime(valNum.value_or(0));
             } else if (setting == "winc") {
-                s_evaluator.setWhiteMoveInc(valNum.value_or(0));
+                TimeManager::setWhiteMoveInc(valNum.value_or(0));
             } else if (setting == "binc") {
-                s_evaluator.setBlackMoveInc(valNum.value_or(0));
+                TimeManager::setBlackMoveInc(valNum.value_or(0));
             } else if (setting == "depth") {
                 depth = valNum;
             }
