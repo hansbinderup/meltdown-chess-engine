@@ -29,6 +29,7 @@ public:
         startInputThread();
 
         /* always release resources */
+        s_evaluator.stop();
         syzygy::deinit();
     }
 
@@ -80,7 +81,7 @@ private:
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
-            s_isRunning = false;
+            return handleQuit();
         } else {
             // invalid input
             return false;
@@ -229,6 +230,14 @@ private:
         return true;
     }
 
+    static bool handleQuit()
+    {
+        s_evaluator.kill();
+        s_isRunning = false;
+
+        return true;
+    }
+
     static bool handleSetOption(std::string_view input)
     {
         const auto name = parsing::sv_next_split(input);
@@ -340,6 +349,7 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
+
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 
     /* UCI options callbacks */
@@ -361,4 +371,3 @@ private:
         ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
     });
 };
-
