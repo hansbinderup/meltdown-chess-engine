@@ -174,7 +174,8 @@ private:
             alpha = score - s_aspirationWindow;
             beta = score + s_aspirationWindow;
 
-            printScoreInfo(&m_searcher, board, score, d);
+            if (TimeManager::timeForAnotherSearch(board))
+                printScoreInfo(&m_searcher, board, score, d);
 
             /* only increment depth, if we didn't fall out of the window */
             d++;
