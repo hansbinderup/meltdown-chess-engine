@@ -15,31 +15,30 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-# Run dev build
-echo "Building dev..."
-meson setup "$BUILD_DIR" --wipe --cross-file "$ROOT/targets/$NATIVE_TARGET" --buildtype=release
-meson compile -C "$BUILD_DIR"
-mv "$BUILD_DIR/meltdown-chess-engine" "$SCRIPT_DIR/meltdown-dev"
-rm -rf "$BUILD_DIR"
 
-target_branch="$1"
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "Stash or commit local changes.." > /dev/tty
+    exit 1
+fi
 
-# Save current branch name
+# current branch is gonna be dev
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 
-# Stash changes if needed
-stash_applied=false
-if ! git diff --quiet || ! git diff --cached --quiet; then
-    echo "Stashing local changes..."
-    git stash push -u -m "temp-stash-for-branch-switch"
-    stash_applied=true
-fi
+# ensure that we always return to current branch if something goes wrong
+cleanup() {
+    git checkout "$current_branch"
+}
+
+trap cleanup EXIT
+
+# base branch is gonna be target
+target_branch="$1"
 
 # Switch to target branch
 git checkout "$target_branch"
 
 # Run base build
-echo "Building base..."
+echo "Building base [$target_branch]" > /dev/tty
 meson setup "$BUILD_DIR" --wipe --cross-file "$ROOT/targets/$NATIVE_TARGET" --buildtype=release "${ARGS[@]}"
 meson compile -C "$BUILD_DIR"
 mv "$BUILD_DIR/meltdown-chess-engine" "$SCRIPT_DIR/meltdown-base"
@@ -47,11 +46,12 @@ rm -rf "$BUILD_DIR"
 
 git checkout "$current_branch"
 
-# Re-apply stashed changes if any
-if $stash_applied; then
-    git stash pop
-fi
-
+# Run dev build
+echo "Building dev [$current_branch]" > /dev/tty
+meson setup "$BUILD_DIR" --wipe --cross-file "$ROOT/targets/$NATIVE_TARGET" --buildtype=release
+meson compile -C "$BUILD_DIR"
+mv "$BUILD_DIR/meltdown-chess-engine" "$SCRIPT_DIR/meltdown-dev"
+rm -rf "$BUILD_DIR"
 
 echo "Done"
 
