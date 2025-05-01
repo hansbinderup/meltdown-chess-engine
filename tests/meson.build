@@ -13,6 +13,7 @@ unit_test_names = [
   'test_see_swap',
   'test_scoring',
   'test_thread_pool',
+  'test_move_vote_map',
 ]
 
 foreach test_name : unit_test_names

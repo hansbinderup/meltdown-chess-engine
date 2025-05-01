@@ -11,9 +11,11 @@ namespace engine {
 
 class Bench {
 public:
-    static void run(uint8_t depth = s_defaultSearchDepth)
+    static void run(uint8_t numSearchers, uint8_t depth = s_defaultSearchDepth)
     {
         s_nodesCount = 0;
+
+        s_evaluator.resizeSearchers(numSearchers);
 
         const std::size_t previousHashSize = engine::TtHashTable::getSizeMb();
 
