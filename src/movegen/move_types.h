@@ -29,7 +29,7 @@ public:
     Move() = default;
 
     explicit Move(uint32_t ext_data)
-        : data(ext_data) { };
+        : data(ext_data) {};
 
     explicit Move(uint64_t from, uint64_t to, uint64_t piece, uint64_t promotion, uint64_t castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
         : data(

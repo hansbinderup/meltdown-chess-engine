@@ -14,6 +14,8 @@
 #include "syzygy/syzygy.h"
 #include <engine/zobrist_hashing.h>
 
+#include <future>
+
 namespace evaluation {
 
 enum SearchType {
@@ -27,6 +29,13 @@ struct MoveResult {
 };
 
 class Searcher;
+
+struct SearcherResult {
+    int32_t score;
+    movegen::Move pvMove;
+    uint8_t searchedDepth;
+    Searcher* searcher;
+};
 
 class Searcher {
 public:
@@ -59,6 +68,36 @@ public:
         m_dtz = 0;
 
         return negamax(depth, board, alpha, beta);
+    }
+
+    void inline startSearchAsync(ThreadPool& threadPool, uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
+    {
+        m_searchPromise = std::promise<SearcherResult> {};
+        m_futureResult = m_searchPromise.get_future();
+
+        m_moveOrdering.pvTable().setIsFollowing(true);
+        m_wdl = syzygy::WdlResultTableNotActive;
+        m_dtz = 0;
+
+        threadPool.submit([this, depth, board, alpha, beta] {
+            SearcherResult result {
+                .score
+                = negamax(depth, board, alpha, beta),
+                .pvMove = m_moveOrdering.pvTable().bestMove(),
+                .searchedDepth = m_moveOrdering.pvTable().size(),
+                .searcher = this
+            };
+
+            /* Stop any searches going on in other threads, so we're not waiting on the slowest search */
+            setSearchStopped(true);
+
+            m_searchPromise.set_value(result);
+        });
+    }
+
+    constexpr std::optional<SearcherResult> getSearchResult()
+    {
+        return m_futureResult.get();
     }
 
     constexpr movegen::Move getPvMove() const
@@ -478,6 +517,9 @@ private:
 
     BitBoard m_board;
     uint64_t m_hash;
+
+    std::promise<SearcherResult> m_searchPromise;
+    std::future<SearcherResult> m_futureResult;
 
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
