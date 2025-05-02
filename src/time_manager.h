@@ -127,9 +127,12 @@ private:
              * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md
              */
 
-            const auto baseTime = timeLeft / 20 + 3 * timeInc / 4;
-            s_softTimeLimit = s_startTime + baseTime / 2 - buffer;
-            s_hardTimeLimit = s_startTime + 3 * baseTime - buffer;
+            const uint32_t moveIndex = std::min(board.fullMoves, static_cast<uint32_t>(s_movesToGoTable.size() - 1));
+            const uint8_t movesToGo = s_movesToGoTable[moveIndex];
+
+            const auto baseTime = (timeLeft / movesToGo) + (3 * timeInc / 4);
+            s_softTimeLimit = s_startTime + (baseTime / 2) - buffer;
+            s_hardTimeLimit = s_startTime + (3 * baseTime) - buffer;
         }
     }
 
@@ -146,5 +149,17 @@ private:
 
     static inline std::atomic_bool s_timedOut;
 
-    constexpr static inline uint32_t s_defaultAmountMoves { 75 };
+    /* based on the plot from Lc0: https://lczero.org/dev/docs/timemgr/#estimating-moves-left
+     * FIXME: not very precise  (manually extracted data from plot) */
+    constexpr static inline auto s_movesToGoTable = std::to_array<uint8_t>(
+        { 50, 49, 48, 47, 46, 45, 44, 43, 42,
+            41, 40, 39, 38, 37, 36, 35, 34, 33, 32,
+            31, 30, 29, 28, 27, 26, 25, 24, 23, 22,
+            21, 20, 19, 18, 17, 16, 15, 14, 13, 12,
+            11, 10, 10, 10, 10, 10, 9, 9, 9, 9,
+            9, 9, 9, 8, 8, 8, 8, 8, 8, 8,
+            7, 7, 7, 7, 7, 7, 8, 8, 8, 8,
+            8, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+            10, 10, 10, 10, 10, 10, 10, 10, 10, 11,
+            11, 11, 11, 11, 11, 11, 11, 11, 11, 12 });
 };
