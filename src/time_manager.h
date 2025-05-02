@@ -15,7 +15,7 @@ public:
 
         /* always allow full scan on first move - will be good for the hash table :) */
         if (board.fullMoves > 0) {
-            const auto now = std::chrono::system_clock::now();
+            const auto now = std::chrono::steady_clock::now();
             const auto timeLeft = s_endTime - now;
             const auto timeSpent = now - s_startTime;
 
@@ -33,21 +33,21 @@ public:
 
     static inline void start(const BitBoard& board)
     {
-        s_startTime = std::chrono::system_clock::now();
+        s_startTime = std::chrono::steady_clock::now();
         setupTimeControls(board);
         s_timedOut = false;
     }
 
     static inline void startInfinite()
     {
-        s_startTime = std::chrono::system_clock::now();
+        s_startTime = std::chrono::steady_clock::now();
         s_endTime = TimePoint::max();
         s_timedOut = false;
     }
 
     static inline void updateTimeout()
     {
-        const auto now = std::chrono::system_clock::now();
+        const auto now = std::chrono::steady_clock::now();
         if (now >= s_endTime) {
             s_timedOut = true;
         }
@@ -66,7 +66,7 @@ public:
 
     static inline auto timeElapsedMs()
     {
-        const auto now = std::chrono::system_clock::now();
+        const auto now = std::chrono::steady_clock::now();
         return duration_cast<std::chrono::milliseconds>(now - s_startTime);
     }
 

@@ -139,4 +139,4 @@ constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
 
 constexpr static inline uint8_t s_middleGamePhase { 24 };
 
-using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
+using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
