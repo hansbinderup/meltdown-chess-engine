@@ -127,6 +127,9 @@ private:
         } else if (s_movesToGo) {
             const auto time = timeLeft / s_movesToGo;
             s_endTime = s_startTime + time - buffer + timeInc;
+        } else if (timeLeft.count() == 0 && timeInc.count() == 0) {
+            /* no time was specified - search until stopped */
+            s_endTime = TimePoint::max();
         } else {
             /* Dynamic time allocation based on game phase */
             constexpr uint32_t openingMoves = 20;
