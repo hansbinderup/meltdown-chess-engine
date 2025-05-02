@@ -9,7 +9,8 @@ int main(int argc, char** argv)
     const auto args = std::span(argv, argc);
     for (const auto arg : args) {
         if (std::strcmp(arg, "bench") == 0) {
-            engine::Bench::run(1);
+            evaluation::Evaluator evaluator {};
+            engine::Bench::run(evaluator);
             return 0;
         }
     }

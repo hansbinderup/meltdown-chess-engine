@@ -309,9 +309,9 @@ private:
     {
         const auto depth = parsing::to_number(args);
         if (depth.has_value()) {
-            engine::Bench::run(s_numSearchers, *depth);
+            engine::Bench::run(s_evaluator, *depth);
         } else {
-            engine::Bench::run(s_numSearchers);
+            engine::Bench::run(s_evaluator);
         }
 
         return true;

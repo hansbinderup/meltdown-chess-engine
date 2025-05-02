@@ -11,11 +11,9 @@ namespace engine {
 
 class Bench {
 public:
-    static void run(uint8_t numSearchers, uint8_t depth = s_defaultSearchDepth)
+    static void run(evaluation::Evaluator& evaluator, uint8_t depth = s_defaultSearchDepth)
     {
         s_nodesCount = 0;
-
-        s_evaluator.resizeSearchers(numSearchers);
 
         const std::size_t previousHashSize = engine::TtHashTable::getSizeMb();
 
@@ -37,10 +35,10 @@ public:
 
             fmt::println("Position {}/{} [{}]", ++count, s_benchPositions.size(), position);
 
-            s_evaluator.reset();
-            const auto bestMove = s_evaluator.getBestMove(*board, depth);
+            evaluator.reset();
+            const auto bestMove = evaluator.getBestMove(*board, depth);
 
-            s_nodesCount += s_evaluator.getNodes();
+            s_nodesCount += evaluator.getNodes();
 
             fmt::println("bestmove {}\n", bestMove);
         }
@@ -65,8 +63,6 @@ public:
 
 private:
     static inline uint64_t s_nodesCount {};
-    static inline evaluation::Evaluator s_evaluator;
-
     constexpr static inline uint8_t s_defaultSearchDepth { 8 };
 
     /* commonly used bench positions */
