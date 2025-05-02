@@ -14,7 +14,7 @@ public:
         fmt::print("*** Starting perft - depth {} ***\n", depth);
 
         using namespace std::chrono;
-        const auto startTime = system_clock::now();
+        const auto startTime = steady_clock::now();
 
         if (depth == 0) {
             s_nodes = 1;
@@ -22,7 +22,7 @@ public:
             search(board, depth - 1, true);
         }
 
-        const auto endTime = system_clock::now();
+        const auto endTime = steady_clock::now();
         /* time in seconds reflected as a double */
         const auto timeDiff = duration_cast<duration<double>>(endTime - startTime).count();
 

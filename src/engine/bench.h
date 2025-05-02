@@ -22,7 +22,7 @@ public:
         engine::TtHashTable::setSizeMb(128);
 
         using namespace std::chrono;
-        const auto startTime = system_clock::now();
+        const auto startTime = steady_clock::now();
 
         uint8_t count = 0;
         for (const auto position : s_benchPositions) {
@@ -43,7 +43,7 @@ public:
             fmt::println("bestmove {}\n", bestMove);
         }
 
-        const auto endTime = system_clock::now();
+        const auto endTime = steady_clock::now();
         /* time in seconds reflected as a double */
         const auto timeDiff = duration_cast<duration<double>>(endTime - startTime).count();
         const double nps = s_nodesCount / timeDiff;
