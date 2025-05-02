@@ -34,18 +34,14 @@ jobs:
         run: scripts/create_release.sh
       - name: Upload release
         id: upload
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-artifact@v4
         if: ${{ env.NEW_COMMIT_COUNT > 0 || github.event_name == 'workflow_dispatch' }}
         with:
-          files: .release/*
-          tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
-          generate_release_notes: true
-          target_commitish: ${{ github.ref }}
-          prerelease: true
-          draft: true
+          path: ${{ github.workspace }}/.release/*
+          retention-days: 30
       - name: Summary
         if: ${{ env.NEW_COMMIT_COUNT > 0 || github.event_name == 'workflow_dispatch' }}
         run: |
-          SUMMARY=$'# Nightly release can be found at: [${{ env.VERSION }}](${{ steps.upload.outputs.url }})'
+          SUMMARY=$'# Nightly artifacts can be found at: [${{ env.VERSION }}](${{ steps.upload.outputs.artifact-url }})'
           echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
