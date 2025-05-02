@@ -202,8 +202,8 @@ public:
         }
 
         const bool isPv = beta - alpha > 1;
-        const auto hashProbe = engine::TtHashTable::probe(m_hash, depth, m_ply);
-        if (hashProbe.has_value() && m_ply && !isPv) {
+        const auto hashProbe = engine::TtHashTable::probe(m_hash, m_ply);
+        if (hashProbe.has_value() && m_ply && !isPv && hashProbe->depth >= depth) {
             if ((hashProbe->flag == engine::TtHashExact)
                 || (hashProbe->flag == engine::TtHashAlpha && hashProbe->score <= alpha)
                 || (hashProbe->flag == engine::TtHashBeta && hashProbe->score >= beta)) {

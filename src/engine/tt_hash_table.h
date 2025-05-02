@@ -150,9 +150,10 @@ public:
         int32_t score;
         TtHashFlag flag;
         movegen::Move move;
+        uint8_t depth;
     };
 
-    constexpr static std::optional<ProbeResult> probe(uint64_t key, uint8_t depth, uint8_t ply)
+    constexpr static std::optional<ProbeResult> probe(uint64_t key, uint8_t ply)
     {
         assert(s_ttHashSize > 0);
 
@@ -165,19 +166,15 @@ public:
             return std::nullopt;
         }
 
-        if (entryData.getDepth() >= depth) {
-            int32_t score = entryData.getScore();
+        int32_t score = entryData.getScore();
 
-            /* special case when mating score is found */
-            if (score < -s_mateScore)
-                score += ply;
-            if (score > s_mateScore)
-                score -= ply;
+        /* special case when mating score is found */
+        if (score < -s_mateScore)
+            score += ply;
+        if (score > s_mateScore)
+            score -= ply;
 
-            return ProbeResult { .score = score, .flag = entryData.getFlag(), .move = movegen::Move(entryData.getMoveData()) };
-        }
-
-        return std::nullopt;
+        return ProbeResult { .score = score, .flag = entryData.getFlag(), .move = movegen::Move(entryData.getMoveData()), .depth = entryData.getDepth() };
     }
 
     constexpr static void writeEntry(uint64_t key, int32_t score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
@@ -191,16 +188,20 @@ public:
             score += ply;
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
+        const auto entryData = entry.data.load(std::memory_order_relaxed);
+        const auto entryKey = entry.key.load(std::memory_order_relaxed);
 
-        if (entry.key.load(std::memory_order_relaxed) == 0) {
-            ++s_hashCount;
+        /* only overwrite entry with a better one than already stored */
+        if (entryKey != key
+            || entryData.getDepth() < depth
+            || (entryData.getFlag() != TtHashExact && flag == TtHashExact)) {
+
+            TtHashEntryData newData { depth, flag, score, move.getData() };
+
+            // Can be racy
+            entry.key.store(key, std::memory_order_relaxed);
+            entry.data.store(newData, std::memory_order_relaxed);
         }
-
-        TtHashEntryData newData { depth, flag, score, move.getData() };
-
-        // Can be racy
-        entry.key.store(key, std::memory_order_relaxed);
-        entry.data.store(newData, std::memory_order_relaxed);
     }
 
     constexpr static std::size_t tableSizeFromMb(size_t sizeMb)
