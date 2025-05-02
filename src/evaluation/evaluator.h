@@ -195,7 +195,7 @@ private:
         uint8_t d = 1;
 
         while (d <= depth) {
-            if (d > 1 && !TimeManager::timeForAnotherSearch(board)) {
+            if (d > 1 && !TimeManager::timeForAnotherSearch()) {
                 break;
             }
 
