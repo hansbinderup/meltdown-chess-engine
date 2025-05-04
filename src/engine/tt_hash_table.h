@@ -49,7 +49,7 @@ public:
         return static_cast<TtHashFlag>((m_data >> s_flagShift) & s_flagMask);
     }
 
-    constexpr int32_t getScore() const
+    constexpr Score getScore() const
     {
         // Casting is safe: operand's MSB is always zero
         auto scoreBits = static_cast<int32_t>((m_data >> s_scoreShift) & s_scoreMask);
@@ -68,7 +68,7 @@ public:
     }
 
 private:
-    constexpr static uint64_t encodeScore(int32_t score)
+    constexpr static uint64_t encodeScore(int64_t score)
     {
         constexpr uint64_t scoreSign = 1ULL << s_scoreSignShift;
         return (score >= 0 ? score : -score + scoreSign) << s_scoreShift;
@@ -147,7 +147,7 @@ public:
     }
 
     struct ProbeResult {
-        int32_t score;
+        Score score;
         TtHashFlag flag;
         movegen::Move move;
     };
@@ -166,7 +166,7 @@ public:
         }
 
         if (entryData.getDepth() >= depth) {
-            int32_t score = entryData.getScore();
+            Score score = entryData.getScore();
 
             /* special case when mating score is found */
             if (score < -s_mateScore)
@@ -180,7 +180,7 @@ public:
         return std::nullopt;
     }
 
-    constexpr static void writeEntry(uint64_t key, int32_t score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, Score score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         assert(s_ttHashSize > 0);
 
