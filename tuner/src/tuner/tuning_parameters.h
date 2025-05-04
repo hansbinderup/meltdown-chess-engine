@@ -9,7 +9,7 @@ namespace tuner {
 constexpr size_t s_kPrecision { 10 };
 constexpr size_t s_epochs { 2000 };
 constexpr size_t s_gamePhases { magic_enum::enum_count<Phases>() };
-constexpr size_t s_nTerms { sizeof(evaluation::Terms) / sizeof(evaluation::Score) };
+constexpr size_t s_nTerms { sizeof(evaluation::Terms) / sizeof(evaluation::TermScore) };
 constexpr double s_beta1 { 0.9 }; /* momementum */
 constexpr double s_beta2 { 0.999 }; /* velocity */
 constexpr size_t s_positions { 7153653 };

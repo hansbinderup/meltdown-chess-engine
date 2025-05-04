@@ -31,7 +31,7 @@ struct TrainingData {
     int16_t phase;
     Terms terms;
     PFactors pFactors;
-    evaluation::Score eval = evaluation::Score(0, 0);
+    evaluation::TermScore eval = evaluation::TermScore(0, 0);
 };
 
 Terms createTerms()
@@ -127,7 +127,7 @@ inline bool unpackTrainingData(std::array<TrainingData, s_positions>& data)
                 .terms = std::move(terms),
                 .pFactors = std::move(pFactors),
                 /* NOTE: the eval is set to zero to ensure we get a "clean slate" whenever we run a tuning */
-                .eval = evaluation::Score(0, 0),
+                .eval = evaluation::TermScore(0, 0),
             };
 
             data[count] = std::move(t);
