@@ -107,15 +107,11 @@ public:
         }
 
         if (entry.depth >= depth) {
-            Score score = entry.score;
-
-            /* special case when mating score is found */
-            if (score < -s_mateScore)
-                score += ply;
-            if (score > s_mateScore)
-                score -= ply;
-
-            return ProbeResult { .score = score, .flag = entry.flag, .move = entry.move };
+            return ProbeResult {
+                .score = scoreRelative(entry.score, ply),
+                .flag = entry.flag,
+                .move = entry.move,
+            };
         }
 
         return std::nullopt;
@@ -127,17 +123,11 @@ public:
 
         const uint16_t key16 = key16From64(key);
 
-        /* special case when mating score is found */
-        if (score < -s_mateScore)
-            score -= ply;
-        if (score > s_mateScore)
-            score += ply;
-
         auto& entry = s_ttHashTable[key % s_ttHashSize];
         entry = TtHashEntry {
             .key16 = key16,
             .flag = flag,
-            .score = score,
+            .score = scoreAbsolute(score, ply),
             .move = move,
             .depth = depth,
         };
