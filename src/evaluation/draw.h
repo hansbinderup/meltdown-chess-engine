@@ -11,13 +11,18 @@ static inline bool positionIsDraw(const BitBoard& board)
         return true;
     }
 
+    /* try to termintate as fast as possible - this will be the cast until endgame */
+    const int totalPieces = std::popcount(board.occupation[Both]);
+    if (totalPieces > 4) {
+        return false;
+    }
+
     /* if pawns are on the board, there is always sufficient material */
     const uint64_t pawns = board.pieces[WhitePawn] | board.pieces[BlackPawn];
     if (std::popcount(pawns) != 0) {
         return false;
     }
 
-    const int totalPieces = std::popcount(board.occupation[Both]);
     if (totalPieces <= 2) {
         /* only kings on the board */
         return true;
