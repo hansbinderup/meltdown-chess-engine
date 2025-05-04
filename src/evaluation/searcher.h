@@ -31,7 +31,7 @@ struct MoveResult {
 class Searcher;
 
 struct SearcherResult {
-    int32_t score;
+    Score score;
     movegen::Move pvMove;
     uint8_t searchedDepth;
     Searcher* searcher;
@@ -61,7 +61,7 @@ public:
         s_searchStopped.store(value, std::memory_order_relaxed);
     }
 
-    int32_t inline startSearch(uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
+    Score inline startSearch(uint8_t depth, const BitBoard& board, Score alpha, Score beta)
     {
         m_moveOrdering.pvTable().setIsFollowing(true);
         m_wdl = syzygy::WdlResultTableNotActive;
@@ -70,7 +70,7 @@ public:
         return negamax(depth, board, alpha, beta);
     }
 
-    void inline startSearchAsync(ThreadPool& threadPool, uint8_t depth, const BitBoard& board, int32_t alpha, int32_t beta)
+    void inline startSearchAsync(ThreadPool& threadPool, uint8_t depth, const BitBoard& board, Score alpha, Score beta)
     {
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
@@ -135,7 +135,7 @@ public:
         m_repetition.add(hash);
     }
 
-    constexpr std::pair<int32_t, uint8_t> approxDtzScore(const BitBoard& board, int32_t score)
+    constexpr std::pair<Score, uint8_t> approxDtzScore(const BitBoard& board, Score score)
     {
         uint8_t tbHit = 0;
         score = syzygy::approximateDtzScore(board, score, m_dtz, m_wdl, tbHit);
@@ -172,7 +172,7 @@ public:
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         m_moveOrdering.sortMoves(board, moves, m_ply);
-        const int32_t score = negamax(depth, board);
+        const Score score = negamax(depth, board);
 
         TimeManager::stop();
 
@@ -189,7 +189,7 @@ public:
     }
 
     template<SearchType searchType = SearchType::Default>
-    constexpr int32_t negamax(uint8_t depth, const BitBoard& board, int32_t alpha = s_minScore, int32_t beta = s_maxScore)
+    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore)
     {
         const bool isRoot = m_ply == 0;
 
@@ -237,12 +237,12 @@ public:
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
 
-        const int32_t staticEval = staticEvaluation(board);
+        const Score staticEval = staticEvaluation(board);
 
         /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
         if (depth < s_reductionLimit && !isPv && !isChecked) {
             const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + s_futilityMargin);
-            const int32_t evalMargin = s_futilityEvaluationMargin * depth;
+            const Score evalMargin = s_futilityEvaluationMargin * depth;
 
             if (withinFutilityMargin && (staticEval - evalMargin) >= beta)
                 return staticEval - evalMargin;
@@ -259,16 +259,16 @@ public:
 
         /* https://www.chessprogramming.org/Razoring (Strelka) */
         if (!isPv && !isChecked && depth <= s_reductionLimit) {
-            int32_t score = staticEval + s_razorMarginShallow;
+            Score score = staticEval + s_razorMarginShallow;
             if (score < beta) {
                 if (depth == 1) {
-                    int32_t newScore = quiesence(board, alpha, beta);
+                    Score newScore = quiesence(board, alpha, beta);
                     return (newScore > score) ? newScore : score;
                 }
 
                 score += s_razorMarginDeep;
                 if (score < beta && depth <= s_razorDeepReductionLimit) {
-                    const int32_t newScore = quiesence(board, alpha, beta);
+                    const Score newScore = quiesence(board, alpha, beta);
                     if (newScore < beta)
                         return (newScore > score) ? newScore : score;
                 }
@@ -281,7 +281,7 @@ public:
             if (isRoot) {
                 tbMoves = syzygy::generateSyzygyMoves(board, moves, m_wdl, m_dtz);
             } else if (board.isQuietPosition()) {
-                int32_t score = 0;
+                Score score = 0;
                 syzygy::probeWdl(board, score);
                 engine::TtHashTable::writeEntry(m_hash, score, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
                 return score;
@@ -305,7 +305,7 @@ public:
                 continue;
             }
 
-            int32_t score = 0;
+            Score score = 0;
             legalMoves++;
 
             /*
@@ -381,14 +381,14 @@ public:
     }
 
 private:
-    constexpr int32_t quiesence(const BitBoard& board, int32_t alpha, int32_t beta)
+    constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta)
     {
         using namespace std::chrono;
 
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
 
-        const int32_t evaluation = staticEvaluation(board);
+        const Score evaluation = staticEvaluation(board);
 
         if (m_ply >= s_maxSearchDepth)
             return evaluation;
@@ -412,7 +412,7 @@ private:
                 continue;
             }
 
-            const int32_t score = -quiesence(moveRes->board, -beta, -alpha);
+            const Score score = -quiesence(moveRes->board, -beta, -alpha);
             undoMove(moveRes->hash);
 
             if (isSearchStopped())
@@ -434,7 +434,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<int32_t> nullMovePruning(const BitBoard& board, uint8_t depth, int32_t beta)
+    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta)
     {
         auto nullMoveBoard = board;
         uint64_t oldHash = m_hash;
@@ -453,7 +453,7 @@ private:
         m_repetition.add(oldHash);
 
         /* perform search with reduced depth (based on reduction limit) */
-        int32_t score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+        Score score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
 
         m_hash = oldHash;
         m_ply -= 2;
@@ -524,10 +524,10 @@ private:
     /* search configs */
     constexpr static inline uint32_t s_fullDepthMove { 4 };
     constexpr static inline uint32_t s_reductionLimit { 3 };
-    constexpr static inline int32_t s_futilityMargin { 100 };
-    constexpr static inline int32_t s_futilityEvaluationMargin { 120 };
-    constexpr static inline int32_t s_razorMarginShallow { 125 };
-    constexpr static inline int32_t s_razorMarginDeep { 175 };
+    constexpr static inline Score s_futilityMargin { 100 };
+    constexpr static inline Score s_futilityEvaluationMargin { 120 };
+    constexpr static inline Score s_razorMarginShallow { 125 };
+    constexpr static inline Score s_razorMarginDeep { 175 };
     constexpr static inline uint8_t s_razorDeepReductionLimit { 2 };
 
     constexpr static inline uint8_t s_nullMoveReduction { 2 };

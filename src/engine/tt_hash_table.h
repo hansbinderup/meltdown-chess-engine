@@ -17,76 +17,11 @@ enum TtHashFlag : uint8_t {
     TtHashBeta = 2,
 };
 
-/*
- * Non-key members are encoded for compression. From lower bits to higher, entries are:
- * depth: 8 bits, i.e. 0000 ... 0000 0000 1111 1111
- * flag: 2 bits, i.e. 0000 ... 0000 0011 1000 0000
- * score: 16 bits for value + 1 for sign (see board_defs.h)
- * move: 26 bits (see move_types.h)
- * */
-
-class TtHashEntryData {
-public:
-    explicit TtHashEntryData() = default;
-
-    explicit TtHashEntryData(uint64_t depth, uint64_t flag, int64_t score, uint64_t move)
-        : m_data(
-              depth
-              | flag << s_flagShift
-              // Most significant bit: sign (1 if negative)
-              | encodeScore(score)
-              | move << s_moveShift)
-    {
-    }
-
-    constexpr uint8_t getDepth() const
-    {
-        return m_data & s_depthMask;
-    }
-
-    constexpr auto getFlag() const
-    {
-        return static_cast<TtHashFlag>((m_data >> s_flagShift) & s_flagMask);
-    }
-
-    constexpr int32_t getScore() const
-    {
-        // Casting is safe: operand's MSB is always zero
-        auto scoreBits = static_cast<int32_t>((m_data >> s_scoreShift) & s_scoreMask);
-
-        if (scoreBits >= (1 << 16)) {
-            // From negative value
-            return -(scoreBits - (1 << 16));
-        } else {
-            return scoreBits;
-        }
-    }
-
-    constexpr uint32_t getMoveData() const
-    {
-        return (m_data >> s_moveShift) & s_moveMask;
-    }
-
-private:
-    constexpr static uint64_t encodeScore(int32_t score)
-    {
-        constexpr uint64_t scoreSign = 1ULL << s_scoreSignShift;
-        return (score >= 0 ? score : -score + scoreSign) << s_scoreShift;
-    }
-
-    constexpr static uint64_t s_depthMask { 0xFF };
-
-    constexpr static uint64_t s_flagMask { 0x3 };
-    constexpr static uint64_t s_flagShift { 8 };
-
-    constexpr static uint64_t s_scoreSignShift { 16 };
-    constexpr static uint64_t s_scoreMask { 0x1FFFF };
-    constexpr static uint64_t s_scoreShift { 10 };
-
-    constexpr static uint64_t s_moveMask { 0x3FFFFFF };
-    constexpr static uint64_t s_moveShift { 27 };
-
-    uint64_t m_data {};
+struct TtHashEntryData {
+    uint8_t depth;
+    TtHashFlag flag;
+    Score score;
+    movegen::Move move;
 };
 
 static_assert(std::atomic<TtHashEntryData>::is_always_lock_free);
@@ -155,7 +90,7 @@ public:
     }
 
     struct ProbeResult {
-        int32_t score;
+        Score score;
         TtHashFlag flag;
         movegen::Move move;
     };
@@ -173,8 +108,8 @@ public:
             return std::nullopt;
         }
 
-        if (entryData.getDepth() >= depth) {
-            int32_t score = entryData.getScore();
+        if (entryData.depth >= depth) {
+            Score score = entryData.score;
 
             /* special case when mating score is found */
             if (score < -s_mateScore)
@@ -182,13 +117,13 @@ public:
             if (score > s_mateScore)
                 score -= ply;
 
-            return ProbeResult { .score = score, .flag = entryData.getFlag(), .move = movegen::Move(entryData.getMoveData()) };
+            return ProbeResult { .score = score, .flag = entryData.flag, .move = entryData.move };
         }
 
         return std::nullopt;
     }
 
-    constexpr static void writeEntry(uint64_t key, int32_t score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, Score score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         assert(s_ttHashSize > 0);
 
@@ -200,7 +135,7 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
-        TtHashEntryData newData { depth, flag, score, move.getData() };
+        TtHashEntryData newData { depth, flag, score, move };
 
         // Can be racy
         entry.key.store(key, std::memory_order_relaxed);

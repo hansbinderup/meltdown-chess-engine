@@ -29,7 +29,7 @@ struct TermScore {
         return static_cast<int16_t>(value >> 16);
     }
 
-    [[nodiscard]] constexpr int32_t phaseScore(uint8_t phase) const
+    [[nodiscard]] constexpr Score phaseScore(uint8_t phase) const
     {
         return ((this->mg() * phase) + (this->eg() * (s_middleGamePhase - phase))) / s_middleGamePhase;
     }

@@ -15,7 +15,7 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
     engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0x123456789ABCDEF;
-    int32_t score = 42;
+    Score score = 42;
 
     const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
 
@@ -33,7 +33,7 @@ TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
     engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0x123456789ABCDEF;
-    int32_t score = s_maxScore;
+    Score score = s_maxScore;
 
     const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
 
@@ -51,7 +51,7 @@ TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
     engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0x123456789ABCDEF;
-    int32_t score = s_minScore;
+    Score score = s_minScore;
 
     const auto move = movegen::Move::create(A2, A4, WhitePawn, false);
 
@@ -69,8 +69,8 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
     engine::TtHashTable::setSizeMb(16);
 
     uint64_t key = 0xDEADBEEFCAFEBABE;
-    int32_t oldScore = 10;
-    int32_t newScore = 50;
+    Score oldScore = 10;
+    Score newScore = 50;
 
     const auto move1 = movegen::Move::create(A2, A4, WhitePawn, false);
     const auto move2 = movegen::Move::create(D7, D7, BlackPawn, false);
@@ -113,7 +113,7 @@ TEST_CASE("Transposition Table - Score Clamping for Mating Scores", "[TT]")
 {
     engine::TtHashTable::setSizeMb(16);
 
-    constexpr int32_t nearMate = s_mateValue - 10;
+    constexpr Score nearMate = s_mateValue - 10;
 
     uint64_t key = 0xCAFEBABEDEADBEEF;
 

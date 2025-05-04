@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bit_board.h"
+#include "fmt/base.h"
 #include "movegen/move_types.h"
 
 #include "tbprobe.h"
@@ -86,7 +87,7 @@ constexpr WdlResult wdlFromInt(uint64_t res)
     return WdlResultFailed;
 }
 
-std::array<int32_t, 5> s_wdlScores { -2000, -500, 0, 500, 2000 };
+std::array<Score, 5> s_wdlScores { -2000, -500, 0, 500, 2000 };
 
 }
 
@@ -113,7 +114,7 @@ inline uint8_t tableSize()
     return TB_LARGEST;
 }
 
-inline WdlResult probeWdl(const BitBoard& board, int32_t& score)
+inline WdlResult probeWdl(const BitBoard& board, Score& score)
 {
     if (!isTableActive(board)) {
         return WdlResultTableNotActive;
@@ -247,7 +248,7 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
     return true;
 }
 
-inline int32_t approximateDtzScore(const BitBoard& board, int32_t score, uint8_t dtz, WdlResult wdl, uint8_t& tbhit)
+inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz, WdlResult wdl, uint8_t& tbhit)
 {
     switch (wdl) {
     case WdlResultLoss:
