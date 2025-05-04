@@ -2,6 +2,7 @@
 
 #include "attack_generation.h"
 #include "bit_board.h"
+#include "engine/tt_hash_table.h"
 #include "engine/zobrist_hashing.h"
 #include "helpers/formatters.h"
 #include "movegen/move_generation.h"
@@ -244,6 +245,9 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
 
     newBoard.player = nextPlayer(player);
     hashPlayer(hash);
+
+    /* prefetch as soon as we have calculated the key/hash */
+    engine::TtHashTable::prefetch(hash);
 
     return newBoard;
 }

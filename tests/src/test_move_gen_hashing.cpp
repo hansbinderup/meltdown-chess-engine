@@ -27,6 +27,7 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 
 TEST_CASE("Movegen Hashing", "[movegen]")
 {
+    engine::TtHashTable::setSizeMb(16);
 
     SECTION("Test from start position")
     {
