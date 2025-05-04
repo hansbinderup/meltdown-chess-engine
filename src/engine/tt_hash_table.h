@@ -133,17 +133,25 @@ public:
             s_ttHashTable[i].key = 0;
             s_ttHashTable[i].data = TtHashEntryData();
         }
-
-        s_hashCount = 0;
     }
 
     static uint16_t getHashFull()
     {
-        /* should be returned as permill */
-        constexpr uint16_t maxValue { 1000 };
-        const uint16_t permill = (1000 * s_hashCount.load(std::memory_order_relaxed)) / s_ttHashSize;
+        assert(s_ttHashSize >= 1000);
 
-        return std::min(permill, maxValue);
+        /* should be returned as permill */
+        uint16_t permill = 0;
+
+        /* table access is pseudo random so the most efficient way of finding
+         * the permill occupation must be accessing 1000 random entries and
+         * check if they're already written to */
+        for (uint16_t i = 0; i < 1000; i++) {
+            if (s_ttHashTable[i].key.load(std::memory_order_relaxed) != 0) {
+                permill++;
+            }
+        }
+
+        return permill;
     }
 
     struct ProbeResult {
@@ -192,10 +200,6 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
-        if (entry.key.load(std::memory_order_relaxed) == 0) {
-            ++s_hashCount;
-        }
-
         TtHashEntryData newData { depth, flag, score, move.getData() };
 
         // Can be racy
@@ -211,6 +215,5 @@ public:
 private:
     static inline std::size_t s_ttHashSize { 0 };
     static inline TtHashEntry* s_ttHashTable;
-    static inline std::atomic<uint64_t> s_hashCount {};
 };
 }
