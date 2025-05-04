@@ -18,12 +18,21 @@ enum TtHashFlag : uint8_t {
 };
 
 struct TtHashEntry {
-    uint64_t key = 0;
+    uint16_t key16 = 0;
     TtHashFlag flag;
     Score score {};
     movegen::Move move {};
     uint8_t depth {};
 };
+
+namespace {
+
+constexpr inline uint16_t key16From64(uint64_t key)
+{
+    return key >> 48;
+}
+
+}
 
 class TtHashTable {
 public:
@@ -67,11 +76,18 @@ public:
 
     static uint16_t getHashFull()
     {
-        /* should be returned as permill */
-        constexpr uint16_t maxValue { 1000 };
-        const uint16_t permill = (1000 * s_hashCount.load(std::memory_order_relaxed)) / s_ttHashSize;
+        uint16_t count = 0;
 
-        return std::min(permill, maxValue);
+        /* hash table access is "random" so it should be
+         * a good enough estimate to just check 1000 random entries
+         *
+         * 1000 because we're calculating permille */
+        for (uint16_t i = 0; i < 1000; i++) {
+            if (s_ttHashTable[i].key16 != 0)
+                count++;
+        }
+
+        return count;
     }
 
     struct ProbeResult {
@@ -86,7 +102,7 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
-        if (entry.key != key) {
+        if (entry.key16 != key16From64(key)) {
             return std::nullopt;
         }
 
@@ -109,6 +125,8 @@ public:
     {
         assert(s_ttHashSize > 0);
 
+        const uint16_t key16 = key16From64(key);
+
         /* special case when mating score is found */
         if (score < -s_mateScore)
             score -= ply;
@@ -117,7 +135,7 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
         entry = TtHashEntry {
-            .key = key,
+            .key16 = key16,
             .flag = flag,
             .score = score,
             .move = move,
