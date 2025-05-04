@@ -3,6 +3,7 @@
 #include "engine/move_handling.h"
 #include "engine/thread_pool.h"
 #include "engine/tt_hash_table.h"
+#include "evaluation/draw.h"
 #include "evaluation/move_ordering.h"
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
@@ -195,8 +196,7 @@ public:
 
         m_moveOrdering.pvTable().updateLength(m_ply);
         if (m_ply) {
-            /* FIXME: make a little more sophisticated with material count etc */
-            const bool isDraw = m_repetition.isRepetition(m_hash) || board.halfMoves >= 100;
+            const bool isDraw = m_repetition.isRepetition(m_hash) || positionIsDraw(board);
             if (isDraw) {
                 /* draw score is 0 but to avoid blindness towards three fold lines
                  * we add a slight variance to the draw score
