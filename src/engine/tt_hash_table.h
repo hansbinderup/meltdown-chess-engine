@@ -34,6 +34,23 @@ constexpr inline uint16_t key16From64(uint64_t key)
 
 }
 
+constexpr inline std::optional<Score> testEntry(const TtHashEntry& entry, uint8_t ply, uint8_t depth, Score alpha, Score beta)
+{
+    if (entry.depth < depth)
+        return std::nullopt;
+
+    const Score relScore = scoreRelative(entry.score, ply);
+
+    if (entry.flag == TtHashExact)
+        return relScore;
+    else if (entry.flag == TtHashAlpha && relScore <= alpha)
+        return relScore;
+    else if (entry.flag == TtHashBeta && relScore >= beta)
+        return relScore;
+
+    return std::nullopt;
+}
+
 class TtHashTable {
 public:
     /* frees the memory of the current table (if any) and allocates the amount provided in MB
@@ -90,13 +107,7 @@ public:
         return count;
     }
 
-    struct ProbeResult {
-        Score score;
-        TtHashFlag flag;
-        movegen::Move move;
-    };
-
-    constexpr static std::optional<ProbeResult> probe(uint64_t key, uint8_t depth, uint8_t ply)
+    constexpr static std::optional<TtHashEntry> probe(uint64_t key)
     {
         assert(s_ttHashSize > 0);
 
@@ -106,15 +117,7 @@ public:
             return std::nullopt;
         }
 
-        if (entry.depth >= depth) {
-            return ProbeResult {
-                .score = scoreRelative(entry.score, ply),
-                .flag = entry.flag,
-                .move = entry.move,
-            };
-        }
-
-        return std::nullopt;
+        return entry;
     }
 
     constexpr static void writeEntry(uint64_t key, Score score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
@@ -124,13 +127,19 @@ public:
         const uint16_t key16 = key16From64(key);
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
-        entry = TtHashEntry {
-            .key16 = key16,
-            .flag = flag,
-            .score = scoreAbsolute(score, ply),
-            .move = move,
-            .depth = depth,
-        };
+
+        /* only update entry if a better one is found */
+        if (key16 != entry.key16
+            || depth > entry.depth
+            || (flag == TtHashExact && entry.flag != TtHashExact)) {
+            entry = TtHashEntry {
+                .key16 = key16,
+                .flag = flag,
+                .score = scoreAbsolute(score, ply),
+                .move = move,
+                .depth = depth,
+            };
+        }
     }
 
     constexpr static std::size_t tableSizeFromMb(size_t sizeMb)
