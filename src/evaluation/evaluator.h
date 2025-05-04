@@ -157,7 +157,7 @@ public:
         }
     }
 
-    constexpr void printScoreInfo(Searcher* searcher, const BitBoard& board, int32_t score, uint8_t currentDepth)
+    constexpr void printScoreInfo(Searcher* searcher, const BitBoard& board, Score score, uint8_t currentDepth)
     {
         using namespace std::chrono;
 
@@ -184,8 +184,8 @@ public:
 private:
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
-        int32_t alpha = s_minScore;
-        int32_t beta = s_maxScore;
+        Score alpha = s_minScore;
+        Score beta = s_maxScore;
 
         /*
          * iterative deeping - with aspiration window
@@ -255,7 +255,7 @@ private:
 
                     const auto& result = searchResults.at(i);
 
-                    const int32_t score = result.score;
+                    const Score score = result.score;
                     const uint8_t depth = result.searchedDepth;
                     const auto move = result.pvMove;
 

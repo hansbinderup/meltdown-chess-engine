@@ -278,7 +278,7 @@ private:
             s_evaluator.reset();
             engine::TtHashTable::clear();
         } else if (command == "syzygy") {
-            int32_t score = 0;
+            Score score = 0;
             const auto wdl = syzygy::probeWdl(s_board, score);
             fmt::println("wdl: {}, score: {}, table size: {}", wdl, score, syzygy::tableSize());
             if (!(wdl == syzygy::WdlResultFailed || wdl == syzygy::WdlResultTableNotActive))

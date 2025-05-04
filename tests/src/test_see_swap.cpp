@@ -26,7 +26,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         engine::getAllMoves<movegen::MoveCapture>(*board, moves);
         REQUIRE(moves.count() == 1);
 
-        int32_t score = evaluation::SeeSwap::run(*board, moves[0]);
+        Score score = evaluation::SeeSwap::run(*board, moves[0]);
         REQUIRE(score == 100);
     }
 
@@ -43,7 +43,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         REQUIRE(move->piece() == WhiteKnight);
         REQUIRE(move->toPos() == E5);
 
-        int32_t score = evaluation::SeeSwap::run(*board, *move);
+        Score score = evaluation::SeeSwap::run(*board, *move);
         REQUIRE(score == -322);
     }
 }

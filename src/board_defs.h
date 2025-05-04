@@ -1,5 +1,6 @@
 #pragma once
 
+#include "evaluation/score.h"
 #include "magic_enum/magic_enum.hpp"
 #include <array>
 #include <chrono>
@@ -131,11 +132,11 @@ constexpr static inline uint64_t s_row2Mask { 0xffULL << s_secondRow };
 constexpr static inline uint64_t s_row7Mask { 0xffULL << s_seventhRow };
 constexpr static inline uint64_t s_row8Mask { 0xffULL << s_eightRow };
 
-constexpr static inline int32_t s_maxScore = 50000;
-constexpr static inline int32_t s_minScore = -s_maxScore; // num limit is +1 higher than max
+constexpr static inline Score s_maxScore = { 30000 };
+constexpr static inline Score s_minScore = { -s_maxScore };
 
-constexpr static inline int32_t s_mateValue { s_maxScore - 1000 };
-constexpr static inline int32_t s_mateScore { s_maxScore - 2000 };
+constexpr static inline Score s_mateValue { 20000 };
+constexpr static inline Score s_mateScore { s_mateValue - 1000 };
 
 constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
 
