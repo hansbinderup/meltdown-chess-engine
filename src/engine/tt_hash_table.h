@@ -76,11 +76,18 @@ public:
 
     static uint16_t getHashFull()
     {
-        /* should be returned as permill */
-        constexpr uint16_t maxValue { 1000 };
-        const uint16_t permill = (1000 * s_hashCount.load(std::memory_order_relaxed)) / s_ttHashSize;
+        uint16_t count = 0;
 
-        return std::min(permill, maxValue);
+        /* hash table access is "random" so it should be
+         * a good enough estimate to just check 1000 random entries
+         *
+         * 1000 because we're calculating permille */
+        for (uint16_t i = 0; i < 1000; i++) {
+            if (s_ttHashTable[i].key16 != 0)
+                count++;
+        }
+
+        return count;
     }
 
     struct ProbeResult {
@@ -127,11 +134,6 @@ public:
             score += ply;
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
-
-        if (entry.key.load(std::memory_order_relaxed) == 0) {
-            ++s_hashCount;
-        }
-
         entry = TtHashEntry {
             .key16 = key16,
             .flag = flag,
