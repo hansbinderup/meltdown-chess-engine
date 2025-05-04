@@ -8,6 +8,8 @@
 
 TEST_CASE("Perft", "[perft]")
 {
+    engine::TtHashTable::setSizeMb(16);
+
     BitBoard board;
     board.reset();
 

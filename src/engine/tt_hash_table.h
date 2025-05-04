@@ -57,6 +57,13 @@ public:
         clear();
     }
 
+    /* prefetches the memory and loads it into L1 cache line */
+    constexpr static void prefetch([[maybe_unused]] uint64_t key)
+    {
+        assert(s_ttHashSize > 0);
+        __builtin_prefetch(&s_ttHashTable[key % s_ttHashSize]);
+    }
+
     static std::size_t getSizeMb()
     {
         return (s_ttHashSize / 1024 / 1024) * sizeof(TtHashEntry);
