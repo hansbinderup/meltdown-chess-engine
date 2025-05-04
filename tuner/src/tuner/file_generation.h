@@ -53,7 +53,7 @@ namespace evaluation {{
     for (const auto& trace : evaluation::s_traceIterable) {
         fmt::print(file, "    .{} = {{ ", trace.name);
         for (size_t i = 0; i < trace.traces.size(); ++i) {
-            fmt::print(file, "Score({}, {}), ",
+            fmt::print(file, "TermScore({}, {}), ",
                 std::round(params[GamePhaseMg][index]),
                 std::round(params[GamePhaseEg][index]));
             ++index;

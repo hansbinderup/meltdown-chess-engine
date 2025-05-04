@@ -1,11 +1,11 @@
 #pragma once
 
-#include "evaluation/score.h"
+#include "evaluation/term_score.h"
 
 namespace evaluation {
 
 template<size_t T>
-using WeightTable = std::array<Score, T>;
+using WeightTable = std::array<TermScore, T>;
 
 #define TERM_LIST(TERM)                \
     TERM(pieceValues, 6)               \

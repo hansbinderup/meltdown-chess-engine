@@ -46,9 +46,9 @@ namespace evaluation {
 /* TODO: divide into terms instead of pieces.. */
 
 template<Player player>
-constexpr static inline Score getPawnScore(const BitBoard& board, const uint64_t pawns)
+constexpr static inline TermScore getPawnScore(const BitBoard& board, const uint64_t pawns)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
 
     helper::bitIterate(pawns, [&](BoardPosition pos) {
         ADD_SCORE_INDEXED(pieceValues, Pawn);
@@ -81,9 +81,9 @@ constexpr static inline Score getPawnScore(const BitBoard& board, const uint64_t
 }
 
 template<Player player>
-constexpr static inline Score getKnightScore(const BitBoard& board, const uint64_t knights, uint8_t& phaseScore)
+constexpr static inline TermScore getKnightScore(const BitBoard& board, const uint64_t knights, uint8_t& phaseScore)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
 
     helper::bitIterate(knights, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Knight];
@@ -104,9 +104,9 @@ constexpr static inline Score getKnightScore(const BitBoard& board, const uint64
 }
 
 template<Player player>
-constexpr static inline Score getBishopScore(const BitBoard& board, const uint64_t bishops, uint8_t& phaseScore)
+constexpr static inline TermScore getBishopScore(const BitBoard& board, const uint64_t bishops, uint8_t& phaseScore)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
 
     const int amntBishops = std::popcount(bishops);
     if (amntBishops >= 2)
@@ -131,9 +131,9 @@ constexpr static inline Score getBishopScore(const BitBoard& board, const uint64
 }
 
 template<Player player>
-constexpr static inline Score getRookScore(const BitBoard& board, const uint64_t rooks, uint8_t& phaseScore)
+constexpr static inline TermScore getRookScore(const BitBoard& board, const uint64_t rooks, uint8_t& phaseScore)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
@@ -180,9 +180,9 @@ constexpr static inline Score getRookScore(const BitBoard& board, const uint64_t
 }
 
 template<Player player>
-constexpr static inline Score getQueenScore(const BitBoard& board, const uint64_t queens, uint8_t& phaseScore)
+constexpr static inline TermScore getQueenScore(const BitBoard& board, const uint64_t queens, uint8_t& phaseScore)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
@@ -215,9 +215,9 @@ constexpr static inline Score getQueenScore(const BitBoard& board, const uint64_
 }
 
 template<Player player>
-constexpr static inline Score getKingScore(const BitBoard& board, const uint64_t king)
+constexpr static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
 
     helper::bitIterate(king, [&](BoardPosition pos) {
         const uint64_t kingShields = movegen::getKingMoves(pos) & board.occupation[player];

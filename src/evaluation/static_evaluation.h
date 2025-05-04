@@ -9,7 +9,7 @@ namespace evaluation {
 
 constexpr int32_t staticEvaluation(const BitBoard& board)
 {
-    Score score(0, 0);
+    TermScore score(0, 0);
     uint8_t phaseScore {};
 
     // Material scoring
