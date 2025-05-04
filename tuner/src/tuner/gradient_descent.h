@@ -13,10 +13,10 @@ double sigmoid(double K, double E)
     return 1.0 / (1.0 + exp(-K * E / 400.0));
 }
 
-double linearEvaluation(const TrainingData& data, const GradientArray& params, evaluation::Score score)
+double linearEvaluation(const TrainingData& data, const GradientArray& params, evaluation::TermScore score)
 {
-    int32_t mgScore = score.mg();
-    int32_t egScore = score.eg();
+    int16_t mgScore = score.mg();
+    int16_t egScore = score.eg();
 
     for (size_t i = 0; i < data.terms.size(); i++) {
         const double weight = static_cast<double>(data.terms[i].weight);

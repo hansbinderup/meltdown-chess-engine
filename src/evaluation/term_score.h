@@ -6,15 +6,15 @@
 
 namespace evaluation {
 
-struct Score {
-    int32_t value;
+struct TermScore {
+    uint32_t value;
 
-    constexpr Score()
+    constexpr TermScore()
         : value(0)
     {
     }
 
-    constexpr Score(int16_t mg, int16_t eg)
+    constexpr TermScore(int16_t mg, int16_t eg)
         : value((static_cast<uint16_t>(eg) << 16) | static_cast<uint16_t>(mg))
     {
     }
@@ -34,7 +34,7 @@ struct Score {
         return ((this->mg() * phase) + (this->eg() * (s_middleGamePhase - phase))) / s_middleGamePhase;
     }
 
-    constexpr Score& operator+=(const Score& other) noexcept
+    constexpr TermScore& operator+=(const TermScore& other) noexcept
     {
         int16_t sMg = mg() + other.mg();
         int16_t sEg = eg() + other.eg();
@@ -44,7 +44,7 @@ struct Score {
         return *this;
     }
 
-    constexpr Score& operator-=(const Score& other) noexcept
+    constexpr TermScore& operator-=(const TermScore& other) noexcept
     {
         int16_t sMg = mg() - other.mg();
         int16_t sEg = eg() - other.eg();
@@ -54,20 +54,20 @@ struct Score {
         return *this;
     }
 
-    constexpr Score operator+(const Score& other) const noexcept
+    constexpr TermScore operator+(const TermScore& other) const noexcept
     {
         int16_t sMg = mg() + other.mg();
         int16_t sEg = eg() + other.eg();
 
-        return Score(sMg, sEg);
+        return TermScore(sMg, sEg);
     }
 
-    constexpr Score operator-(const Score& other) const noexcept
+    constexpr TermScore operator-(const TermScore& other) const noexcept
     {
         int16_t sMg = mg() - other.mg();
         int16_t sEg = eg() - other.eg();
 
-        return Score(sMg, sEg);
+        return TermScore(sMg, sEg);
     }
 };
 }
