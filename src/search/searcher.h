@@ -625,7 +625,10 @@ private:
 
     inline std::optional<Score> checkForDraw(const BitBoard& board)
     {
-        const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(m_stackItr->hash, board, m_ply);
+        const bool isDraw = board.halfMoves >= 100
+            || m_repetition.isRepetition(m_stackItr->hash, board, m_ply)
+            || board.hasInsufficientMaterial();
+
         if (isDraw) {
             /* draw score is 0 but to avoid blindness towards three fold lines
              * we add a slight variance to the draw score
