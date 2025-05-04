@@ -197,8 +197,12 @@ public:
         if (m_ply) {
             /* FIXME: make a little more sophisticated with material count etc */
             const bool isDraw = m_repetition.isRepetition(m_hash) || board.halfMoves >= 100;
-            if (isDraw)
-                return 0; /* draw score */
+            if (isDraw) {
+                /* draw score is 0 but to avoid blindness towards three fold lines
+                 * we add a slight variance to the draw score
+                 * it will still be approx 0~ cp: [-0.1:0.1] */
+                return 1 - (m_nodes & 2); /* draw score */
+            }
         }
 
         const bool isPv = beta - alpha > 1;
