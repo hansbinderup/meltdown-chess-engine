@@ -22,14 +22,12 @@ public:
         resizeSearchers(1);
     };
 
-    void resizeSearchers(uint8_t size)
+    void resizeSearchers(size_t size)
     {
         if (size == m_searchers.size()) {
             return;
-        }
-
-        else {
-            for (uint8_t i = m_searchers.size(); i < size; i++) {
+        } else {
+            for (size_t i = m_searchers.size(); i < size; i++) {
                 m_searchers.emplace_back(std::make_unique<Searcher>());
             }
         }
@@ -178,8 +176,6 @@ public:
 
         fflush(stdout);
     }
-
-    constexpr static inline uint8_t s_maxThreads { 128 };
 
 private:
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)

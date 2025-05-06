@@ -350,7 +350,6 @@ private:
     static inline bool s_isRunning = false;
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
-    static inline uint8_t s_numSearchers { 1 };
 
     constexpr static inline std::size_t s_inputBufferSize { 2048 };
 
@@ -371,8 +370,7 @@ private:
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_evaluator.setPondering(enabled); }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
         ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
-        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = 256 }, [](uint64_t val) {
-            s_numSearchers = val;
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = s_maxThreads }, [](uint64_t val) {
             s_evaluator.resizeSearchers(val);
         }),
     });
