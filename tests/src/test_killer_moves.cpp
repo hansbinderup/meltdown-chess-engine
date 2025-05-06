@@ -12,8 +12,8 @@ TEST_CASE("KillerMoves: Updating with quiet moves", "[KillerMoves]")
 {
     KillerMoves killerMoves;
 
-    Move quietMove1 = Move::create(12, 28, WhiteKnight, false);
-    Move quietMove2 = Move::create(20, 36, WhiteBishop, false);
+    Move quietMove1 = Move::create(12, 28, false);
+    Move quietMove2 = Move::create(20, 36, false);
 
     REQUIRE(killerMoves.get(g_testPly) == KillerMoves::KillerMove {});
 
@@ -28,8 +28,8 @@ TEST_CASE("KillerMoves: Ignoring capture moves", "[KillerMoves]")
 {
     KillerMoves killerMoves;
 
-    Move captureMove = Move::create(10, 26, WhitePawn, true);
-    Move quietMove = Move::create(14, 30, WhiteQueen, false);
+    Move captureMove = Move::create(10, 26, true);
+    Move quietMove = Move::create(14, 30, false);
 
     killerMoves.update(captureMove, g_testPly);
     REQUIRE(killerMoves.get(g_testPly) == KillerMoves::KillerMove {});
@@ -45,8 +45,8 @@ TEST_CASE("KillerMoves: Reset functionality", "[KillerMoves]")
 {
     KillerMoves killerMoves;
 
-    Move quietMove1 = Move::create(8, 24, WhiteRook, false);
-    Move quietMove2 = Move::create(16, 32, WhiteKnight, false);
+    Move quietMove1 = Move::create(8, 24, false);
+    Move quietMove2 = Move::create(16, 32, false);
 
     killerMoves.update(quietMove1, g_testPly);
     killerMoves.update(quietMove2, g_testPly);

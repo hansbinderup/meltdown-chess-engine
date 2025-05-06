@@ -2,10 +2,15 @@
 #include "parsing/fen_parser.h"
 #include <catch2/catch_test_macros.hpp>
 
-std::optional<movegen::Move> findMoveToTarget(const movegen::ValidMoves& moves, Piece piece, BoardPosition target)
+constexpr auto getPiece(const BitBoard& board, movegen::Move move)
+{
+    return board.getAttackerAtSquare(move.fromSquare(), board.player);
+}
+
+std::optional<movegen::Move> findMoveToTarget(const BitBoard& board, const movegen::ValidMoves& moves, Piece piece, BoardPosition target)
 {
     for (const auto move : moves) {
-        if (move.piece() == piece && move.toPos() == target)
+        if (getPiece(board, move) == piece && move.toPos() == target)
             return move;
     }
 
@@ -37,10 +42,10 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
 
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MoveCapture>(*board, moves);
-        const auto move = findMoveToTarget(moves, WhiteKnight, E5);
+        const auto move = findMoveToTarget(*board, moves, WhiteKnight, E5);
 
         REQUIRE(move.has_value());
-        REQUIRE(move->piece() == WhiteKnight);
+        REQUIRE(getPiece(*board, *move) == WhiteKnight);
         REQUIRE(move->toPos() == E5);
 
         Score score = evaluation::SeeSwap::run(*board, *move);

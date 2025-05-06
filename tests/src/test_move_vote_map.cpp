@@ -13,7 +13,7 @@ TEST_CASE("MoveVoteMap", "[move_vote_map]")
 
     SECTION("Insert new move")
     {
-        Move m1(0x12345678);
+        const auto m1 = movegen::Move::create(A1, A2, false);
         voteMap.insertOrIncrement(m1, 1);
 
         REQUIRE(std::distance(voteMap.begin(), voteMap.end()) == 1);
@@ -23,7 +23,7 @@ TEST_CASE("MoveVoteMap", "[move_vote_map]")
 
     SECTION("Increment existing vote")
     {
-        Move m1(0x12345678);
+        const auto m1 = movegen::Move::create(A1, G2, false);
         voteMap.insertOrIncrement(m1, 2);
         voteMap.insertOrIncrement(m1, 3);
 
@@ -34,9 +34,9 @@ TEST_CASE("MoveVoteMap", "[move_vote_map]")
 
     SECTION("Insert multiple unique moves")
     {
-        Move m1(0x1);
-        Move m2(0x2);
-        Move m3(0x3);
+        const auto m1 = movegen::Move::create(A1, G2, false);
+        const auto m2 = movegen::Move::create(A2, G2, false);
+        const auto m3 = movegen::Move::create(A3, G2, false);
 
         voteMap.insertOrIncrement(m1, 1);
         voteMap.insertOrIncrement(m2, 2);
@@ -47,7 +47,7 @@ TEST_CASE("MoveVoteMap", "[move_vote_map]")
 
     SECTION("Clear resets entries")
     {
-        Move m1(0x12345678);
+        const auto m1 = movegen::Move::create(A1, G2, false);
         voteMap.insertOrIncrement(m1, 1);
 
         voteMap.clear();
@@ -57,7 +57,8 @@ TEST_CASE("MoveVoteMap", "[move_vote_map]")
 
     SECTION("Initializer list constructs map correctly")
     {
-        Move m1(0x10), m2(0x20);
+        const auto m1 = movegen::Move::create(A1, G2, false);
+        const auto m2 = movegen::Move::create(A2, G2, false);
         MoveVoteMap<maxSize> initMap { { m1, 2 }, { m2, 4 } };
 
         REQUIRE(std::distance(initMap.begin(), initMap.end()) == 2);

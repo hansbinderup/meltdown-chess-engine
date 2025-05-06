@@ -222,19 +222,19 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
 
         switch (TB_GET_PROMOTES(res)) {
         case TB_PROMOTES_NONE:
-            moves.addMove(movegen::Move::create(*from, *to, *attacker, isCapture));
+            moves.addMove(movegen::Move::create(*from, *to, isCapture));
             break;
         case TB_PROMOTES_QUEEN:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionQueen, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, PromotionQueen, isCapture));
             break;
         case TB_PROMOTES_ROOK:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionRook, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, PromotionRook, isCapture));
             break;
         case TB_PROMOTES_BISHOP:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionBishop, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, PromotionBishop, isCapture));
             break;
         case TB_PROMOTES_KNIGHT:
-            moves.addMove(movegen::Move::createPromotion(*from, *to, *attacker, PromotionKnight, isCapture));
+            moves.addMove(movegen::Move::createPromotion(*from, *to, PromotionKnight, isCapture));
             break;
         }
     }

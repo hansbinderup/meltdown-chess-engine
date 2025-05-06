@@ -21,7 +21,7 @@ TEST_CASE("HistoryMoves: Updating quiet moves", "[HistoryMoves]")
 
     setPieceAtSquare(board, BlackKnight, C3);
 
-    Move quietMove = Move::create(C3, D5, BlackKnight, false);
+    Move quietMove = Move::create(C3, D5, false);
     REQUIRE(historyMoves.get(BlackKnight, D5) == 0);
 
     historyMoves.update(board, quietMove, 5);
@@ -39,8 +39,8 @@ TEST_CASE("HistoryMoves: Ignoring capture moves", "[HistoryMoves]")
 
     setPieceAtSquare(board, BlackPawn, B2);
 
-    Move captureMove = Move::create(B2, C3, BlackPawn, true);
-    Move quietMove = Move::create(B2, B4, BlackPawn, false);
+    Move captureMove = Move::create(B2, C3, true);
+    Move quietMove = Move::create(B2, B4, false);
 
     // only quit moves should be updated
     historyMoves.update(board, captureMove, 4);
@@ -56,7 +56,7 @@ TEST_CASE("HistoryMoves: Handling missing piece cases", "[HistoryMoves]")
     BitBoard board;
     board.player = PlayerBlack;
 
-    Move quietMove = Move::create(E4, G5, BlackBishop, false);
+    Move quietMove = Move::create(E4, G5, false);
     historyMoves.update(board, quietMove, 6);
 
     // Since there is no piece at E4, the history score should remain 0
@@ -70,7 +70,7 @@ TEST_CASE("HistoryMoves: Reset functionality", "[HistoryMoves]")
     board.player = PlayerBlack;
 
     setPieceAtSquare(board, BlackQueen, D1);
-    Move quietMove = Move::create(D1, H5, BlackQueen, false);
+    Move quietMove = Move::create(D1, H5, false);
 
     historyMoves.update(board, quietMove, 7);
     REQUIRE(historyMoves.get(BlackQueen, H5) == 7);

@@ -17,7 +17,8 @@ enum TtHashFlag : uint8_t {
     TtHashBeta = 2,
 };
 
-struct TtHashEntryData {
+/* fixme: remove alignas when entry is 8 bytes */
+struct alignas(8) TtHashEntryData {
     uint8_t depth;
     TtHashFlag flag;
     Score score;
