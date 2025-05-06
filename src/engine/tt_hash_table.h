@@ -18,12 +18,21 @@ enum TtHashFlag : uint8_t {
 };
 
 struct TtHashEntry {
-    uint64_t key = 0;
+    uint16_t key16 = 0;
     uint8_t depth;
     movegen::Move move;
     TtHashFlag flag;
     int32_t score;
 };
+
+namespace {
+
+constexpr inline uint16_t key16From64(uint64_t key)
+{
+    return key >> 48;
+}
+
+}
 
 class TtHashTable {
 public:
@@ -86,7 +95,7 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
-        if (entry.key != key) {
+        if (entry.key16 != key16From64(key)) {
             return std::nullopt;
         }
 
@@ -109,6 +118,8 @@ public:
     {
         assert(s_ttHashSize > 0);
 
+        const uint16_t key16 = key16From64(key);
+
         /* special case when mating score is found */
         if (score < -s_mateScore)
             score -= ply;
@@ -117,12 +128,12 @@ public:
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
-        if (entry.key == 0) {
+        if (entry.key16 == 0) {
             ++s_hashCount;
         }
 
         TtHashEntry newEntry {
-            .key = key,
+            .key16 = key16,
             .depth = depth,
             .move = move,
             .flag = flag,
