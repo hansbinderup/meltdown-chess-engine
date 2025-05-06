@@ -41,7 +41,7 @@ constexpr void performCastleMove(BitBoard& board, const movegen::Move& move, uin
     const BoardPosition fromPos = move.fromPos();
     const BoardPosition toPos = move.toPos();
 
-    switch (move.castleType()) {
+    switch (move.castleType(board.player)) {
     case CastleWhiteKingSide: {
         movePiece(board.pieces[WhiteKing], fromPos, toPos, WhiteKing, hash);
         movePiece(board.pieces[WhiteRook], H1, F1, WhiteRook, hash);
@@ -190,6 +190,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
 
     const auto fromPos = move.fromPos();
     const auto toPos = move.toPos();
+    const auto pieceType = board.getAttackerAtSquare<player>(move.fromSquare()).value();
 
     if (move.isCastleMove()) {
         performCastleMove(newBoard, move, hash);
@@ -210,7 +211,6 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
             }
         }
 
-        const auto pieceType = move.piece();
         movePiece(newBoard.pieces[pieceType], fromPos, toPos, pieceType, hash);
     }
 
@@ -224,7 +224,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
         hashEnpessant(board.enPessant.value(), hash);
     }
 
-    if (move.hasEnPessant()) {
+    if (move.isDoublePush()) {
         newBoard.enPessant = enpessantCapturePosition<player>(toPos);
         hashEnpessant(newBoard.enPessant.value(), hash);
     }
@@ -238,7 +238,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
     if constexpr (player == PlayerBlack)
         newBoard.fullMoves++;
 
-    if (move.isCapture() || move.piece() == WhitePawn || move.piece() == BlackPawn)
+    if (move.isCapture() || pieceType == WhitePawn || pieceType == BlackPawn)
         newBoard.halfMoves = 0;
     else
         newBoard.halfMoves++;

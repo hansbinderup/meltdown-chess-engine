@@ -6,6 +6,11 @@
 #define private public
 #include "evaluation/evaluator.h"
 
+constexpr auto getPiece(const BitBoard& board, movegen::Move move)
+{
+    return board.getAttackerAtSquare(move.fromSquare(), board.player);
+}
+
 TEST_CASE("Scoring", "[scoring]")
 {
     engine::TtHashTable::setSizeMb(16);
@@ -51,12 +56,12 @@ TEST_CASE("Scoring", "[scoring]")
             s_evaluator.m_searchers.at(0)->m_moveOrdering.sortMoves(board.value(), moves, 0);
 
             REQUIRE(moves.count() == 3);
-            REQUIRE(moves[0].piece() == WhitePawn);
-            REQUIRE(moves[1].piece() == WhiteKing);
-            REQUIRE(moves[2].piece() == WhiteRook);
+            REQUIRE(getPiece(*board, moves[0]) == WhitePawn);
+            REQUIRE(getPiece(*board, moves[1]) == WhiteKing);
+            REQUIRE(getPiece(*board, moves[2]) == WhiteRook);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
-            REQUIRE(move.piece() == WhitePawn);
+            REQUIRE(getPiece(*board, move) == WhitePawn);
         }
 
         SECTION("Test capture and evasion moves")
@@ -68,12 +73,12 @@ TEST_CASE("Scoring", "[scoring]")
             engine::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
             s_evaluator.m_searchers.at(0)->m_moveOrdering.sortMoves(board.value(), moves, 0);
 
-            REQUIRE(moves[0].piece() == WhitePawn);
-            REQUIRE(moves[1].piece() == WhiteKing);
-            REQUIRE(moves[2].piece() == WhiteRook);
+            REQUIRE(getPiece(*board, moves[0]) == WhitePawn);
+            REQUIRE(getPiece(*board, moves[1]) == WhiteKing);
+            REQUIRE(getPiece(*board, moves[2]) == WhiteRook);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
-            REQUIRE(move.piece() == WhiteQueen); // evading attack + checking king = better move!
+            REQUIRE(getPiece(*board, move) == WhiteQueen); // evading attack + checking king = better move!
         }
     }
 }

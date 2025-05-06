@@ -20,7 +20,7 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
 
     SECTION("PVTable: Best move retrieval", "[PVTable]")
     {
-        Move move = Move::create(E2, E4, WhitePawn, false);
+        Move move = Move::create(E2, E4, false);
 
         pvTable.updateTable(move, 0);
 
@@ -36,20 +36,20 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
         // This makes sense as we don't add any PV nodes UNTILL we've searched as deep as we need,
         // and THEN we will start adding moves
         for (int8_t p = G3; p >= A1; p--) {
-            Move move = Move::create(p, p + 8, WhitePawn, false);
+            Move move = Move::create(p, p + 8, false);
             pvTable.updateTable(move, p);
         }
 
         REQUIRE(pvTable.size() == size);
         for (uint8_t p = A1; p <= G3; p++) {
-            Move move = Move::create(p, p + 8, WhitePawn, false);
+            Move move = Move::create(p, p + 8, false);
             REQUIRE(pvTable[p] == move);
         }
     }
 
     SECTION("PVTable: Checking PV move status", "[PVTable]")
     {
-        Move move = Move::create(B1, C3, WhiteKnight, false);
+        Move move = Move::create(B1, C3, false);
 
         pvTable.updateTable(move, 0);
 
@@ -58,7 +58,7 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
 
     SECTION("PVTable: Reset functionality", "[PVTable]")
     {
-        Move move = Move::create(E7, E5, WhitePawn, false);
+        Move move = Move::create(E7, E5, false);
 
         pvTable.updateTable(move, 0);
         REQUIRE(pvTable.bestMove() == move);
@@ -81,7 +81,7 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
 
     SECTION("PVTable: Updating PV scoring", "[PVTable]")
     {
-        Move move = Move::create(H2, H4, WhitePawn, false);
+        Move move = Move::create(H2, H4, false);
         ValidMoves validMoves;
 
         validMoves.addMove(move);

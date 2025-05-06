@@ -12,59 +12,123 @@ enum MoveType {
     MoveCapture,
 };
 
+/* NOTE: all captures have 0b100 set
+ *       all promotions have 0b1000 set */
+enum class MoveFlag : uint8_t {
+    Quiet = 0b0000,
+    DoublePush = 0b0001,
+    KingCastle = 0b0010,
+    QueenCastle = 0b0011,
+    Capture = 0b0100,
+    EnPassant = 0b0101,
+    KnightPromotion = 0b1000,
+    BishopPromotion = 0b1001,
+    RookPromotion = 0b1010,
+    QueenPromotion = 0b1011,
+    KnightPromomotionCapture = 0b1100,
+    BishopPromotionCapture = 0b1101,
+    RookPromotionCapture = 0b1110,
+    QueenPromotionCapture = 0b1111,
+};
+
+constexpr MoveFlag promotionFlag(PromotionType promotion, bool capture)
+{
+    assert(promotion != PromotionNone);
+
+    if (capture) {
+        switch (promotion) {
+        case PromotionNone:
+            break;
+        case PromotionQueen:
+            return MoveFlag::QueenPromotionCapture;
+        case PromotionKnight:
+            return MoveFlag::KnightPromomotionCapture;
+        case PromotionBishop:
+            return MoveFlag::BishopPromotionCapture;
+        case PromotionRook:
+            return MoveFlag::RookPromotionCapture;
+            break;
+        }
+    }
+
+    switch (promotion) {
+    case PromotionNone:
+        break;
+    case PromotionQueen:
+        return MoveFlag::QueenPromotion;
+    case PromotionKnight:
+        return MoveFlag::KnightPromotion;
+    case PromotionBishop:
+        return MoveFlag::BishopPromotion;
+    case PromotionRook:
+        return MoveFlag::RookPromotion;
+        break;
+    }
+
+    /* should not happen - but satisfy compiler */
+    return MoveFlag::Quiet;
+}
+
+constexpr MoveFlag castleFlag(CastleType castle)
+{
+    assert(castle != CastleType::CastleNone);
+
+    switch (castle) {
+    case CastleNone:
+        break;
+    case CastleWhiteKingSide:
+    case CastleBlackKingSide:
+        return MoveFlag::KingCastle;
+    case CastleWhiteQueenSide:
+    case CastleBlackQueenSide:
+        return MoveFlag::QueenCastle;
+        break;
+    };
+
+    /* should not happen - but satisfy compiler */
+    return MoveFlag::Quiet;
+}
+
 /*
  * Moves are encoded as:
- * 0000 0000 0000 0000 0000 0000 0011 1111 -> from value
- * 0000 0000 0000 0000 0000 1111 1100 0000 -> to value
- * 0000 0000 0000 0000 1111 0000 0000 0000 -> piece type
- * 0000 0000 0000 0111 0000 0000 0000 0000 -> promotion type
- * 0000 0000 0111 1000 0000 0000 0000 0000 -> castle type
- * 0000 0000 1000 0000 0000 0000 0000 0000 -> is capture
- * 0000 0001 0000 0000 0000 0000 0000 0000 -> enables en pessant
- * 0000 0010 0000 0000 0000 0000 0000 0000 -> takes en pessant
+ * 0000 0000 0011 1111 -> from value
+ * 0000 1111 1100 0000 -> to value
+ * 1111 0000 0000 0000 -> move flags
  * */
 class Move {
 public:
     // allow default construction for resetting / initializing arrays
     Move() = default;
 
-    explicit Move(uint32_t ext_data)
-        : data(ext_data) {};
-
-    explicit Move(uint64_t from, uint64_t to, uint64_t piece, uint64_t promotion, uint64_t castle, uint64_t capture, uint64_t enPessant, uint64_t takeEnPessant)
+    explicit Move(uint8_t from, uint8_t to, MoveFlag flag)
         : data(
               from
               | to << s_toShift
-              | piece << s_pieceShift
-              | promotion << s_promotionShift
-              | castle << s_castlingShift
-              | capture << s_captureShift
-              | enPessant << s_enPessantShift
-              | takeEnPessant << s_takeEnPessantShift)
+              | static_cast<uint8_t>(flag) << s_flagShift)
     {
     }
 
     /* helper to create a simple move */
-    constexpr static inline Move create(uint8_t from, uint8_t to, Piece piece, bool capture)
+    constexpr static inline Move create(uint8_t from, uint8_t to, bool capture)
     {
-        return Move(from, to, piece, PromotionNone, CastleNone, capture, false, false);
+        return Move(from, to, capture ? MoveFlag::Capture : MoveFlag::Quiet);
     }
 
     /* helper to create a promotion move */
-    constexpr static inline Move createPromotion(uint8_t from, uint8_t to, Piece piece, PromotionType promotion, bool capture)
+    constexpr static inline Move createPromotion(uint8_t from, uint8_t to, PromotionType promotion, bool capture)
     {
-        return Move(from, to, piece, promotion, CastleNone, capture, false, false);
+        return Move(from, to, promotionFlag(promotion, capture));
     }
 
     /* helper to create a castle move */
-    constexpr static inline Move createCastle(uint8_t from, uint8_t to, Piece piece, CastleType castle)
+    constexpr static inline Move createCastle(uint8_t from, uint8_t to, CastleType castle)
     {
-        return Move(from, to, piece, PromotionNone, castle, false, false, false);
+        return Move(from, to, castleFlag(castle));
     }
 
-    constexpr static inline Move createEnPessant(uint8_t from, uint8_t to, Piece piece, bool enPessant, bool takeEnPessant)
+    constexpr static inline Move createEnPessant(uint8_t from, uint8_t to, bool doublePush)
     {
-        return Move(from, to, piece, PromotionNone, CastleNone, takeEnPessant, enPessant, takeEnPessant);
+        return Move(from, to, doublePush ? MoveFlag::DoublePush : MoveFlag::EnPassant);
     }
 
     friend bool operator<=>(const Move& a, const Move& b) = default;
@@ -94,47 +158,66 @@ public:
         return helper::positionToSquare(toPos());
     }
 
-    constexpr inline Piece piece() const
-    {
-        return static_cast<Piece>((data >> s_pieceShift) & s_pieceMask);
-    }
-
     constexpr inline PromotionType promotionType() const
     {
-        return static_cast<PromotionType>((data >> s_promotionShift) & s_promotionMask);
+        switch (getFlag()) {
+        case MoveFlag::KnightPromotion:
+        case MoveFlag::KnightPromomotionCapture:
+            return PromotionType::PromotionKnight;
+        case MoveFlag::BishopPromotion:
+        case MoveFlag::BishopPromotionCapture:
+            return PromotionType::PromotionBishop;
+        case MoveFlag::RookPromotion:
+        case MoveFlag::RookPromotionCapture:
+            return PromotionType::PromotionRook;
+        case MoveFlag::QueenPromotion:
+        case MoveFlag::QueenPromotionCapture:
+            return PromotionType::PromotionQueen;
+        default:
+            break;
+        }
+        return PromotionType::PromotionNone;
     }
 
     constexpr inline bool isPromotionMove() const
     {
-        return promotionType() != PromotionNone;
-    }
-
-    constexpr inline CastleType castleType() const
-    {
-        return static_cast<CastleType>((data >> s_castlingShift) & s_castlingMask);
+        return (data & (1 << 15)) != 0;
     }
 
     constexpr inline bool isCastleMove() const
     {
-        return castleType() != CastleNone;
+        const auto flag = getFlag();
+        return flag == MoveFlag::KingCastle || flag == MoveFlag::QueenCastle;
+    }
+
+    constexpr CastleType castleType(Player player) const
+    {
+        const auto flag = getFlag();
+        switch (flag) {
+        case MoveFlag::KingCastle:
+            return player == PlayerWhite ? CastleWhiteKingSide : CastleBlackKingSide;
+        case MoveFlag::QueenCastle:
+            return player == PlayerWhite ? CastleWhiteQueenSide : CastleBlackQueenSide;
+        default:
+            break;
+        }
+
+        return CastleType::CastleNone;
     }
 
     constexpr inline bool isCapture() const
     {
-        constexpr uint64_t captureMask = 1ULL << s_captureShift;
-        return data & captureMask;
+        return (data & (1 << 14)) != 0;
     }
 
-    constexpr inline bool hasEnPessant() const
+    constexpr inline bool isDoublePush() const
     {
-        constexpr uint64_t enPessantMask = 1ULL << s_enPessantShift;
-        return data & enPessantMask;
+        return getFlag() == MoveFlag::DoublePush;
     }
 
     constexpr inline bool takeEnPessant() const
     {
-        constexpr uint64_t takeEnPessantMask = 1ULL << s_takeEnPessantShift;
-        return data & takeEnPessantMask;
+        return getFlag() == MoveFlag::EnPassant;
     }
 
     constexpr inline bool isNull() const
@@ -142,45 +225,19 @@ public:
         return data == 0;
     }
 
-    constexpr inline std::array<char, 6> toString() const
+private:
+    constexpr inline MoveFlag getFlag() const
     {
-        std::array<char, 6> buffer {};
-
-        buffer[0] = 'a' + (fromPos() % 8); // Column
-        buffer[1] = '1' + (fromPos() / 8); // Row
-        buffer[2] = 'a' + (toPos() % 8); // Column
-        buffer[3] = '1' + (toPos() / 8); // Row
-
-        const auto p = promotionType();
-        if (p != PromotionNone) {
-            buffer[4] = promotionToString(p);
-            buffer[5] = '\0';
-        } else {
-            buffer[4] = '\0';
-        }
-
-        return buffer;
+        return static_cast<MoveFlag>((data >> s_flagShift) & s_flagMask);
     }
 
-private:
-    uint32_t data;
+    constexpr static inline uint16_t s_toFromMask { 0b111111 }; /* 64 values */
+    constexpr static inline uint8_t s_toShift { 6 };
 
-    constexpr static inline uint64_t s_toFromMask { 0b111111 }; /* 64 values */
-    constexpr static inline uint64_t s_toShift { 6 };
+    constexpr static inline uint16_t s_flagMask { 0b1111 }; /* 16 values */
+    constexpr static inline uint8_t s_flagShift { 12 };
 
-    constexpr static inline uint64_t s_pieceMask { 0b1111 }; /* 16 values (only 12 used) */
-    constexpr static inline uint64_t s_pieceShift { 12 };
-
-    constexpr static inline uint64_t s_promotionMask { 0b111 }; /* 8 values (only 5 used) */
-    constexpr static inline uint64_t s_promotionShift { 16 };
-
-    constexpr static inline uint64_t s_castlingMask { 0b1111 }; /* 4 bit flags */
-    constexpr static inline uint64_t s_castlingShift { 19 };
-
-    // Bool so no need for mask
-    constexpr static inline uint64_t s_captureShift { 23 };
-    constexpr static inline uint64_t s_enPessantShift { 24 };
-    constexpr static inline uint64_t s_takeEnPessantShift { 25 };
+    uint16_t data = 0;
 };
 
 class ValidMoves {

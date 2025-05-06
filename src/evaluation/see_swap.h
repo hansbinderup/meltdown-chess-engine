@@ -59,7 +59,8 @@ public:
     {
         if (move.isCastleMove()) {
             return 0;
-        } else if (move.hasEnPessant()) {
+        } else if (move.isDoublePush()) {
+            /* FIXME: should be take enpessant? */
             return 100; /* Pawn takes pawn, so give it pawn score - anything else is difficult to handle here */
         }
 
@@ -79,7 +80,7 @@ public:
         std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
 
         /* piece that will track the scoring of next piece */
-        Piece nextPiece = move.piece();
+        Piece nextPiece = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
 
         Player player = board.player;
 

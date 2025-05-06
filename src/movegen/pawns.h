@@ -9,34 +9,34 @@ namespace movegen {
 
 namespace {
 
-constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
+constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, bool capture)
 {
 
     helper::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove(movegen::Move::create(from, to, piece, capture));
+        validMoves.addMove(movegen::Move::create(from, to, capture));
     });
 }
 
-constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool enable)
+constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, bool doublePush)
 {
 
     helper::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
-        validMoves.addMove(movegen::Move::createEnPessant(from, to, piece, enable, !enable));
+        validMoves.addMove(movegen::Move::createEnPessant(from, to, doublePush));
     });
 }
 
-constexpr void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, Piece piece, bool capture)
+constexpr void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, bool capture)
 {
     helper::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
 
         /* add queen first - is usually the preferred piece */
-        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionQueen, capture));
-        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionKnight, capture));
-        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionBishop, capture));
-        validMoves.addMove(movegen::Move::createPromotion(from, to, piece, PromotionRook, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, PromotionQueen, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, PromotionKnight, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, PromotionBishop, capture));
+        validMoves.addMove(movegen::Move::createPromotion(from, to, PromotionRook, capture));
     });
 }
 
@@ -58,26 +58,26 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
     if constexpr (type == MovePseudoLegal) {
         uint64_t moveStraight = ((pawns & ~s_row7Mask) << 8) & ~allOccupation;
         uint64_t moveStraightDouble = ((pawns & s_row2Mask) << 16) & ~(allOccupation | (allOccupation << 8));
-        backtrackPawnMoves(validMoves, moveStraight, 8, Piece::WhitePawn, false);
-        backtrackPawnEnPessantMoves(validMoves, moveStraightDouble, 16, Piece::WhitePawn, true);
+        backtrackPawnMoves(validMoves, moveStraight, 8, false);
+        backtrackPawnEnPessantMoves(validMoves, moveStraightDouble, 16, true);
     }
 
     uint64_t attackLeft = ((pawns & ~s_row7Mask & ~s_aFileMask) << 7) & theirOccupation;
     uint64_t attackRight = ((pawns & ~s_row7Mask & ~s_hFileMask) << 9) & theirOccupation;
 
-    backtrackPawnMoves(validMoves, attackLeft, 7, Piece::WhitePawn, true);
-    backtrackPawnMoves(validMoves, attackRight, 9, Piece::WhitePawn, true);
+    backtrackPawnMoves(validMoves, attackLeft, 7, true);
+    backtrackPawnMoves(validMoves, attackRight, 9, true);
 
     if constexpr (type == MovePseudoLegal) {
         uint64_t promoteStraight = ((pawns & s_row7Mask) << 8) & ~allOccupation;
-        backtrackPawnPromotions(validMoves, promoteStraight, 8, Piece::WhitePawn, false);
+        backtrackPawnPromotions(validMoves, promoteStraight, 8, false);
     }
 
     uint64_t promoteAttackLeft = ((pawns & s_row7Mask & ~s_aFileMask) << 7) & theirOccupation;
     uint64_t promoteAttackRight = ((pawns & s_row7Mask & ~s_hFileMask) << 9) & theirOccupation;
 
-    backtrackPawnPromotions(validMoves, promoteAttackLeft, 7, Piece::WhitePawn, true);
-    backtrackPawnPromotions(validMoves, promoteAttackRight, 9, Piece::WhitePawn, true);
+    backtrackPawnPromotions(validMoves, promoteAttackLeft, 7, true);
+    backtrackPawnPromotions(validMoves, promoteAttackRight, 9, true);
 }
 
 template<movegen::MoveType type>
@@ -89,27 +89,27 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
         uint64_t moveStraight = ((pawns & ~s_row2Mask) >> 8) & ~allOccupation;
         uint64_t moveStraightDouble = ((pawns & s_row7Mask) >> 16) & ~(allOccupation | (allOccupation >> 8));
 
-        backtrackPawnMoves(validMoves, moveStraight, -8, Piece::BlackPawn, false);
-        backtrackPawnEnPessantMoves(validMoves, moveStraightDouble, -16, Piece::BlackPawn, true);
+        backtrackPawnMoves(validMoves, moveStraight, -8, false);
+        backtrackPawnEnPessantMoves(validMoves, moveStraightDouble, -16, true);
     }
 
     uint64_t attackLeft = ((pawns & ~s_row2Mask & ~s_aFileMask) >> 9) & theirOccupation;
     uint64_t attackRight = ((pawns & ~s_row2Mask & ~s_hFileMask) >> 7) & theirOccupation;
 
-    backtrackPawnMoves(validMoves, attackLeft, -9, Piece::BlackPawn, true);
-    backtrackPawnMoves(validMoves, attackRight, -7, Piece::BlackPawn, true);
+    backtrackPawnMoves(validMoves, attackLeft, -9, true);
+    backtrackPawnMoves(validMoves, attackRight, -7, true);
 
     if constexpr (type == MovePseudoLegal) {
         uint64_t promoteStraight = ((pawns & s_row2Mask) >> 8) & ~allOccupation;
 
-        backtrackPawnPromotions(validMoves, promoteStraight, -8, Piece::BlackPawn, false);
+        backtrackPawnPromotions(validMoves, promoteStraight, -8, false);
     }
 
     uint64_t promoteAttackLeft = ((pawns & s_row2Mask & ~s_aFileMask) >> 9) & theirOccupation;
     uint64_t promoteAttackRight = ((pawns & s_row2Mask & ~s_hFileMask) >> 7) & theirOccupation;
 
-    backtrackPawnPromotions(validMoves, promoteAttackLeft, -9, Piece::BlackPawn, true);
-    backtrackPawnPromotions(validMoves, promoteAttackRight, -7, Piece::BlackPawn, true);
+    backtrackPawnPromotions(validMoves, promoteAttackLeft, -9, true);
+    backtrackPawnPromotions(validMoves, promoteAttackRight, -7, true);
 }
 
 constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, BoardPosition enPessant, uint64_t occupation)
@@ -120,8 +120,8 @@ constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint
     uint64_t moveLeft = ((pawns & ~s_aFileMask) << 7) & enPessantSquare & ~occupation;
     uint64_t moveRight = ((pawns & ~s_hFileMask) << 9) & enPessantSquare & ~occupation;
 
-    backtrackPawnEnPessantMoves(validMoves, moveLeft, 7, Piece::WhitePawn, false);
-    backtrackPawnEnPessantMoves(validMoves, moveRight, 9, Piece::WhitePawn, false);
+    backtrackPawnEnPessantMoves(validMoves, moveLeft, 7, false);
+    backtrackPawnEnPessantMoves(validMoves, moveRight, 9, false);
 }
 
 constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, BoardPosition enPessant, uint64_t occupation)
@@ -132,8 +132,8 @@ constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint
     uint64_t moveLeft = ((pawns & ~s_aFileMask) >> 9) & enPessantSquare & ~occupation;
     uint64_t moveRight = ((pawns & ~s_hFileMask) >> 7) & enPessantSquare & ~occupation;
 
-    backtrackPawnEnPessantMoves(validMoves, moveLeft, -9, Piece::BlackPawn, false);
-    backtrackPawnEnPessantMoves(validMoves, moveRight, -7, Piece::BlackPawn, false);
+    backtrackPawnEnPessantMoves(validMoves, moveLeft, -9, false);
+    backtrackPawnEnPessantMoves(validMoves, moveRight, -7, false);
 }
 
 }

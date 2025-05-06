@@ -15,7 +15,7 @@ namespace movegen {
 namespace {
 
 template<MoveType type>
-constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
+constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     helper::bitIterate(knights, [&](BoardPosition from) {
         uint64_t moves = getKnightMoves(from) & ~ownOccupation;
@@ -23,17 +23,17 @@ constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_
         helper::bitIterate(moves, [&](BoardPosition pos) {
             const bool isCapture = helper::positionToSquare(pos) & theirOccupation;
             if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, pos, piece, isCapture));
+                validMoves.addMove(Move::create(from, pos, isCapture));
             } else if constexpr (type == MoveCapture) {
                 if (isCapture)
-                    validMoves.addMove(Move::create(from, pos, piece, isCapture));
+                    validMoves.addMove(Move::create(from, pos, isCapture));
             }
         });
     });
 }
 
 template<MoveType type>
-constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
+constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     helper::bitIterate(rooks, [&](BoardPosition from) {
         uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
@@ -42,17 +42,17 @@ constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t 
             const bool isCapture = helper::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, to, piece, isCapture));
+                validMoves.addMove(Move::create(from, to, isCapture));
             } else if constexpr (type == MoveCapture) {
                 if (isCapture)
-                    validMoves.addMove(Move::create(from, to, piece, isCapture));
+                    validMoves.addMove(Move::create(from, to, isCapture));
             }
         });
     });
 }
 
 template<MoveType type>
-constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
+constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     helper::bitIterate(bishops, [&](BoardPosition from) {
         uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
@@ -61,24 +61,24 @@ constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_
             const bool isCapture = helper::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, to, piece, isCapture));
+                validMoves.addMove(Move::create(from, to, isCapture));
             } else if constexpr (type == MoveCapture) {
                 if (isCapture)
-                    validMoves.addMove(Move::create(from, to, piece, isCapture));
+                    validMoves.addMove(Move::create(from, to, isCapture));
             }
         });
     });
 }
 
 template<MoveType type>
-constexpr static inline void generateQueenMoves(ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece)
+constexpr static inline void generateQueenMoves(ValidMoves& validMoves, uint64_t queens, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    generateRookMoves<type>(validMoves, queens, ownOccupation, theirOccupation, piece);
-    generateBishopMoves<type>(validMoves, queens, ownOccupation, theirOccupation, piece);
+    generateRookMoves<type>(validMoves, queens, ownOccupation, theirOccupation);
+    generateBishopMoves<type>(validMoves, queens, ownOccupation, theirOccupation);
 }
 
 template<MoveType type>
-constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, Piece piece, uint64_t attacks)
+constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, uint64_t attacks)
 {
     helper::bitIterate(king, [&](BoardPosition from) {
         uint64_t moves = s_kingsTable.at(from) & ~ownOccupation & ~attacks;
@@ -87,10 +87,10 @@ constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t 
             const bool isCapture = helper::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, to, piece, isCapture));
+                validMoves.addMove(Move::create(from, to, isCapture));
             } else if constexpr (type == MoveCapture) {
                 if (isCapture)
-                    validMoves.addMove(Move::create(from, to, piece, isCapture));
+                    validMoves.addMove(Move::create(from, to, isCapture));
             }
         });
     });
@@ -109,7 +109,7 @@ constexpr static inline void generateCastlingMovesWhite(ValidMoves& validMoves, 
     if (board.castlingRights & CastleWhiteQueenSide) {
         // Pieces in the way - castling not allowed
         if (!(occupation & queenSideOccupationMask) && !(attacks & queenSideAttackMask)) {
-            validMoves.addMove(Move::createCastle(E1, C1, WhiteKing, CastleWhiteQueenSide));
+            validMoves.addMove(Move::createCastle(E1, C1, CastleWhiteQueenSide));
         }
     }
 
@@ -117,7 +117,7 @@ constexpr static inline void generateCastlingMovesWhite(ValidMoves& validMoves, 
     if (board.castlingRights & CastleWhiteKingSide) {
         // Pieces in the way - castling not allowed
         if (!(occupation & kingSideOccupationMask) && !(attacks & kingSideAttackMask)) {
-            validMoves.addMove(Move::createCastle(E1, G1, WhiteKing, CastleWhiteKingSide));
+            validMoves.addMove(Move::createCastle(E1, G1, CastleWhiteKingSide));
         }
     }
 }
@@ -135,7 +135,7 @@ constexpr static inline void generateCastlingMovesBlack(ValidMoves& validMoves, 
     if (board.castlingRights & CastleBlackQueenSide) {
         // Pieces in the way - castling not allowed
         if (!(occupation & queenSideOccupationMask) && !(attacks & queenSideAttackMask)) {
-            validMoves.addMove(Move::createCastle(E8, C8, BlackKing, CastleBlackQueenSide));
+            validMoves.addMove(Move::createCastle(E8, C8, CastleBlackQueenSide));
         }
     }
 
@@ -143,7 +143,7 @@ constexpr static inline void generateCastlingMovesBlack(ValidMoves& validMoves, 
     if (board.castlingRights & CastleBlackKingSide) {
         // Pieces in the way - castling not allowed
         if (!(occupation & kingSideOccupationMask) && !(attacks & kingSideAttackMask)) {
-            validMoves.addMove(Move::createCastle(E8, G8, BlackKing, CastleBlackKingSide));
+            validMoves.addMove(Move::createCastle(E8, G8, CastleBlackKingSide));
         }
     }
 }
@@ -154,9 +154,9 @@ template<Player player, MoveType type>
 constexpr static inline void getKnightMoves(ValidMoves& validMoves, const BitBoard& board)
 {
     if constexpr (player == PlayerWhite) {
-        generateKnightMoves<type>(validMoves, board.pieces[WhiteKnight], board.occupation[White], board.occupation[Black], Piece::WhiteKnight);
+        generateKnightMoves<type>(validMoves, board.pieces[WhiteKnight], board.occupation[White], board.occupation[Black]);
     } else {
-        generateKnightMoves<type>(validMoves, board.pieces[BlackKnight], board.occupation[Black], board.occupation[White], Piece::BlackKnight);
+        generateKnightMoves<type>(validMoves, board.pieces[BlackKnight], board.occupation[Black], board.occupation[White]);
     }
 }
 
@@ -164,9 +164,9 @@ template<Player player, MoveType type>
 constexpr static inline void getRookMoves(ValidMoves& validMoves, const BitBoard& board)
 {
     if constexpr (player == PlayerWhite) {
-        generateRookMoves<type>(validMoves, board.pieces[WhiteRook], board.occupation[White], board.occupation[Black], Piece::WhiteRook);
+        generateRookMoves<type>(validMoves, board.pieces[WhiteRook], board.occupation[White], board.occupation[Black]);
     } else {
-        generateRookMoves<type>(validMoves, board.pieces[BlackRook], board.occupation[Black], board.occupation[White], Piece::BlackRook);
+        generateRookMoves<type>(validMoves, board.pieces[BlackRook], board.occupation[Black], board.occupation[White]);
     }
 }
 
@@ -174,9 +174,9 @@ template<Player player, MoveType type>
 constexpr static inline void getBishopMoves(ValidMoves& validMoves, const BitBoard& board)
 {
     if constexpr (player == PlayerWhite) {
-        generateBishopMoves<type>(validMoves, board.pieces[WhiteBishop], board.occupation[White], board.occupation[Black], Piece::WhiteBishop);
+        generateBishopMoves<type>(validMoves, board.pieces[WhiteBishop], board.occupation[White], board.occupation[Black]);
     } else {
-        generateBishopMoves<type>(validMoves, board.pieces[BlackBishop], board.occupation[Black], board.occupation[White], Piece::BlackBishop);
+        generateBishopMoves<type>(validMoves, board.pieces[BlackBishop], board.occupation[Black], board.occupation[White]);
     }
 }
 
@@ -184,9 +184,9 @@ template<Player player, MoveType type>
 constexpr static inline void getQueenMoves(ValidMoves& validMoves, const BitBoard& board)
 {
     if constexpr (player == PlayerWhite) {
-        generateQueenMoves<type>(validMoves, board.pieces[WhiteQueen], board.occupation[White], board.occupation[Black], Piece::WhiteQueen);
+        generateQueenMoves<type>(validMoves, board.pieces[WhiteQueen], board.occupation[White], board.occupation[Black]);
     } else {
-        generateQueenMoves<type>(validMoves, board.pieces[BlackQueen], board.occupation[Black], board.occupation[White], Piece::BlackQueen);
+        generateQueenMoves<type>(validMoves, board.pieces[BlackQueen], board.occupation[Black], board.occupation[White]);
     }
 }
 
@@ -194,9 +194,9 @@ template<Player player, MoveType type>
 constexpr static inline void getKingMoves(ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
     if constexpr (player == PlayerWhite) {
-        generateKingMoves<type>(validMoves, board.pieces[WhiteKing], board.occupation[White], board.occupation[Black], Piece::WhiteKing, attacks);
+        generateKingMoves<type>(validMoves, board.pieces[WhiteKing], board.occupation[White], board.occupation[Black], attacks);
     } else {
-        generateKingMoves<type>(validMoves, board.pieces[BlackKing], board.occupation[Black], board.occupation[White], Piece::BlackKing, attacks);
+        generateKingMoves<type>(validMoves, board.pieces[BlackKing], board.occupation[Black], board.occupation[White], attacks);
     }
 }
 
