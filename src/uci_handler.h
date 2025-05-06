@@ -95,8 +95,9 @@ private:
 
     static bool handleUci()
     {
-        fmt::println("id engine Meltdown\n"
-                     "id author Hans Binderup");
+        fmt::println("id name Meltdown {}\n"
+                     "id author Hans Binderup",
+            s_meltdownVersion);
 
         for (const auto& option : s_uciOptions) {
             ucioption::printInfo(option);
