@@ -8,7 +8,7 @@
 
 #include <fstream>
 
-void prettyPrintToFile(const tuner::GradientArray& params, size_t epochs)
+void prettyPrintToFile(const tuner::GradientArray& params, size_t epochs, double error)
 {
     using namespace std::chrono;
 
@@ -35,6 +35,7 @@ void prettyPrintToFile(const tuner::GradientArray& params, size_t epochs)
      ▸ LR Step Rate     = {}
      ▸ LR Drop Rate     = {:.2f}
      ▸ Epochs           = {}
+     ▸ Error            = {:.8f}
    -----------------------------------------------------------
    See the 'tuner/' for more information on how to generate
    =========================================================== */
@@ -45,7 +46,7 @@ namespace evaluation {{
 
 )cpp",
         tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min,
-        tuner::s_kValue, tuner::s_learningRate, tuner::s_lrStepRate, tuner::s_lrDropRate, epochs);
+        tuner::s_kValue, tuner::s_learningRate, tuner::s_lrStepRate, tuner::s_lrDropRate, epochs, error);
 
     fmt::print(file, "\nconstexpr Terms s_terms = {{\n");
 

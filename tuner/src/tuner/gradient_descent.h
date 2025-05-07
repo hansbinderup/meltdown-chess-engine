@@ -124,7 +124,7 @@ static void runGradientDescentTuning()
 
         fmt::println("Finished epoch: {}, err: {:.8f}, lr: {}", epoch, error, rate);
         if (epoch % s_parameterPrintRate == 0) {
-            prettyPrintToFile(params, epoch);
+            prettyPrintToFile(params, epoch, error);
         }
     }
 }
