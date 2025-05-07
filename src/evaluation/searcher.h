@@ -509,7 +509,7 @@ private:
 
     inline std::optional<int32_t> checkForDraw(const BitBoard& board)
     {
-        const bool isDraw = m_repetition.isRepetition(m_hash) || positionIsDraw(board);
+        const bool isDraw = m_repetition.isRepetition(m_hash, board) || positionIsDraw(board);
         if (isDraw) {
             /* draw score is 0 but to avoid blindness towards three fold lines
              * we add a slight variance to the draw score

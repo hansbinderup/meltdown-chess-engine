@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bit_board.h"
 #include "board_defs.h"
 #include <algorithm>
 #include <array>
@@ -17,29 +18,26 @@ public:
         m_count--;
     }
 
-    bool isRepetition(uint64_t hash)
+    bool isRepetition(uint64_t hash, const BitBoard& board)
     {
-        for (uint64_t entry : *this) {
-            if (entry == hash)
-                return true;
+        uint8_t reps = 0;
+        const int16_t end = std::max<int16_t>(board.fullMoves - board.halfMoves, 0);
+
+        /* NOTE: -2: we only care about our own moves
+         * NOTE: we only want to search to an irreversible position hence only check back to half moves
+         * NOTE: search backwards -> more likely to be found early if it's a repeated position */
+        for (int16_t i = board.fullMoves - 2; i >= end; i -= 2) {
+            if (m_repetitions[i] == hash) {
+                if (++reps == 2)
+                    return true;
+            }
         }
 
         return false;
     }
 
-    const uint64_t* begin() const
-    {
-        return m_repetitions.begin();
-    }
-
-    const uint64_t* end() const
-    {
-        return m_repetitions.begin() + m_count;
-    }
-
     void reset()
     {
-        std::ranges::fill(m_repetitions, 0);
         m_count = 0;
     }
 
