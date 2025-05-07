@@ -14,6 +14,7 @@ using WeightTable = std::array<Score, T>;
     TERM(passedPawnBonus, 8)           \
     TERM(rookOpenFileBonus, 1)         \
     TERM(rookSemiOpenFileBonus, 1)     \
+    TERM(rook7thRankBonus, 1)          \
     TERM(queenOpenFileBonus, 1)        \
     TERM(queenSemiOpenFileBonus, 1)    \
     TERM(knightMobilityScore, 9)       \
