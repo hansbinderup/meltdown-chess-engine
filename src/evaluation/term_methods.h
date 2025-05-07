@@ -138,6 +138,9 @@ constexpr static inline Score getRookScore(const BitBoard& board, const uint64_t
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
+    const uint64_t whiteKing = board.pieces[WhiteKing];
+    const uint64_t blackKing = board.pieces[BlackKing];
+
     helper::bitIterate(rooks, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
@@ -153,10 +156,23 @@ constexpr static inline Score getRookScore(const BitBoard& board, const uint64_t
             ADD_SCORE_INDEXED(psqtRooks, pos);
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
+
+            if (rooks & s_row7Mask) {
+                if ((blackPawns & s_row7Mask) || (blackKing & s_row8Mask)) {
+                    ADD_SCORE(rook7thRankBonus);
+                }
+            }
+
         } else {
             ADD_SCORE_INDEXED(psqtRooks, flipPosition(pos));
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
+
+            if (rooks & s_row2Mask) {
+                if ((whitePawns & s_row2Mask) || (whiteKing & s_row1Mask)) {
+                    ADD_SCORE(rook7thRankBonus);
+                }
+            }
         }
     });
 
@@ -227,4 +243,3 @@ constexpr static inline Score getKingScore(const BitBoard& board, const uint64_t
 }
 
 }
-
