@@ -1,10 +1,8 @@
 #pragma once
 
-#include "board_defs.h"
 #include "fmt/base.h"
 #include "helpers/memory.h"
 #include "movegen/move_types.h"
-#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -117,15 +115,11 @@ public:
         }
 
         if (entryData.depth >= depth) {
-            Score score = entryData.score;
-
-            /* special case when mating score is found */
-            if (score < -s_mateScore)
-                score += ply;
-            if (score > s_mateScore)
-                score -= ply;
-
-            return ProbeResult { .score = score, .flag = entryData.flag, .move = entryData.move };
+            return ProbeResult {
+                .score = scoreRelative(entryData.score, ply),
+                .flag = entryData.flag,
+                .move = entryData.move,
+            };
         }
 
         return std::nullopt;
@@ -135,15 +129,14 @@ public:
     {
         assert(s_ttHashSize > 0);
 
-        /* special case when mating score is found */
-        if (score < -s_mateScore)
-            score -= ply;
-        if (score > s_mateScore)
-            score += ply;
-
         auto& entry = s_ttHashTable[key % s_ttHashSize];
 
-        TtHashEntryData newData { depth, flag, score, move };
+        TtHashEntryData newData {
+            .depth = depth,
+            .flag = flag,
+            .score = scoreAbsolute(score, ply),
+            .move = move,
+        };
 
         // Can be racy
         entry.key.store(key, std::memory_order_relaxed);
