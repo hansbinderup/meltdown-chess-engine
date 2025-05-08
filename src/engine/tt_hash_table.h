@@ -30,6 +30,23 @@ struct TtHashEntry {
     std::atomic<TtHashEntryData> data;
 };
 
+constexpr inline std::optional<Score> testEntry(const TtHashEntryData& entryData, uint8_t ply, uint8_t depth, Score alpha, Score beta)
+{
+    if (entryData.depth < depth)
+        return std::nullopt;
+
+    const Score relScore = scoreRelative(entryData.score, ply);
+
+    if (entryData.flag == TtHashExact)
+        return relScore;
+    else if (entryData.flag == TtHashAlpha && relScore <= alpha)
+        return relScore;
+    else if (entryData.flag == TtHashBeta && relScore >= beta)
+        return relScore;
+
+    return std::nullopt;
+}
+
 class TtHashTable {
 public:
     /* frees the memory of the current table (if any) and allocates the amount provided in MB
@@ -95,13 +112,7 @@ public:
         return permill;
     }
 
-    struct ProbeResult {
-        Score score;
-        TtHashFlag flag;
-        movegen::Move move;
-    };
-
-    constexpr static std::optional<ProbeResult> probe(uint64_t key, uint8_t depth, uint8_t ply)
+    constexpr static std::optional<TtHashEntryData> probe(uint64_t key)
     {
         assert(s_ttHashSize > 0);
 
@@ -114,15 +125,7 @@ public:
             return std::nullopt;
         }
 
-        if (entryData.depth >= depth) {
-            return ProbeResult {
-                .score = scoreRelative(entryData.score, ply),
-                .flag = entryData.flag,
-                .move = entryData.move,
-            };
-        }
-
-        return std::nullopt;
+        return entryData;
     }
 
     constexpr static void writeEntry(uint64_t key, Score score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
@@ -130,17 +133,25 @@ public:
         assert(s_ttHashSize > 0);
 
         auto& entry = s_ttHashTable[key % s_ttHashSize];
+        const auto entryKey = entry.key.load(std::memory_order_relaxed);
+        const auto entryData = entry.data.load(std::memory_order_relaxed);
 
-        TtHashEntryData newData {
-            .depth = depth,
-            .flag = flag,
-            .score = scoreAbsolute(score, ply),
-            .move = move,
-        };
+        /* only update entry if a better one is found */
+        if (key != entryKey
+            || depth >= entryData.depth
+            || (flag == TtHashExact && entryData.flag != TtHashExact)) {
 
-        // Can be racy
-        entry.key.store(key, std::memory_order_relaxed);
-        entry.data.store(newData, std::memory_order_relaxed);
+            TtHashEntryData newData {
+                .depth = depth,
+                .flag = flag,
+                .score = scoreAbsolute(score, ply),
+                .move = move,
+            };
+
+            // Can be racy
+            entry.key.store(key, std::memory_order_relaxed);
+            entry.data.store(newData, std::memory_order_relaxed);
+        }
     }
 
     constexpr static std::size_t tableSizeFromMb(size_t sizeMb)

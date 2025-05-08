@@ -206,12 +206,11 @@ public:
         }
 
         const bool isPv = beta - alpha > 1;
-        const auto hashProbe = engine::TtHashTable::probe(m_hash, depth, m_ply);
+        const auto hashProbe = engine::TtHashTable::probe(m_hash);
         if (hashProbe.has_value() && m_ply && !isPv) {
-            if ((hashProbe->flag == engine::TtHashExact)
-                || (hashProbe->flag == engine::TtHashAlpha && hashProbe->score <= alpha)
-                || (hashProbe->flag == engine::TtHashBeta && hashProbe->score >= beta)) {
-                return hashProbe->score;
+            const auto testResult = engine::testEntry(*hashProbe, m_ply, depth, alpha, beta);
+            if (testResult.has_value()) {
+                return testResult.value();
             }
         }
 
