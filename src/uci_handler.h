@@ -351,7 +351,9 @@ private:
     static inline BitBoard s_board {};
     static inline evaluation::Evaluator s_evaluator;
 
-    constexpr static inline std::size_t s_inputBufferSize { 2048 };
+    /* 1024 bytes -> 200~ plys
+     * aim to support around 1000 plys of moves + a buffer to be sure */
+    constexpr static inline std::size_t s_inputBufferSize { 1024 * 6 };
 
     /* UCI options callbacks */
     static inline void syzygyCallback(std::string_view path)
