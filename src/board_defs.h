@@ -132,12 +132,6 @@ constexpr static inline uint64_t s_row2Mask { 0xffULL << s_secondRow };
 constexpr static inline uint64_t s_row7Mask { 0xffULL << s_seventhRow };
 constexpr static inline uint64_t s_row8Mask { 0xffULL << s_eightRow };
 
-constexpr static inline Score s_maxScore = { 30000 };
-constexpr static inline Score s_minScore = { -s_maxScore };
-
-constexpr static inline Score s_mateValue { 20000 };
-constexpr static inline Score s_mateScore { s_mateValue - 1000 };
-
 constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
 
 constexpr static inline uint8_t s_middleGamePhase { 24 };
