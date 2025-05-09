@@ -4,6 +4,7 @@ FROM archlinux:latest
 # Install necessary packages
 RUN pacman -Sy --noconfirm \
     base-devel \
+    clang \
     gcc \
     mingw-w64-gcc \
     meson \
