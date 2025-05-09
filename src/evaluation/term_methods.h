@@ -1,5 +1,6 @@
 #pragma once
 
+#include "attack_generation.h"
 #include "bit_board.h"
 #include "evaluation/generated/tuned_terms.h"
 #include "evaluation/position_tables.h"
@@ -96,6 +97,11 @@ constexpr static inline TermScore getKnightScore(const BitBoard& board, const ui
 {
     TermScore score(0, 0);
 
+    const uint64_t whitePawns = board.pieces[WhitePawn];
+    const uint64_t blackPawns = board.pieces[BlackPawn];
+
+    const uint64_t pawnDefends = player == PlayerWhite ? attackgen::getWhitePawnAttacks(board) : attackgen::getBlackPawnAttacks(board);
+
     helper::bitIterate(knights, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Knight];
         ADD_SCORE_INDEXED(pieceValues, Knight);
@@ -104,10 +110,27 @@ constexpr static inline TermScore getKnightScore(const BitBoard& board, const ui
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(knightMobilityScore, movesCount);
 
+        const uint64_t square = helper::positionToSquare(pos);
+
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKnights, pos);
+
+            if (!(s_outpostSquareMaskTable[player][pos] & blackPawns) && square & s_whiteOutpostRankMask) {
+                const bool isOutside = square & (s_aFileMask | s_hFileMask);
+                const bool isDefended = square & pawnDefends;
+
+                ADD_SCORE_INDEXED(knightOutpostScore, isOutside + (isDefended << 1));
+            }
+
         } else {
             ADD_SCORE_INDEXED(psqtKnights, flipPosition(pos));
+
+            if (!(s_outpostSquareMaskTable[player][pos] & whitePawns) && square & s_blackOutpostRankMask) {
+                const bool isOutside = square & (s_aFileMask | s_hFileMask);
+                const bool isDefended = square & pawnDefends;
+
+                ADD_SCORE_INDEXED(knightOutpostScore, isOutside + (isDefended << 1));
+            }
         }
     });
 
@@ -118,6 +141,11 @@ template<Player player>
 constexpr static inline TermScore getBishopScore(const BitBoard& board, const uint64_t bishops, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    const uint64_t whitePawns = board.pieces[WhitePawn];
+    const uint64_t blackPawns = board.pieces[BlackPawn];
+
+    const uint64_t pawnDefends = player == PlayerWhite ? attackgen::getWhitePawnAttacks(board) : attackgen::getBlackPawnAttacks(board);
 
     const int amntBishops = std::popcount(bishops);
     if (amntBishops >= 2)
@@ -131,10 +159,26 @@ constexpr static inline TermScore getBishopScore(const BitBoard& board, const ui
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(bishopMobilityScore, movesCount);
 
+        const uint64_t square = helper::positionToSquare(pos);
+
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtBishops, pos);
+
+            if (!(s_outpostSquareMaskTable[player][pos] & blackPawns) && square & s_whiteOutpostRankMask) {
+                const bool isOutside = square & (s_aFileMask | s_hFileMask);
+                const bool isDefended = square & pawnDefends;
+
+                ADD_SCORE_INDEXED(bishopOutpostScore, isOutside + (isDefended << 1));
+            }
         } else {
             ADD_SCORE_INDEXED(psqtBishops, flipPosition(pos));
+
+            if (!(s_outpostSquareMaskTable[player][pos] & whitePawns) && square & s_blackOutpostRankMask) {
+                const bool isOutside = square & (s_aFileMask | s_hFileMask);
+                const bool isDefended = square & pawnDefends;
+
+                ADD_SCORE_INDEXED(bishopOutpostScore, isOutside + (isDefended << 1));
+            }
         }
     });
 

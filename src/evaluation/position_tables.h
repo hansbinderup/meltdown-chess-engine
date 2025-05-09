@@ -198,12 +198,27 @@ constexpr auto generateBlackPassedPawnMaskTable()
     return data;
 }
 
+constexpr auto generateOutpostSquareMaskTable()
+{
+    using OutpostMaskTable = std::array<uint64_t, s_amountSquares>;
+    std::array<OutpostMaskTable, magic_enum::enum_count<Player>()> data {};
+
+    constexpr auto passedPawnTable = generatePassedPawnMaskTable();
+    constexpr auto fileMaskTable = generateFileMaskTable();
+
+    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
+        data[PlayerWhite][pos] = passedPawnTable[PlayerWhite][pos] & ~fileMaskTable[pos];
+        data[PlayerBlack][pos] = passedPawnTable[PlayerBlack][pos] & ~fileMaskTable[pos];
+    }
+    return data;
+}
+
 }
 
 constexpr auto s_rowMaskTable = generateRowMaskTable();
 constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
 constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
+constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
 
 }
-
