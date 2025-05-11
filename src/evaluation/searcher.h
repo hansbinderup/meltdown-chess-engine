@@ -269,6 +269,13 @@ public:
             }
         }
 
+        /* Internal Iterative Reduction
+         * https://www.chessprogramming.org/Internal_Iterative_Reductions
+         * FIXME: replace check with ttMove when entries can contain static evals as well */
+        if (!hashProbe.has_value() && !isRoot && depth >= s_iirDepthLimit) {
+            depth -= s_iirReduction;
+        }
+
         /* https://www.chessprogramming.org/Razoring (Strelka) */
         if (!isPv && !isChecked && depth <= s_reductionLimit) {
             Score score = m_stackItr->eval + s_razorMarginShallow;
@@ -557,6 +564,8 @@ private:
     constexpr static inline Score s_razorMarginShallow { 125 };
     constexpr static inline Score s_razorMarginDeep { 175 };
     constexpr static inline uint8_t s_razorDeepReductionLimit { 2 };
+    constexpr static inline uint8_t s_iirDepthLimit { 4 };
+    constexpr static inline uint8_t s_iirReduction { 1 };
 
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
