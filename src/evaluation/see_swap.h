@@ -8,6 +8,7 @@
 #include "movegen/knights.h"
 #include "movegen/move_types.h"
 #include "movegen/rooks.h"
+#include "spsa/parameters.h"
 
 #include <cstdint>
 
@@ -158,10 +159,23 @@ private:
     constexpr static inline auto s_blackPawnTable = generatePawnTable<PlayerBlack>();
 
     /* piece values simplified */
-    constexpr static inline auto s_pieceValues = std::to_array<int32_t>(
-        { /* white pieces */
-            100, 422, 422, 642, 1015, 30000,
+    TUNABLE_CONSTEXPR(auto)
+    s_pieceValues = std::to_array<int32_t>(
+        {
+            /* white pieces */
+            spsa::seePawnValue,
+            spsa::seeKnightValue,
+            spsa::seeBishopValue,
+            spsa::seeRookValue,
+            spsa::seeQueenValue,
+            s_maxScore,
             /* black pieces */
-            100, 422, 422, 642, 1015, 30000 });
+            spsa::seePawnValue,
+            spsa::seeKnightValue,
+            spsa::seeBishopValue,
+            spsa::seeRookValue,
+            spsa::seeQueenValue,
+            s_maxScore,
+        });
 };
 }

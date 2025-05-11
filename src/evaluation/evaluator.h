@@ -208,8 +208,8 @@ private:
                 }
 
                 /* prepare window for next iteration */
-                alpha = score - s_aspirationWindow;
-                beta = score + s_aspirationWindow;
+                alpha = score - spsa::aspirationWindow;
+                beta = score + spsa::aspirationWindow;
 
                 printScoreInfo(singleSearcher.get(), board, score, d);
 
@@ -282,8 +282,8 @@ private:
                 }
 
                 /* prepare window for next iteration */
-                alpha = bestWinningResult.score - s_aspirationWindow;
-                beta = bestWinningResult.score + s_aspirationWindow;
+                alpha = bestWinningResult.score - spsa::aspirationWindow;
+                beta = bestWinningResult.score + spsa::aspirationWindow;
 
                 printScoreInfo(bestWinningResult.searcher, board, bestWinningResult.score, d);
                 m_ponderMove = bestWinningResult.searcher->getPonderMove();
@@ -310,7 +310,5 @@ private:
     bool m_isPondering { false };
     bool m_ponderingEnabled { false };
     std::optional<movegen::Move> m_ponderMove {};
-
-    constexpr static inline uint8_t s_aspirationWindow { 50 };
 };
 }

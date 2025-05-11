@@ -79,3 +79,18 @@ jobs:
     - name: Build tuner
       run: tuner/scripts/build.sh
 
+  build-spsa:
+    runs-on: ubuntu-latest
+    container:
+      image: hansbinderup/meson-gcc:1.1
+      options: --user root
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+          clean: true
+    - name: Safe directory
+      run: git config --global --add safe.directory '*'
+    - name: Build with SPSA enabled
+      run: tuner/scripts/build.sh --spsa
+

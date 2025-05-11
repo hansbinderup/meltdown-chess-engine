@@ -2,6 +2,8 @@
 
 #include "bit_board.h"
 #include "board_defs.h"
+#include "spsa/parameters.h"
+
 #include <atomic>
 #include <cstdint>
 #include <optional>
@@ -127,9 +129,9 @@ private:
              * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md
              */
 
-            const auto baseTime = timeLeft / 20 + 3 * timeInc / 4;
+            const auto baseTime = timeLeft / spsa::timeManMovesToGo + 3 * timeInc / 4;
             s_softTimeLimit = s_startTime + baseTime / 2 - buffer;
-            s_hardTimeLimit = s_startTime + 3 * baseTime - buffer;
+            s_hardTimeLimit = s_startTime + spsa::timeManHardLimit * baseTime - buffer;
         }
     }
 
@@ -145,6 +147,4 @@ private:
     static inline TimePoint s_hardTimeLimit;
 
     static inline std::atomic_bool s_timedOut;
-
-    constexpr static inline uint32_t s_defaultAmountMoves { 75 };
 };

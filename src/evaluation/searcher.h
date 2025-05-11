@@ -7,6 +7,7 @@
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
 #include "evaluation/static_evaluation.h"
+#include "spsa/parameters.h"
 #include "time_manager.h"
 
 #include "fmt/ranges.h"
@@ -252,9 +253,9 @@ public:
         }
 
         /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
-        if (depth < s_reductionLimit && !isPv && !isChecked) {
-            const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + s_futilityMargin);
-            const Score evalMargin = s_futilityEvaluationMargin * depth;
+        if (depth < spsa::rfpReductionLimit && !isPv && !isChecked) {
+            const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + spsa::rfpMargin);
+            const Score evalMargin = spsa::rfpEvaluationMargin * depth;
 
             if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
                 return m_stackItr->eval - evalMargin;
@@ -262,7 +263,7 @@ public:
 
         /* dangerous to repeat null search on a null search - skip it here */
         if constexpr (searchType != SearchType::NullSearch) {
-            if (depth > s_nullMoveReduction && !isChecked && m_ply) {
+            if (depth > spsa::nullMoveReduction && !isChecked && m_ply) {
                 if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
                     return nullMoveScore.value();
                 }
@@ -270,16 +271,16 @@ public:
         }
 
         /* https://www.chessprogramming.org/Razoring (Strelka) */
-        if (!isPv && !isChecked && depth <= s_reductionLimit) {
-            Score score = m_stackItr->eval + s_razorMarginShallow;
+        if (!isPv && !isChecked && depth <= spsa::razorReductionLimit) {
+            Score score = m_stackItr->eval + spsa::razorMarginShallow;
             if (score < beta) {
                 if (depth == 1) {
                     Score newScore = quiesence(board, alpha, beta);
                     return (newScore > score) ? newScore : score;
                 }
 
-                score += s_razorMarginDeep;
-                if (score < beta && depth <= s_razorDeepReductionLimit) {
+                score += spsa::razorMarginDeep;
+                if (score < beta && depth <= spsa::razorDeepReductionLimit) {
                     const Score newScore = quiesence(board, alpha, beta);
                     if (newScore < beta)
                         return (newScore > score) ? newScore : score;
@@ -326,8 +327,8 @@ public:
             if (movesSearched == 0) {
                 score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
             } else {
-                if (movesSearched >= s_fullDepthMove
-                    && depth >= s_reductionLimit
+                if (movesSearched >= spsa::fullDepthMove
+                    && depth >= spsa::lmrReductionLimit
                     && !isChecked
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
@@ -470,7 +471,7 @@ private:
         m_ply += 2;
 
         /* perform search with reduced depth (based on reduction limit) */
-        Score score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+        Score score = -negamax<SearchType::NullSearch>(depth - 1 - spsa::nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
 
         m_ply -= 2;
         m_stackItr -= 2;
@@ -548,17 +549,6 @@ private:
 
     std::promise<SearcherResult> m_searchPromise;
     std::future<SearcherResult> m_futureResult;
-
-    /* search configs */
-    constexpr static inline uint32_t s_fullDepthMove { 4 };
-    constexpr static inline uint32_t s_reductionLimit { 3 };
-    constexpr static inline Score s_futilityMargin { 100 };
-    constexpr static inline Score s_futilityEvaluationMargin { 120 };
-    constexpr static inline Score s_razorMarginShallow { 125 };
-    constexpr static inline Score s_razorMarginDeep { 175 };
-    constexpr static inline uint8_t s_razorDeepReductionLimit { 2 };
-
-    constexpr static inline uint8_t s_nullMoveReduction { 2 };
 };
 
 }

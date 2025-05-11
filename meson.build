@@ -14,6 +14,10 @@ if get_option('buildtype') != 'debug'
   endif
 endif
 
+if get_option('spsa') == true
+    add_project_arguments('-DSPSA',  language : 'cpp')
+endif
+
 
 # magic_enum
 magic_enum = subproject('magic_enum', default_options: ['test=false'])
