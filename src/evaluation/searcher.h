@@ -79,7 +79,7 @@ public:
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
 
-        threadPool.submit([this, depth, board, alpha, beta] {
+        const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
                 .score
                 = negamax(depth, board, alpha, beta),
@@ -93,6 +93,8 @@ public:
 
             m_searchPromise.set_value(result);
         });
+
+        assert(started);
     }
 
     constexpr std::optional<SearcherResult> getSearchResult()
