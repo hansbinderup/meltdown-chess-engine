@@ -43,7 +43,7 @@ public:
 
     void setHashKey(uint64_t hash)
     {
-        m_hash = hash;
+        m_stack.front().hash = hash;
     }
 
     constexpr uint64_t getNodes() const
@@ -63,6 +63,8 @@ public:
 
     Score inline startSearch(uint8_t depth, const BitBoard& board, Score alpha, Score beta)
     {
+        assert(m_stackItr == m_stack.begin());
+
         m_moveOrdering.pvTable().setIsFollowing(true);
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
@@ -72,6 +74,8 @@ public:
 
     void inline startSearchAsync(ThreadPool& threadPool, uint8_t depth, const BitBoard& board, Score alpha, Score beta)
     {
+        assert(m_stackItr == m_stack.begin());
+
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
 
@@ -115,6 +119,7 @@ public:
 
     void resetNodes()
     {
+        m_stackItr = m_stack.begin();
         m_nodes = 0;
         m_selDepth = 0;
     }
@@ -127,9 +132,6 @@ public:
 
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
-
-        m_board.reset();
-        m_hash = 0;
     }
 
     void updateRepetition(uint64_t hash)
@@ -198,7 +200,7 @@ public:
         m_moveOrdering.pvTable().updateLength(m_ply);
         if (m_ply) {
             /* FIXME: make a little more sophisticated with material count etc */
-            const bool isDraw = m_repetition.isRepetition(m_hash) || board.halfMoves >= 100;
+            const bool isDraw = m_repetition.isRepetition(m_stackItr->hash) || board.halfMoves >= 100;
             if (isDraw) {
                 /* draw score is 0 but to avoid blindness towards three fold lines
                  * we add a slight variance to the draw score
@@ -208,7 +210,7 @@ public:
         }
 
         const bool isPv = beta - alpha > 1;
-        const auto hashProbe = engine::TtHashTable::probe(m_hash);
+        const auto hashProbe = engine::TtHashTable::probe(m_stackItr->hash);
         if (hashProbe.has_value() && m_ply && !isPv) {
             const auto testResult = engine::testEntry(*hashProbe, m_ply, depth, alpha, beta);
             if (testResult.has_value()) {
@@ -288,7 +290,7 @@ public:
             } else if (board.isQuietPosition()) {
                 Score score = 0;
                 syzygy::probeWdl(board, score);
-                engine::TtHashTable::writeEntry(m_hash, score, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
+                engine::TtHashTable::writeEntry(m_stackItr->hash, score, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
                 return score;
             }
         }
@@ -305,8 +307,7 @@ public:
         }
 
         for (const auto& move : moves) {
-            const auto moveRes = makeMove(board, move);
-            if (!moveRes.has_value()) {
+            if (!makeMove(board, move)) {
                 continue;
             }
 
@@ -318,7 +319,7 @@ public:
              * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction
              */
             if (movesSearched == 0) {
-                score = -negamax(depth - 1, moveRes->board, -beta, -alpha);
+                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
             } else {
                 if (movesSearched >= s_fullDepthMove
                     && depth >= s_reductionLimit
@@ -326,7 +327,7 @@ public:
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
                     /* search current move with reduced depth */
-                    score = -negamax(depth - 2, moveRes->board, -alpha - 1, -alpha);
+                    score = -negamax(depth - 2, m_stackItr->board, -alpha - 1, -alpha);
                 } else {
                     /* TODO: hack to ensure full depth is reached */
                     score = alpha + 1;
@@ -338,22 +339,22 @@ public:
                  * search with a null window
                  */
                 if (score > alpha) {
-                    score = -negamax(depth - 1, moveRes->board, -alpha - 1, -alpha);
+                    score = -negamax(depth - 1, m_stackItr->board, -alpha - 1, -alpha);
 
                     /* if it failed high, do a full re-search */
                     if ((score > alpha) && (score < beta)) {
-                        score = -negamax(depth - 1, moveRes->board, -beta, -alpha);
+                        score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
                     }
                 }
             }
 
-            undoMove(moveRes->hash);
+            undoMove();
 
             if (isSearchStopped())
                 return score;
 
             if (score >= beta) {
-                engine::TtHashTable::writeEntry(m_hash, score, move, depth, m_ply, engine::TtHashBeta);
+                engine::TtHashTable::writeEntry(m_stackItr->hash, score, move, depth, m_ply, engine::TtHashBeta);
                 m_moveOrdering.killerMoves().update(move, m_ply);
                 return beta;
             }
@@ -381,7 +382,7 @@ public:
             }
         }
 
-        engine::TtHashTable::writeEntry(m_hash, alpha, alphaMove, depth, m_ply, hashFlag);
+        engine::TtHashTable::writeEntry(m_stackItr->hash, alpha, alphaMove, depth, m_ply, hashFlag);
         return alpha;
     }
 
@@ -412,13 +413,12 @@ private:
         m_moveOrdering.sortMoves(board, moves, m_ply);
 
         for (const auto& move : moves) {
-            const auto moveRes = makeMove(board, move);
-            if (!moveRes.has_value()) {
+            if (!makeMove(board, move)) {
                 continue;
             }
 
-            const Score score = -quiesence(moveRes->board, -beta, -alpha);
-            undoMove(moveRes->hash);
+            const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
+            undoMove();
 
             if (isSearchStopped())
                 return score;
@@ -442,11 +442,15 @@ private:
     std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta)
     {
         auto nullMoveBoard = board;
-        uint64_t oldHash = m_hash;
-        if (nullMoveBoard.enPessant.has_value())
-            engine::hashEnpessant(nullMoveBoard.enPessant.value(), m_hash);
+        uint64_t hash = m_stackItr->hash;
 
-        engine::hashPlayer(m_hash);
+        /* update repetition before updating the hash - we want the current position's hash */
+        m_repetition.add(hash);
+
+        if (nullMoveBoard.enPessant.has_value())
+            engine::hashEnpessant(nullMoveBoard.enPessant.value(), hash);
+
+        engine::hashPlayer(hash);
 
         /* enPessant is invalid if we skip move */
         nullMoveBoard.enPessant.reset();
@@ -454,14 +458,17 @@ private:
         /* give opponent an extra move */
         nullMoveBoard.player = nextPlayer(nullMoveBoard.player);
 
+        m_stackItr += 2;
+        m_stackItr->hash = hash;
+        m_stackItr->board = nullMoveBoard;
+
         m_ply += 2;
-        m_repetition.add(oldHash);
 
         /* perform search with reduced depth (based on reduction limit) */
         Score score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
 
-        m_hash = oldHash;
         m_ply -= 2;
+        m_stackItr -= 2;
         m_repetition.remove();
 
         if (score >= beta) {
@@ -471,27 +478,32 @@ private:
         return std::nullopt;
     }
 
-    std::optional<MoveResult> makeMove(const BitBoard& board, const movegen::Move& move)
+    bool makeMove(const BitBoard& board, const movegen::Move& move)
     {
-        const MoveResult res { m_hash, engine::performMove(board, move, m_hash) };
+        uint64_t hash = m_stackItr->hash;
+        const auto newBoard = engine::performMove(board, move, hash);
 
-        if (engine::isKingAttacked(res.board, board.player)) {
-            m_hash = res.hash;
-
-            // invalid move
-            return std::nullopt;
+        if (engine::isKingAttacked(newBoard, board.player)) {
+            /* invalid move */
+            return false;
         }
 
-        m_repetition.add(res.hash);
+        /* add current position to repetitions before proceeding */
+        m_repetition.add(m_stackItr->hash);
+
+        /* update stack for next iteration */
+        m_stackItr++;
+        m_stackItr->hash = hash;
+        m_stackItr->board = newBoard;
+
         m_ply++;
 
-        return res;
+        return true;
     }
 
-    void undoMove(uint64_t hash)
+    void undoMove()
     {
-        m_hash = hash;
-
+        m_stackItr--;
         m_repetition.remove();
         m_ply--;
     }
@@ -520,8 +532,13 @@ private:
     syzygy::WdlResult m_wdl { syzygy::WdlResultTableNotActive };
     uint8_t m_dtz {};
 
-    BitBoard m_board;
-    uint64_t m_hash;
+    struct StackInfo {
+        BitBoard board;
+        uint64_t hash;
+    };
+
+    std::array<StackInfo, s_maxSearchDepth> m_stack;
+    decltype(m_stack)::iterator m_stackItr = m_stack.begin();
 
     std::promise<SearcherResult> m_searchPromise;
     std::future<SearcherResult> m_futureResult;
