@@ -5,6 +5,7 @@
 #include "evaluation/perft.h"
 #include "parsing/fen_parser.h"
 #include "parsing/input_parsing.h"
+#include "spsa/parameters.h"
 
 #include "syzygy/syzygy.h"
 #include "uci_options.h"
@@ -78,6 +79,8 @@ private:
             return handleAuthors();
         } else if (command == "bench") {
             return handleBench(args);
+        } else if (command == "spsa") {
+            return handleSpsa();
         } else if (command == "version") {
             return handleVersion();
         } else if (command == "quit" || command == "exit") {
@@ -102,6 +105,12 @@ private:
         for (const auto& option : s_uciOptions) {
             ucioption::printInfo(option);
         }
+
+#ifdef SPSA
+        for (const auto& option : spsa::uciOptions) {
+            ucioption::printInfo(option);
+        }
+#endif
 
         fmt::println("uciok");
 
@@ -318,6 +327,19 @@ private:
         return true;
     }
 
+    static bool handleSpsa()
+    {
+#ifdef SPSA
+        fmt::println("{}", spsa::inputsPrint);
+#else
+        fmt::println("Meltdown supports SPSA tuning\n"
+                     "The feature is currently disabled\n"
+                     "For more details, see: src/spsa/README.md");
+#endif
+
+        return true;
+    }
+
     static bool handleVersion()
     {
         fmt::print("Version:     {}\n"
@@ -340,6 +362,7 @@ private:
                    "debug options       :  print all options\n"
                    "debug syzygy        :  run syzygy evaluation on current position\n"
                    "bench <depth>       :  run a bench test - depth is optional\n"
+                   "spsa                :  print spsa inputs\n"
                    "authors             :  print author information\n"
                    "version             :  print version information\n"
                    "quit                :  stop the engine\n\n");
