@@ -251,6 +251,8 @@ public:
             engine::TtHashTable::writeEntry(m_stackItr->hash, s_noScore, m_stackItr->eval, movegen::nullMove(), 0, m_ply, engine::TtHashAlpha);
         }
 
+        const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr->eval > m_stack[m_ply - 2].eval);
+
         /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
         if (depth < s_reductionLimit && !isPv && !isChecked) {
             const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + s_futilityMargin);
@@ -263,7 +265,7 @@ public:
         /* dangerous to repeat null search on a null search - skip it here */
         if constexpr (searchType != SearchType::NullSearch) {
             if (depth > s_nullMoveReduction && !isChecked && m_ply) {
-                if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                if (const auto nullMoveScore = nullMovePruning(board, depth, isImproving, beta)) {
                     return nullMoveScore.value();
                 }
             }
@@ -444,7 +446,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta)
+    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, bool improving, Score beta)
     {
         auto nullMoveBoard = board;
         uint64_t hash = m_stackItr->hash;
@@ -469,8 +471,11 @@ private:
 
         m_ply += 2;
 
+        /* min: ensure we don't search below depth 0 */
+        const uint8_t reduction = std::min<uint8_t>(1 + s_nullMoveReduction + (s_nullMoveImprovingReduction * improving), depth);
+
         /* perform search with reduced depth (based on reduction limit) */
-        Score score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+        Score score = -negamax<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta, -beta + 1);
 
         m_ply -= 2;
         m_stackItr -= 2;
@@ -559,6 +564,7 @@ private:
     constexpr static inline uint8_t s_razorDeepReductionLimit { 2 };
 
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
+    constexpr static inline uint8_t s_nullMoveImprovingReduction { 2 };
 };
 
 }
