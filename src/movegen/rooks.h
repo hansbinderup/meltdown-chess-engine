@@ -118,7 +118,8 @@ constexpr auto generateRookAttackTable()
     return attacks;
 }
 
-constexpr auto s_rookAttackTable = generateRookAttackTable();
+static inline auto s_rookAttackTable = generateRookAttackTable();
+
 } // end namespace
 
 static inline uint64_t getRookMoves(BoardPosition pos, uint64_t occupancy)
