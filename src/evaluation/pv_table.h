@@ -44,7 +44,7 @@ public:
         m_pvLength.at(ply) = ply;
     }
 
-    void updateTable(const movegen::Move& move, uint8_t ply)
+    void updateTable(movegen::Move move, uint8_t ply)
     {
         auto& currentRow = m_pvTable.at(ply);
         currentRow.at(ply) = move;
@@ -75,7 +75,7 @@ public:
         return m_isScoring;
     }
 
-    bool isPvMove(const movegen::Move& move, uint8_t ply) const
+    bool isPvMove(movegen::Move move, uint8_t ply) const
     {
         return m_pvTable.at(0).at(ply) == move;
     }

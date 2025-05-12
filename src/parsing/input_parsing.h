@@ -52,7 +52,7 @@ constexpr std::optional<std::string_view> sv_next_split(std::string_view& sv)
  * Compare moves by only looking at positioning
  * We need to apply the same masks as the bitboard uses to emulate their moves
  */
-constexpr static inline bool compareMove(const movegen::Move& a, uint8_t from, uint8_t to, PromotionType promotion)
+constexpr static inline bool compareMove(movegen::Move a, uint8_t from, uint8_t to, PromotionType promotion)
 {
     if (promotion == PromotionNone)
         return (a.fromPos() == from) && (a.toPos() == to);

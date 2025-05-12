@@ -483,7 +483,7 @@ private:
         return std::nullopt;
     }
 
-    bool makeMove(const BitBoard& board, const movegen::Move& move)
+    bool makeMove(const BitBoard& board, movegen::Move move)
     {
         uint64_t hash = m_stackItr->hash;
         const auto newBoard = engine::performMove(board, move, hash);

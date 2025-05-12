@@ -128,7 +128,7 @@ public:
         return entryData;
     }
 
-    constexpr static void writeEntry(uint64_t key, Score score, Score eval, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, Score score, Score eval, movegen::Move move, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         assert(s_ttHashSize > 0);
 

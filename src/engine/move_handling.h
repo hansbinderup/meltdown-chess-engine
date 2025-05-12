@@ -36,7 +36,7 @@ constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, B
     setPiece(piece, toPos, type, hash);
 }
 
-constexpr void performCastleMove(BitBoard& board, const movegen::Move& move, uint64_t& hash)
+constexpr void performCastleMove(BitBoard& board, movegen::Move move, uint64_t& hash)
 {
     const BoardPosition fromPos = move.fromPos();
     const BoardPosition toPos = move.toPos();
@@ -65,7 +65,7 @@ constexpr void performCastleMove(BitBoard& board, const movegen::Move& move, uin
 }
 
 template<Player player>
-constexpr void performPromotionMove(BitBoard& board, const movegen::Move& move, uint64_t& hash)
+constexpr void performPromotionMove(BitBoard& board, movegen::Move move, uint64_t& hash)
 {
     constexpr bool isWhite = player == PlayerWhite;
     constexpr auto type = isWhite ? WhitePawn : BlackPawn;
@@ -184,7 +184,7 @@ constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos
 }
 
 template<Player player>
-constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move, uint64_t& hash)
+constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64_t& hash)
 {
     BitBoard newBoard = board;
 
@@ -253,7 +253,7 @@ constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move,
 }
 
 // Helper: using inside loops means redundant colour checks
-constexpr BitBoard performMove(const BitBoard& board, const movegen::Move& move, uint64_t& hash)
+constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64_t& hash)
 {
     if (board.player == PlayerWhite)
         return performMove<PlayerWhite>(board, move, hash);
