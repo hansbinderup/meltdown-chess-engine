@@ -9,7 +9,7 @@ namespace evaluation {
 class KillerMoves {
 public:
     using KillerMove = std::pair<movegen::Move, movegen::Move>;
-    void update(const movegen::Move& move, uint8_t ply)
+    void update(movegen::Move move, uint8_t ply)
     {
         /* only quiet moves */
         if (move.isCapture()) {

@@ -55,7 +55,7 @@ constexpr auto generatePawnTable()
 
 class SeeSwap {
 public:
-    static inline int32_t run(const BitBoard& board, const movegen::Move& move)
+    static inline int32_t run(const BitBoard& board, movegen::Move move)
     {
         if (move.isCastleMove()) {
             return 0;

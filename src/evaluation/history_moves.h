@@ -14,7 +14,7 @@ public:
         return m_historyMoves.at(targetPosition).at(movePiece);
     }
 
-    void update(const BitBoard& board, const movegen::Move& move, uint8_t ply)
+    void update(const BitBoard& board, movegen::Move move, uint8_t ply)
     {
         /* only quiet moves */
         if (move.isCapture()) {

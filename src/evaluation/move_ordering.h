@@ -85,7 +85,7 @@ public:
     }
     // NOTE: scoring must be consistent during a sort
     template<Player player>
-    constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
+    constexpr int32_t moveScore(const BitBoard& board, movegen::Move move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (ttMove.has_value() && move == *ttMove) {
             return ScoreTtHashMove;
@@ -134,7 +134,7 @@ public:
     }
 
     // Helper: calling inside loops will mean redundant colour checks
-    constexpr int32_t moveScore(const BitBoard& board, const movegen::Move& move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
+    constexpr int32_t moveScore(const BitBoard& board, movegen::Move move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
         if (board.player == PlayerWhite) {
             return moveScore<PlayerWhite>(board, move, ply, ttMove);

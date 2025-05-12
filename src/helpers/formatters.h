@@ -28,7 +28,7 @@ struct fmt::formatter<T> : fmt::formatter<std::string_view> {
 template<>
 struct fmt::formatter<movegen::Move> : fmt::formatter<std::string_view> {
     template<typename FormatContext>
-    auto format(const movegen::Move& m, FormatContext& ctx) const
+    auto format(movegen::Move m, FormatContext& ctx) const
     {
         char fromC = 'a' + (m.fromPos() % 8); // Column
         char fromR = '1' + (m.fromPos() / 8); // Row
