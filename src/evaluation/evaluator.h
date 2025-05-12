@@ -157,20 +157,19 @@ public:
 
     constexpr void printScoreInfo(Searcher* searcher, const BitBoard& board, Score score, uint8_t currentDepth)
     {
-        using namespace std::chrono;
-
         const auto timeDiff = TimeManager::timeElapsedMs().count();
 
         auto scoreTbHit = searcher->approxDtzScore(board, score);
         score = scoreTbHit.first;
         uint8_t tbHit = scoreTbHit.second;
 
-        if (score > -s_mateValue && score < -s_mateScore)
-            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", -(score + s_mateValue) / 2 - 1, timeDiff, currentDepth, searcher->getSelDepth(), getNodes(), tbHit);
-        else if (score > s_mateScore && score < s_mateValue)
-            fmt::print("info score mate {} time {} depth {} seldepth {} nodes {} tbhits {} pv ", (s_mateValue - score) / 2 + 1, timeDiff, currentDepth, searcher->getSelDepth(), getNodes(), tbHit);
-        else
-            fmt::print("info score cp {} time {} depth {} seldepth {} nodes {} hashfull {} tbhits {} pv ", score, timeDiff, currentDepth, searcher->getSelDepth(), getNodes(), engine::TtHashTable::getHashFull(), tbHit);
+        fmt::print("info score {} time {} depth {} seldepth {} nodes {} tbhits {} pv ",
+            ScorePrint(score),
+            timeDiff,
+            currentDepth,
+            searcher->getSelDepth(),
+            getNodes(),
+            tbHit);
 
         fmt::println("{}", fmt::join(searcher->getPvTable(), " "));
 
