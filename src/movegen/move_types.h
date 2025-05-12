@@ -179,6 +179,16 @@ public:
         return PromotionType::PromotionNone;
     }
 
+    constexpr inline bool isQuietMove() const
+    {
+        return !isNoisyMove();
+    }
+
+    constexpr inline bool isNoisyMove() const
+    {
+        return isPromotionMove() || isCapture();
+    }
+
     constexpr inline bool isPromotionMove() const
     {
         return (data & (1 << 15)) != 0;
@@ -253,6 +263,11 @@ public:
     void addMove(Move move)
     {
         m_moves[m_count++] = std::move(move);
+    }
+
+    void nullifyMove(uint32_t i)
+    {
+        m_moves.at(i) = nullMove();
     }
 
     Move* begin()
