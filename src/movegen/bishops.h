@@ -125,7 +125,7 @@ constexpr auto generateBishopAttackTable()
     return attacks;
 }
 
-constexpr auto s_bishopAttackTable = generateBishopAttackTable();
+static inline auto s_bishopAttackTable = generateBishopAttackTable();
 
 }
 
