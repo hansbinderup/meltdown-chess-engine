@@ -240,6 +240,9 @@ private:
     uint16_t data = 0;
 };
 
+/* helper to create explicit null moves */
+constexpr Move nullMove() { return Move(); }
+
 class ValidMoves {
 public:
     uint32_t count() const
