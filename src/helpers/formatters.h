@@ -42,3 +42,28 @@ struct fmt::formatter<movegen::Move> : fmt::formatter<std::string_view> {
         return fmt::format_to(ctx.out(), "{}{}{}{}", fromC, fromR, toC, toR);
     }
 };
+
+/*
+ * helper type to specialize a fmt print
+ * use as eg:
+ * fmt::print("score {}", ScorePrint(score)); -> eg: "score mate 8"
+ */
+struct ScorePrint {
+    Score score;
+};
+
+template<>
+struct fmt::formatter<ScorePrint> : fmt::formatter<std::string_view> {
+    template<typename FormatContext>
+    auto format(ScorePrint sp, FormatContext& ctx) const
+    {
+        if (sp.score > -s_mateValue && sp.score < -s_mateScore) {
+            return fmt::format_to(ctx.out(), "mate {}", -(sp.score + s_mateValue) / 2 - 1);
+        } else if (sp.score > s_mateScore && sp.score < s_mateValue) {
+            return fmt::format_to(ctx.out(), "mate {}", (s_mateValue - sp.score) / 2 + 1);
+        } else {
+            return fmt::format_to(ctx.out(), "cp {}", sp.score);
+        }
+    }
+};
+
