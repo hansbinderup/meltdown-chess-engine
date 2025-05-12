@@ -240,6 +240,9 @@ private:
     uint16_t data = 0;
 };
 
+/* helper to create explicit null moves */
+constexpr Move nullMove() { return Move(); }
+
 class ValidMoves {
 public:
     uint32_t count() const
@@ -250,6 +253,11 @@ public:
     void addMove(Move move)
     {
         m_moves[m_count++] = std::move(move);
+    }
+
+    void nullifyMove(uint32_t i)
+    {
+        m_moves.at(i) = nullMove();
     }
 
     Move* begin()
