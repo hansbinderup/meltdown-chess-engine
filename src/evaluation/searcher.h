@@ -244,15 +244,20 @@ public:
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
 
-        const Score staticEval = staticEvaluation(board);
+        if (hashProbe.has_value()) {
+            m_stackItr->eval = hashProbe->eval;
+        } else {
+            m_stackItr->eval = staticEvaluation(board);
+            engine::TtHashTable::writeEntry(m_stackItr->hash, s_noScore, m_stackItr->eval, movegen::nullMove(), 0, m_ply, engine::TtHashAlpha);
+        }
 
         /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
         if (depth < s_reductionLimit && !isPv && !isChecked) {
             const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + s_futilityMargin);
             const Score evalMargin = s_futilityEvaluationMargin * depth;
 
-            if (withinFutilityMargin && (staticEval - evalMargin) >= beta)
-                return staticEval - evalMargin;
+            if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
+                return m_stackItr->eval - evalMargin;
         }
 
         /* dangerous to repeat null search on a null search - skip it here */
@@ -266,7 +271,7 @@ public:
 
         /* https://www.chessprogramming.org/Razoring (Strelka) */
         if (!isPv && !isChecked && depth <= s_reductionLimit) {
-            Score score = staticEval + s_razorMarginShallow;
+            Score score = m_stackItr->eval + s_razorMarginShallow;
             if (score < beta) {
                 if (depth == 1) {
                     Score newScore = quiesence(board, alpha, beta);
@@ -290,7 +295,7 @@ public:
             } else if (board.isQuietPosition()) {
                 Score score = 0;
                 syzygy::probeWdl(board, score);
-                engine::TtHashTable::writeEntry(m_stackItr->hash, score, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
+                engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
                 return score;
             }
         }
@@ -354,7 +359,7 @@ public:
                 return score;
 
             if (score >= beta) {
-                engine::TtHashTable::writeEntry(m_stackItr->hash, score, move, depth, m_ply, engine::TtHashBeta);
+                engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, engine::TtHashBeta);
                 m_moveOrdering.killerMoves().update(move, m_ply);
                 return beta;
             }
@@ -382,7 +387,7 @@ public:
             }
         }
 
-        engine::TtHashTable::writeEntry(m_stackItr->hash, alpha, alphaMove, depth, m_ply, hashFlag);
+        engine::TtHashTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
         return alpha;
     }
 
@@ -535,6 +540,7 @@ private:
     struct StackInfo {
         BitBoard board;
         uint64_t hash;
+        Score eval;
     };
 
     std::array<StackInfo, s_maxSearchDepth> m_stack;

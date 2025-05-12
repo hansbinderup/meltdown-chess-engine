@@ -15,11 +15,11 @@ enum TtHashFlag : uint8_t {
     TtHashBeta = 2,
 };
 
-/* fixme: remove alignas when entry is 8 bytes */
-struct alignas(8) TtHashEntryData {
+struct TtHashEntryData {
     uint8_t depth;
     TtHashFlag flag;
     Score score;
+    Score eval;
     movegen::Move move;
 };
 
@@ -32,7 +32,7 @@ struct TtHashEntry {
 
 constexpr inline std::optional<Score> testEntry(const TtHashEntryData& entryData, uint8_t ply, uint8_t depth, Score alpha, Score beta)
 {
-    if (entryData.depth < depth)
+    if (entryData.depth < depth || entryData.score == s_noScore)
         return std::nullopt;
 
     const Score relScore = scoreRelative(entryData.score, ply);
@@ -128,7 +128,7 @@ public:
         return entryData;
     }
 
-    constexpr static void writeEntry(uint64_t key, Score score, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, Score score, Score eval, const movegen::Move& move, uint8_t depth, uint8_t ply, TtHashFlag flag)
     {
         assert(s_ttHashSize > 0);
 
@@ -138,6 +138,7 @@ public:
 
         /* only update entry if a better one is found */
         if (key != entryKey
+            || entryData.move.isNull()
             || depth >= entryData.depth
             || (flag == TtHashExact && entryData.flag != TtHashExact)) {
 
@@ -145,6 +146,7 @@ public:
                 .depth = depth,
                 .flag = flag,
                 .score = scoreAbsolute(score, ply),
+                .eval = eval,
                 .move = move,
             };
 
