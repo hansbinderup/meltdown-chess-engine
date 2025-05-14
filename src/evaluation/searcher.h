@@ -358,12 +358,6 @@ public:
             if (isSearchStopped())
                 return score;
 
-            if (score >= beta) {
-                engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, engine::TtHashBeta);
-                m_moveOrdering.killerMoves().update(move, m_ply);
-                return beta;
-            }
-
             movesSearched++;
             if (score > alpha) {
                 alpha = score;
@@ -373,6 +367,13 @@ public:
 
                 m_moveOrdering.historyMoves().update(board, move, m_ply);
                 m_moveOrdering.pvTable().updateTable(move, m_ply);
+
+                /* search failed high */
+                if (score >= beta) {
+                    engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, engine::TtHashBeta);
+                    m_moveOrdering.killerMoves().update(move, m_ply);
+                    return beta;
+                }
             }
         }
 
@@ -404,13 +405,9 @@ private:
         if (m_ply >= s_maxSearchDepth)
             return evaluation;
 
-        // Hard cutoff
-        if (evaluation >= beta) {
+        alpha = std::max(alpha, evaluation);
+        if (alpha >= beta) {
             return beta;
-        }
-
-        if (evaluation > alpha) {
-            alpha = evaluation;
         }
 
         movegen::ValidMoves moves;
@@ -428,13 +425,12 @@ private:
             if (isSearchStopped())
                 return score;
 
-            if (score >= beta)
-                // change to beta for hard cutoff
-                return beta;
+            /* FIXME: consider updating pv line here? */
+            alpha = std::max(alpha, score);
 
-            if (score > alpha) {
-                alpha = score;
-            }
+            /* search failed high */
+            if (alpha >= beta)
+                return beta;
         }
 
         return alpha;
