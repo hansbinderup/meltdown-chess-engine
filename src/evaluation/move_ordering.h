@@ -87,6 +87,9 @@ public:
     template<Player player>
     constexpr int32_t moveScore(const BitBoard& board, movegen::Move move, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt) const
     {
+        assert(!move.isNull());
+        assert(!(ttMove.has_value() && ttMove->isNull()));
+
         if (ttMove.has_value() && move == *ttMove) {
             return ScoreTtHashMove;
         }

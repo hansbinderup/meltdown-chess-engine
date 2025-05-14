@@ -245,12 +245,8 @@ public:
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
 
-        if (hashProbe.has_value()) {
-            m_stackItr->eval = hashProbe->eval;
-        } else {
-            m_stackItr->eval = staticEvaluation(board);
-            engine::TtHashTable::writeEntry(m_stackItr->hash, s_noScore, m_stackItr->eval, movegen::nullMove(), 0, m_ply, engine::TtHashAlpha);
-        }
+        /* update current stack with the static evaluation */
+        m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
 
         /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
         if (depth < spsa::rfpReductionLimit && !isPv && !isChecked) {
@@ -308,7 +304,7 @@ public:
                 m_moveOrdering.pvTable().updatePvScoring(moves, m_ply);
             }
 
-            const auto ttMove = hashProbe.has_value() ? std::make_optional(hashProbe->move) : std::nullopt;
+            const auto ttMove = tryFetchTtMove(hashProbe);
             m_moveOrdering.sortMoves(board, moves, m_ply, ttMove);
         }
 
@@ -395,28 +391,41 @@ public:
 private:
     constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta)
     {
-        using namespace std::chrono;
-
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
 
-        const Score evaluation = staticEvaluation(board);
-
         if (m_ply >= s_maxSearchDepth)
-            return evaluation;
+            return staticEvaluation(board);
 
-        // Hard cutoff
-        if (evaluation >= beta) {
+        const auto hashProbe = engine::TtHashTable::probe(m_stackItr->hash);
+
+        /* update current stack with the static evaluation */
+        m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+
+        /* hard cutoff */
+        if (m_stackItr->eval >= beta) {
             return beta;
         }
 
-        if (evaluation > alpha) {
-            alpha = evaluation;
+        if (m_stackItr->eval > alpha) {
+            alpha = m_stackItr->eval;
+        }
+
+        if (hashProbe.has_value()) {
+            /* try to return early if we already "know the result" of the current qsearch
+             * most of the time our score is based on the final qsearch, so this should give the
+             * same result as searching the full line */
+            const auto testResult = engine::testEntry(*hashProbe, m_ply, 0, alpha, beta);
+            if (testResult.has_value()) {
+                return testResult.value();
+            }
         }
 
         movegen::ValidMoves moves;
         engine::getAllMoves<movegen::MoveCapture>(board, moves);
-        m_moveOrdering.sortMoves(board, moves, m_ply);
+
+        const auto ttMove = tryFetchTtMove(hashProbe);
+        m_moveOrdering.sortMoves(board, moves, m_ply, ttMove);
 
         for (const auto& move : moves) {
             if (!makeMove(board, move)) {
@@ -430,7 +439,6 @@ private:
                 return score;
 
             if (score >= beta)
-                // change to beta for hard cutoff
                 return beta;
 
             if (score > alpha) {
@@ -512,6 +520,30 @@ private:
         m_stackItr--;
         m_repetition.remove();
         m_ply--;
+    }
+
+    /* fetch a potential TT move from a potential TT entry */
+    inline std::optional<movegen::Move> tryFetchTtMove(std::optional<engine::TtHashEntryData> entry)
+    {
+        if (!entry.has_value()) {
+            return std::nullopt;
+        }
+
+        return entry->move.isNull() ? std::nullopt : std::make_optional(entry->move);
+    }
+
+    /* try to fetch the static evaluation from the TT entry, if any
+     * otherwise compute the static evaluation based on the current board
+     * position - and then try to update the TT with that evaluation  */
+    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<engine::TtHashEntryData> entry)
+    {
+        if (entry.has_value()) {
+            return entry->eval;
+        } else {
+            const Score eval = staticEvaluation(board);
+            engine::TtHashTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), 0, m_ply, engine::TtHashAlpha);
+            return eval;
+        }
     }
 
     inline bool isSearchStopped() const
