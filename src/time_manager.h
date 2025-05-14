@@ -2,6 +2,7 @@
 
 #include "bit_board.h"
 #include "board_defs.h"
+#include "movegen/move_types.h"
 #include "spsa/parameters.h"
 
 #include <atomic>
@@ -9,14 +10,32 @@
 #include <optional>
 
 class TimeManager {
-public:
-    static inline bool timeForAnotherSearch()
-    {
-        if (hasTimedOut())
-            return false;
 
-        const auto now = std::chrono::steady_clock::now();
-        return now < s_softTimeLimit;
+public:
+    static inline bool timeForAnotherSearch(uint8_t depth)
+    {
+        /* always search at least one depth to ensure we have a PV move */
+        if (depth <= 1) {
+            return true;
+        }
+
+        if (hasTimedOut()) {
+            return false;
+        }
+
+        const Duration timeSpent = std::chrono::steady_clock::now() - s_startTime;
+
+        double scalingFactor = s_pvMoveStabilityFactor;
+        scalingFactor *= s_pvNodeScaleFactor;
+
+        /* score is usually unstable in early depths - only track stability when we expect
+         * the score to be "stable" */
+        if (depth >= 7) {
+            scalingFactor *= s_pvScoreStabilityFactor;
+        }
+
+        const auto adjustedTimeLimit = s_softTimeLimit * scalingFactor;
+        return timeSpent < adjustedTimeLimit;
     }
 
     static inline void start(const BitBoard& board)
@@ -29,15 +48,15 @@ public:
     static inline void startInfinite()
     {
         s_startTime = std::chrono::steady_clock::now();
-        s_softTimeLimit = TimePoint::max();
-        s_hardTimeLimit = TimePoint::max();
+        s_softTimeLimit = Duration::max();
+        s_hardTimeLimit = Duration::max();
         s_timedOut = false;
     }
 
     static inline void updateTimeout()
     {
-        const auto now = std::chrono::steady_clock::now();
-        if (now >= s_hardTimeLimit) {
+        const Duration timeSpent = std::chrono::steady_clock::now() - s_startTime;
+        if (timeSpent >= s_hardTimeLimit) {
             s_timedOut = true;
         }
     }
@@ -68,6 +87,14 @@ public:
         s_whiteMoveInc = 0;
         s_blackMoveInc = 0;
         s_timedOut = false;
+
+        s_previousPvMove.reset();
+        s_previousPvScore.reset();
+        s_pvMoveStability = 0;
+        s_pvScoreStability = 0;
+        s_pvMoveStabilityFactor = 1.0;
+        s_pvScoreStabilityFactor = 1.0;
+        s_pvNodeScaleFactor = 1.0;
     }
 
     static inline void setWhiteTime(uint64_t time)
@@ -100,27 +127,70 @@ public:
         s_blackMoveInc = inc;
     }
 
+    /* updates move/score/node stability counters and scaling factors
+     *
+     * - if pvMove remains the same across iterations, increment move stability
+     *   -> higher move stability reduces the soft time limit
+     *
+     * - if pvScore stays within a margin of the previous score, increment score stability
+     *   -> higher score stability also reduces the soft time limit
+     *
+     * - if pvNodes increases, compute a scaling factor based on the relative growth
+     *   -> larger node growth = lower scale factor = more aggressive cutoff
+     *
+     * - standardized stability tables (from Stash) are used to compute scale multipliers
+     *
+     * - stores pvMove, pvScore, and pvNodes for use in the next iteration */
+    static inline void updateMoveStability(movegen::Move pvMove, Score pvScore, double nodeFraction)
+    {
+        if (s_previousPvMove.has_value() && pvMove == *s_previousPvMove) {
+            s_pvMoveStability++;
+        } else {
+            s_pvMoveStability = 0;
+        }
+
+        if (s_previousPvScore.has_value()
+            && pvScore >= (*s_previousPvScore - spsa::timeManScoreMargin)
+            && pvScore <= (*s_previousPvScore + spsa::timeManScoreMargin)) {
+            s_pvScoreStability++;
+        } else {
+            s_pvScoreStability = 0;
+        }
+
+        const double nodeBaseFrac = spsa::timeManNodeFracBase / 100.0 - nodeFraction;
+        s_pvNodeScaleFactor = nodeBaseFrac * spsa::timeManNodeFracMultiplier / 100.0;
+
+        /* pretty much standardized tables used by several engines (originally from Stash) */
+        constexpr auto pvMoveStabilityTable = std::to_array<double>({ 2.5, 1.2, 0.9, 0.8, 0.75 });
+        constexpr auto pvScoreStabilityTable = std::to_array<double>({ 1.25, 1.15, 1.0, 0.94, 0.88 });
+
+        /* update scaling factors */
+        s_pvMoveStabilityFactor = pvMoveStabilityTable[std::min<uint8_t>(s_pvMoveStability, 4)];
+        s_pvScoreStabilityFactor = pvScoreStabilityTable[std::min<uint8_t>(s_pvScoreStability, 4)];
+
+        /* update for next check */
+        s_previousPvMove = pvMove;
+        s_previousPvScore = pvScore;
+    }
+
 private:
     static inline void setupTimeControls(const BitBoard& board)
     {
         using namespace std::chrono;
 
-        /* allow some extra time for processing etc */
-        constexpr auto buffer = 50ms;
-
-        const auto timeLeft = board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime);
+        const auto timeLeft = subtractOverhead((board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime)));
         const auto timeInc = board.player == PlayerWhite ? milliseconds(s_whiteMoveInc) : milliseconds(s_blackMoveInc);
 
         if (s_moveTime) {
-            s_softTimeLimit = s_startTime + milliseconds(s_moveTime.value()) - buffer + timeInc;
+            s_softTimeLimit = milliseconds(s_moveTime.value()) + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (s_movesToGo) {
             const auto time = timeLeft / s_movesToGo;
-            s_softTimeLimit = s_startTime + time - buffer + timeInc;
+            s_softTimeLimit = time + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (timeLeft.count() == 0 && timeInc.count() == 0) {
             /* no time was specified - search until stopped */
-            s_softTimeLimit = TimePoint::max();
+            s_softTimeLimit = Duration::max();
             s_hardTimeLimit = s_softTimeLimit;
         } else {
             /*
@@ -128,10 +198,25 @@ private:
              * Our time management model is based on the write from Sam Roelants:
              * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md
              */
+            const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0
+                + timeInc * spsa::timeManIncFrac / 100.0);
+            const auto limitTime = duration_cast<milliseconds>(timeLeft * spsa::timeManLimitFrac / 100.0);
 
-            const auto baseTime = timeLeft / spsa::timeManMovesToGo + 3 * timeInc / 4;
-            s_softTimeLimit = s_startTime + baseTime / 2 - buffer;
-            s_hardTimeLimit = s_startTime + spsa::timeManHardLimit * baseTime - buffer;
+            s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime));
+            s_hardTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime));
+        }
+    }
+
+    /* time manager operates in milliseconds so scale the duration for easier conversion */
+    using Duration = std::chrono::duration<double, std::milli>;
+
+    /* ensure that we don't overflow when subtracting overhead */
+    constexpr static inline Duration subtractOverhead(const Duration& duration)
+    {
+        if (s_moveOverhead > duration) {
+            return Duration::zero();
+        } else {
+            return duration - s_moveOverhead;
         }
     }
 
@@ -143,8 +228,24 @@ private:
     static inline uint64_t s_blackMoveInc {};
 
     static inline TimePoint s_startTime;
-    static inline TimePoint s_softTimeLimit;
-    static inline TimePoint s_hardTimeLimit;
+    static inline Duration s_softTimeLimit;
+    static inline Duration s_hardTimeLimit;
 
     static inline std::atomic_bool s_timedOut;
+
+    /* stability storage - so we can compare with previous iteration */
+    static inline std::optional<movegen::Move> s_previousPvMove;
+    static inline std::optional<Score> s_previousPvScore;
+
+    /* counters to check for how long the given parameter has been stable - higher is better */
+    static inline uint8_t s_pvMoveStability { 0 };
+    static inline uint8_t s_pvScoreStability { 0 };
+
+    /* multiplier for soft limit - adjusted based on stability */
+    static inline double s_pvMoveStabilityFactor { 1.0 };
+    static inline double s_pvScoreStabilityFactor { 1.0 };
+    static inline double s_pvNodeScaleFactor { 1.0 };
+
+    /* allow some extra time for processing etc */
+    static constexpr inline Duration s_moveOverhead { 50 };
 };

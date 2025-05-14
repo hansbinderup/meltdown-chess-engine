@@ -58,6 +58,11 @@ public:
         return m_tbHits;
     }
 
+    constexpr uint64_t getHistoryNodes(movegen::Move move)
+    {
+        return m_moveOrdering.historyMoves().getNodes(move);
+    }
+
     constexpr uint8_t getSelDepth() const
     {
         return m_selDepth;
@@ -130,6 +135,7 @@ public:
         m_nodes = 0;
         m_tbHits = 0;
         m_selDepth = 0;
+        m_moveOrdering.historyMoves().resetNodes();
     }
 
     void reset()
@@ -326,6 +332,7 @@ public:
             }
 
             Score score = 0;
+            const uint64_t prevNodes = m_nodes;
             legalMoves++;
 
             /* Late Move Reduction (LMR)
@@ -379,6 +386,10 @@ public:
             }
 
             movesSearched++;
+            if (isRoot) {
+                m_moveOrdering.historyMoves().addNodes(move, m_nodes - prevNodes);
+            }
+
             if (score > alpha) {
                 alpha = score;
 

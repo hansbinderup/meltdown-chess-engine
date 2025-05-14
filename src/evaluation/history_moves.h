@@ -29,14 +29,32 @@ public:
         m_historyMoves.at(move.toPos()).at(attacker.value()) += ply;
     }
 
+    inline void addNodes(movegen::Move move, uint64_t nodes)
+    {
+        m_historyNodes[move.fromPos()][move.toPos()] += nodes;
+    }
+
+    inline uint64_t getNodes(movegen::Move move) const
+    {
+        return m_historyNodes[move.fromPos()][move.toPos()];
+    }
+
     void reset()
     {
         std::ranges::fill(m_historyMoves, HistoryMove {});
     }
 
+    void resetNodes()
+    {
+        std::ranges::fill(m_historyNodes, HistoryNodes {});
+    }
+
 private:
     using HistoryMove = std::array<int32_t, magic_enum::enum_count<Piece>()>;
     std::array<HistoryMove, 64> m_historyMoves {}; // history move for each square
+
+    using HistoryNodes = std::array<uint64_t, s_amountSquares>;
+    std::array<HistoryNodes, s_amountSquares> m_historyNodes {};
 };
 
 }
