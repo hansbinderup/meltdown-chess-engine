@@ -359,7 +359,9 @@ public:
                 return score;
 
             if (score >= beta) {
-                engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, engine::TtHashBeta);
+                if (!isRoot)
+                    engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, engine::TtHashBeta);
+
                 m_moveOrdering.killerMoves().update(move, m_ply);
                 return beta;
             }
@@ -387,7 +389,9 @@ public:
             }
         }
 
-        engine::TtHashTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
+        if (!isRoot)
+            engine::TtHashTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
+
         return alpha;
     }
 
