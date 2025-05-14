@@ -193,7 +193,7 @@ public:
     }
 
     template<SearchType searchType = SearchType::Default>
-    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore)
+    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false)
     {
         const bool isRoot = m_ply == 0;
 
@@ -263,16 +263,19 @@ public:
         /* dangerous to repeat null search on a null search - skip it here */
         if constexpr (searchType != SearchType::NullSearch) {
             if (depth > s_nullMoveReduction && !isChecked && m_ply) {
-                if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
                     return nullMoveScore.value();
                 }
             }
         }
 
         /* Internal Iterative Reduction
-         * https://www.chessprogramming.org/Internal_Iterative_Reductions
-         * FIXME: replace check with ttMove when entries can contain static evals as well */
-        if (!hashProbe.has_value() && !isRoot && depth >= s_iirDepthLimit) {
+         * https://www.chessprogramming.org/Internal_Iterative_Reductions */
+        if (
+            depth >= s_iirDepthLimit
+            && (isPv || cutNode)
+            && hashProbe.has_value()
+            && (hashProbe->move.isNull() || (hashProbe->depth + s_iirTtDepthLimit) < depth)) {
             depth -= s_iirReduction;
         }
 
@@ -331,7 +334,7 @@ public:
              * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction
              */
             if (movesSearched == 0) {
-                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
+                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, true);
             } else {
                 if (movesSearched >= s_fullDepthMove
                     && depth >= s_reductionLimit
@@ -339,7 +342,7 @@ public:
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
                     /* search current move with reduced depth */
-                    score = -negamax(depth - 2, m_stackItr->board, -alpha - 1, -alpha);
+                    score = -negamax(depth - 2, m_stackItr->board, -alpha - 1, -alpha, true);
                 } else {
                     /* TODO: hack to ensure full depth is reached */
                     score = alpha + 1;
@@ -351,11 +354,11 @@ public:
                  * search with a null window
                  */
                 if (score > alpha) {
-                    score = -negamax(depth - 1, m_stackItr->board, -alpha - 1, -alpha);
+                    score = -negamax(depth - 1, m_stackItr->board, -alpha - 1, -alpha, !cutNode);
 
                     /* if it failed high, do a full re-search */
                     if ((score > alpha) && (score < beta)) {
-                        score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
+                        score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !cutNode);
                     }
                 }
             }
@@ -451,7 +454,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta)
+    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode)
     {
         auto nullMoveBoard = board;
         uint64_t hash = m_stackItr->hash;
@@ -477,7 +480,7 @@ private:
         m_ply += 2;
 
         /* perform search with reduced depth (based on reduction limit) */
-        Score score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+        Score score = -negamax<SearchType::NullSearch>(depth - 1 - s_nullMoveReduction, nullMoveBoard, -beta, -beta + 1, !cutNode);
 
         m_ply -= 2;
         m_stackItr -= 2;
@@ -564,7 +567,8 @@ private:
     constexpr static inline Score s_razorMarginShallow { 125 };
     constexpr static inline Score s_razorMarginDeep { 175 };
     constexpr static inline uint8_t s_razorDeepReductionLimit { 2 };
-    constexpr static inline uint8_t s_iirDepthLimit { 4 };
+    constexpr static inline uint8_t s_iirDepthLimit { 7 };
+    constexpr static inline uint8_t s_iirTtDepthLimit { 4 };
     constexpr static inline uint8_t s_iirReduction { 1 };
 
     constexpr static inline uint8_t s_nullMoveReduction { 2 };
