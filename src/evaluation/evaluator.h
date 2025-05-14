@@ -190,7 +190,7 @@ private:
         uint8_t d = 1;
 
         while (d <= depth) {
-            if (d > 1 && !TimeManager::timeForAnotherSearch()) {
+            if (!TimeManager::timeForAnotherSearch(d)) {
                 break;
             }
 
@@ -215,6 +215,8 @@ private:
 
                 bestMove = singleSearcher->getPvMove();
                 m_ponderMove = singleSearcher->getPonderMove();
+
+                TimeManager::updateMoveStability(bestMove, score, singleSearcher->getNodes());
             } else {
                 Searcher::setSearchStopped(false);
 
@@ -287,6 +289,8 @@ private:
 
                 printScoreInfo(bestWinningResult.searcher, board, bestWinningResult.score, d);
                 m_ponderMove = bestWinningResult.searcher->getPonderMove();
+
+                TimeManager::updateMoveStability(bestMove, bestWinningResult.score, getNodes());
             }
 
             /* only increment depth, if we didn't fall out of the window */

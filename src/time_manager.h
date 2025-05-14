@@ -2,6 +2,7 @@
 
 #include "bit_board.h"
 #include "board_defs.h"
+#include "movegen/move_types.h"
 #include "spsa/parameters.h"
 
 #include <atomic>
@@ -10,13 +11,33 @@
 
 class TimeManager {
 public:
-    static inline bool timeForAnotherSearch()
+    static inline bool timeForAnotherSearch(uint8_t depth)
     {
-        if (hasTimedOut())
+        /* always search at least one depth to ensure we have a PV move */
+        if (depth <= 1) {
+            return true;
+        }
+
+        if (hasTimedOut()) {
             return false;
+        }
 
         const auto now = std::chrono::steady_clock::now();
-        return now < s_softTimeLimit;
+        const auto totalAllocated = s_softTimeLimit - s_startTime;
+
+        double scalingFactor = s_pvMoveStabilityFactor;
+        scalingFactor *= s_pvNodeScaleFactor;
+
+        /* score is usually unstable in early depths - only track stability when we expect
+         * the score to be "stable" */
+        if (depth >= 7) {
+            scalingFactor *= s_pvScoreStabilityFactor;
+        }
+
+        const auto adjustedTimeBudget = totalAllocated * scalingFactor;
+        const auto adjustedTimeLimit = s_startTime + adjustedTimeBudget;
+
+        return now < adjustedTimeLimit;
     }
 
     static inline void start(const BitBoard& board)
@@ -68,6 +89,15 @@ public:
         s_whiteMoveInc = 0;
         s_blackMoveInc = 0;
         s_timedOut = false;
+
+        s_previousPvMove.reset();
+        s_previousPvScore.reset();
+        s_pvMoveStability = 0;
+        s_pvScoreStability = 0;
+        s_previousPvNodes = 0;
+        s_pvMoveStabilityFactor = 1.0;
+        s_pvScoreStabilityFactor = 1.0;
+        s_pvNodeScaleFactor = 1.0;
     }
 
     static inline void setWhiteTime(uint64_t time)
@@ -98,6 +128,63 @@ public:
     static inline void setBlackMoveInc(uint64_t inc)
     {
         s_blackMoveInc = inc;
+    }
+
+    /* updates move/score/node stability counters and scaling factors
+     *
+     * - if pvMove remains the same across iterations, increment move stability
+     *   -> higher move stability reduces the soft time limit
+     *
+     * - if pvScore stays within a margin of the previous score, increment score stability
+     *   -> higher score stability also reduces the soft time limit
+     *
+     * - if pvNodes increases, compute a scaling factor based on the relative growth
+     *   -> larger node growth = lower scale factor = more aggressive cutoff
+     *
+     * - standardized stability tables (from Stash) are used to compute scale multipliers
+     *
+     * - stores pvMove, pvScore, and pvNodes for use in the next iteration */
+    static inline void updateMoveStability(movegen::Move pvMove, Score pvScore, uint64_t pvNodes)
+    {
+        if (s_previousPvMove.has_value() && pvMove == *s_previousPvMove) {
+            s_pvMoveStability++;
+        } else {
+            s_pvMoveStability = 0;
+        }
+
+        if (s_previousPvScore.has_value()
+            && pvScore >= (*s_previousPvScore - spsa::timeManScoreMargin)
+            && pvScore <= (*s_previousPvScore + spsa::timeManScoreMargin)) {
+            s_pvScoreStability++;
+        } else {
+            s_pvScoreStability = 0;
+        }
+
+        if (pvNodes > 0) {
+            /* cast as doubles to preserve precision */
+            const double prev = static_cast<double>(s_previousPvNodes);
+            const double curr = static_cast<double>(pvNodes);
+
+            const double scalingDelta = (curr - prev) / curr;
+            const double baseFrac = spsa::timeManNodeFracBase / 100.0 - scalingDelta;
+
+            s_pvNodeScaleFactor = baseFrac * (spsa::timeManNodeFracMultiplier / 100.0);
+        } else {
+            s_pvNodeScaleFactor = 1.0;
+        }
+
+        /* pretty much standardized tables used by several engines (originally from Stash) */
+        constexpr auto pvMoveStabilityTable = std::to_array<double>({ 2.5, 1.2, 0.9, 0.8, 0.75 });
+        constexpr auto pvScoreStabilityTable = std::to_array<double>({ 1.25, 1.15, 1.0, 0.94, 0.88 });
+
+        /* update scaling factors */
+        s_pvMoveStabilityFactor = pvMoveStabilityTable[std::min<uint8_t>(s_pvMoveStability, 4)];
+        s_pvScoreStabilityFactor = pvScoreStabilityTable[std::min<uint8_t>(s_pvScoreStability, 4)];
+
+        /* update for next check */
+        s_previousPvMove = pvMove;
+        s_previousPvScore = pvScore;
+        s_previousPvNodes = pvNodes;
     }
 
 private:
@@ -147,4 +234,18 @@ private:
     static inline TimePoint s_hardTimeLimit;
 
     static inline std::atomic_bool s_timedOut;
+
+    /* stability storage - so we can compare with previous iteration */
+    static inline std::optional<movegen::Move> s_previousPvMove;
+    static inline std::optional<Score> s_previousPvScore;
+    static inline uint64_t s_previousPvNodes { 0 };
+
+    /* counters to check for how long the given parameter has been stable - higher is better */
+    static inline uint8_t s_pvMoveStability { 0 };
+    static inline uint8_t s_pvScoreStability { 0 };
+
+    /* multiplier for soft limit - adjusted based on stability */
+    static inline double s_pvMoveStabilityFactor { 1.0 };
+    static inline double s_pvScoreStabilityFactor { 1.0 };
+    static inline double s_pvNodeScaleFactor { 1.0 };
 };
