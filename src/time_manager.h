@@ -195,7 +195,7 @@ private:
         /* allow some extra time for processing etc */
         constexpr auto buffer = 50ms;
 
-        const auto timeLeft = board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime);
+        const auto timeLeft = (board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime));
         const auto timeInc = board.player == PlayerWhite ? milliseconds(s_whiteMoveInc) : milliseconds(s_blackMoveInc);
 
         if (s_moveTime) {
@@ -215,10 +215,11 @@ private:
              * Our time management model is based on the write from Sam Roelants:
              * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md
              */
+            const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0)
+                + duration_cast<milliseconds>(timeInc * spsa::timeManIncFrac / 100.0);
 
-            const auto baseTime = timeLeft / spsa::timeManMovesToGo + 3 * timeInc / 4;
-            s_softTimeLimit = s_startTime + baseTime / 2 - buffer;
-            s_hardTimeLimit = s_startTime + spsa::timeManHardLimit * baseTime - buffer;
+            s_softTimeLimit = s_startTime + duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime) - buffer;
+            s_hardTimeLimit = s_startTime + duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime) - buffer;
         }
     }
 
