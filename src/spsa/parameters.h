@@ -36,8 +36,11 @@
     TUNABLE(nmpReductionBase, uint8_t, 4, 0, 12, 1)              \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 0, 12, 1)            \
     TUNABLE(aspirationWindow, uint8_t, 50, 10, 100, 5)           \
-    TUNABLE(timeManMovesToGo, uint8_t, 20, 10, 40, 2)            \
-    TUNABLE(timeManHardLimit, uint8_t, 3, 1, 5, 1)               \
+    TUNABLE(timeManIncFrac, uint16_t, 75, 1, 150, 5)             \
+    TUNABLE(timeManBaseFrac, uint16_t, 50, 1, 150, 5)            \
+    TUNABLE(timeManLimitFrac, uint16_t, 75, 1, 150, 5)           \
+    TUNABLE(timeManSoftFrac, uint16_t, 50, 1, 150, 5)            \
+    TUNABLE(timeManHardFrac, uint16_t, 300, 100, 500, 20)        \
     TUNABLE(timeManNodeFracBase, uint8_t, 150, 1, 200, 10)       \
     TUNABLE(timeManNodeFracMultiplier, uint8_t, 170, 1, 200, 10) \
     TUNABLE(timeManScoreMargin, uint8_t, 10, 1, 20, 1)           \
