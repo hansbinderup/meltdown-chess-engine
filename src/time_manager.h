@@ -10,6 +10,7 @@
 #include <optional>
 
 class TimeManager {
+
 public:
     static inline bool timeForAnotherSearch(uint8_t depth)
     {
@@ -22,8 +23,7 @@ public:
             return false;
         }
 
-        const auto now = std::chrono::steady_clock::now();
-        const auto totalAllocated = s_softTimeLimit - s_startTime;
+        const Duration timeSpent = std::chrono::steady_clock::now() - s_startTime;
 
         double scalingFactor = s_pvMoveStabilityFactor;
         scalingFactor *= s_pvNodeScaleFactor;
@@ -34,10 +34,8 @@ public:
             scalingFactor *= s_pvScoreStabilityFactor;
         }
 
-        const auto adjustedTimeBudget = totalAllocated * scalingFactor;
-        const auto adjustedTimeLimit = s_startTime + adjustedTimeBudget;
-
-        return now < adjustedTimeLimit;
+        const auto adjustedTimeLimit = s_softTimeLimit * scalingFactor;
+        return timeSpent < adjustedTimeLimit;
     }
 
     static inline void start(const BitBoard& board)
@@ -50,15 +48,15 @@ public:
     static inline void startInfinite()
     {
         s_startTime = std::chrono::steady_clock::now();
-        s_softTimeLimit = TimePoint::max();
-        s_hardTimeLimit = TimePoint::max();
+        s_softTimeLimit = Duration::max();
+        s_hardTimeLimit = Duration::max();
         s_timedOut = false;
     }
 
     static inline void updateTimeout()
     {
-        const auto now = std::chrono::steady_clock::now();
-        if (now >= s_hardTimeLimit) {
+        const Duration timeSpent = std::chrono::steady_clock::now() - s_startTime;
+        if (timeSpent >= s_hardTimeLimit) {
             s_timedOut = true;
         }
     }
@@ -199,15 +197,15 @@ private:
         const auto timeInc = board.player == PlayerWhite ? milliseconds(s_whiteMoveInc) : milliseconds(s_blackMoveInc);
 
         if (s_moveTime) {
-            s_softTimeLimit = s_startTime + milliseconds(s_moveTime.value()) - buffer + timeInc;
+            s_softTimeLimit = milliseconds(s_moveTime.value()) - buffer + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (s_movesToGo) {
             const auto time = timeLeft / s_movesToGo;
-            s_softTimeLimit = s_startTime + time - buffer + timeInc;
+            s_softTimeLimit = time - buffer + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (timeLeft.count() == 0 && timeInc.count() == 0) {
             /* no time was specified - search until stopped */
-            s_softTimeLimit = TimePoint::max();
+            s_softTimeLimit = Duration::max();
             s_hardTimeLimit = s_softTimeLimit;
         } else {
             /*
@@ -218,10 +216,13 @@ private:
             const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0)
                 + duration_cast<milliseconds>(timeInc * spsa::timeManIncFrac / 100.0);
 
-            s_softTimeLimit = s_startTime + duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime) - buffer;
-            s_hardTimeLimit = s_startTime + duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime) - buffer;
+            s_softTimeLimit = duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime) - buffer;
+            s_hardTimeLimit = duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime) - buffer;
         }
     }
+
+    /* time manager operates in milliseconds so scale the duration for easier conversion */
+    using Duration = std::chrono::duration<double, std::milli>;
 
     static inline uint64_t s_whiteTime {};
     static inline uint64_t s_blackTime {};
@@ -231,8 +232,8 @@ private:
     static inline uint64_t s_blackMoveInc {};
 
     static inline TimePoint s_startTime;
-    static inline TimePoint s_softTimeLimit;
-    static inline TimePoint s_hardTimeLimit;
+    static inline Duration s_softTimeLimit;
+    static inline Duration s_hardTimeLimit;
 
     static inline std::atomic_bool s_timedOut;
 
