@@ -210,11 +210,12 @@ private:
              * Our time management model is based on the write from Sam Roelants:
              * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md
              */
-            const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0)
-                + duration_cast<milliseconds>(timeInc * spsa::timeManIncFrac / 100.0);
+            const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0
+                + timeInc * spsa::timeManIncFrac / 100.0);
+            const auto limitTime = duration_cast<milliseconds>(timeLeft * spsa::timeManLimitFrac / 100.0);
 
-            s_softTimeLimit = duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime);
-            s_hardTimeLimit = duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime);
+            s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime));
+            s_hardTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime));
         }
     }
 
