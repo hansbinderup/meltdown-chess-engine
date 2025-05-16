@@ -197,6 +197,8 @@ constexpr static inline TermScore getRookScore(const BitBoard& board, const uint
     const uint64_t blackKing = board.pieces[BlackKing];
 
     helper::bitIterate(rooks, [&](BoardPosition pos) {
+        const uint64_t square = helper::positionToSquare(pos);
+
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
 
@@ -212,7 +214,7 @@ constexpr static inline TermScore getRookScore(const BitBoard& board, const uint
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
 
-            if (rooks & s_row7Mask) {
+            if (square & s_row7Mask) {
                 if ((blackPawns & s_row7Mask) || (blackKing & s_row8Mask)) {
                     ADD_SCORE(rook7thRankBonus);
                 }
@@ -223,7 +225,7 @@ constexpr static inline TermScore getRookScore(const BitBoard& board, const uint
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
 
-            if (rooks & s_row2Mask) {
+            if (square & s_row2Mask) {
                 if ((whitePawns & s_row2Mask) || (whiteKing & s_row1Mask)) {
                     ADD_SCORE(rook7thRankBonus);
                 }
