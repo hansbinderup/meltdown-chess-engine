@@ -108,8 +108,6 @@ static void runGradientDescentTuning()
     GradientArray momentum = {};
     GradientArray velocity = {};
 
-    double rate = s_learningRate;
-
     const auto startTime = steady_clock::now();
 
     for (size_t epoch = 1; epoch < s_epochs + 1; epoch++) {
@@ -127,14 +125,11 @@ static void runGradientDescentTuning()
             velocity[GamePhaseMg][i] = s_beta2 * velocity[GamePhaseMg][i] + (1.0 - s_beta2) * pow(mg_grad, 2);
             velocity[GamePhaseEg][i] = s_beta2 * velocity[GamePhaseEg][i] + (1.0 - s_beta2) * pow(eg_grad, 2);
 
-            params[GamePhaseMg][i] -= rate * momentum[GamePhaseMg][i] / (1e-8 + sqrt(velocity[GamePhaseMg][i]));
-            params[GamePhaseEg][i] -= rate * momentum[GamePhaseEg][i] / (1e-8 + sqrt(velocity[GamePhaseEg][i]));
+            params[GamePhaseMg][i] -= s_learningRate * momentum[GamePhaseMg][i] / (1e-8 + sqrt(velocity[GamePhaseMg][i]));
+            params[GamePhaseEg][i] -= s_learningRate * momentum[GamePhaseEg][i] / (1e-8 + sqrt(velocity[GamePhaseEg][i]));
         }
 
         double error = TunedEvaluationErrors(trainingData, params, s_kValue);
-
-        if (epoch % s_lrStepRate == 0)
-            rate = rate / s_lrDropRate;
 
         const duration<double> timeSpent = steady_clock::now() - startTime;
         const auto timeLeft = estimateTimeLeft(timeSpent, epoch);
