@@ -117,4 +117,25 @@ constexpr uint64_t getAllAttacks(const BitBoard& board)
     return attacks;
 }
 
+/* computes discovered attacks based on the given position
+ * NOTE: queen attacks are not included - it's only rook and bishops */
+template<Player player>
+constexpr uint64_t getDiscoveredAttacks(const BitBoard& board, BoardPosition pos)
+{
+    constexpr Player opponent = nextPlayer(player);
+    constexpr Piece opponentRook = opponent == PlayerWhite ? WhiteRook : BlackRook;
+    constexpr Piece opponentBishop = opponent == PlayerWhite ? WhiteBishop : BlackBishop;
+
+    const uint64_t occupancy = board.occupation[Both];
+
+    const uint64_t rookAttacks = movegen::getRookMoves(pos, occupancy);
+    const uint64_t bishopAttacks = movegen::getBishopMoves(pos, occupancy);
+
+    const uint64_t rooks = board.pieces[opponentRook] & ~rookAttacks;
+    const uint64_t bishops = board.pieces[opponentBishop] & ~bishopAttacks;
+
+    return (rooks & movegen::getRookMoves(pos, occupancy & ~rookAttacks))
+        | (bishops & movegen::getBishopMoves(pos, occupancy & ~bishopAttacks));
+}
+
 }
