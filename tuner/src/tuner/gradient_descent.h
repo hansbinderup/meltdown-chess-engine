@@ -133,9 +133,6 @@ static void runGradientDescentTuning()
 
         double error = TunedEvaluationErrors(trainingData, params, s_kValue);
 
-        if (epoch % s_lrStepRate == 0)
-            rate = rate / s_lrDropRate;
-
         const duration<double> timeSpent = steady_clock::now() - startTime;
         const auto timeLeft = estimateTimeLeft(timeSpent, epoch);
         const double progress = 100.0 / s_epochs * epoch;
