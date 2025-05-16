@@ -190,18 +190,15 @@ private:
     {
         using namespace std::chrono;
 
-        /* allow some extra time for processing etc */
-        constexpr auto buffer = 50ms;
-
-        const auto timeLeft = (board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime));
+        const auto timeLeft = subtractOverhead((board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime)));
         const auto timeInc = board.player == PlayerWhite ? milliseconds(s_whiteMoveInc) : milliseconds(s_blackMoveInc);
 
         if (s_moveTime) {
-            s_softTimeLimit = milliseconds(s_moveTime.value()) - buffer + timeInc;
+            s_softTimeLimit = milliseconds(s_moveTime.value()) + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (s_movesToGo) {
             const auto time = timeLeft / s_movesToGo;
-            s_softTimeLimit = time - buffer + timeInc;
+            s_softTimeLimit = time + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (timeLeft.count() == 0 && timeInc.count() == 0) {
             /* no time was specified - search until stopped */
@@ -216,13 +213,23 @@ private:
             const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0)
                 + duration_cast<milliseconds>(timeInc * spsa::timeManIncFrac / 100.0);
 
-            s_softTimeLimit = duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime) - buffer;
-            s_hardTimeLimit = duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime) - buffer;
+            s_softTimeLimit = duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime);
+            s_hardTimeLimit = duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime);
         }
     }
 
     /* time manager operates in milliseconds so scale the duration for easier conversion */
     using Duration = std::chrono::duration<double, std::milli>;
+
+    /* ensure that we don't overflow when subtracting overhead */
+    constexpr static inline Duration subtractOverhead(const Duration& duration)
+    {
+        if (s_moveOverhead > duration) {
+            return Duration::zero();
+        } else {
+            return duration - s_moveOverhead;
+        }
+    }
 
     static inline uint64_t s_whiteTime {};
     static inline uint64_t s_blackTime {};
@@ -250,4 +257,7 @@ private:
     static inline double s_pvMoveStabilityFactor { 1.0 };
     static inline double s_pvScoreStabilityFactor { 1.0 };
     static inline double s_pvNodeScaleFactor { 1.0 };
+
+    /* allow some extra time for processing etc */
+    static constexpr inline Duration s_moveOverhead { 50 };
 };
