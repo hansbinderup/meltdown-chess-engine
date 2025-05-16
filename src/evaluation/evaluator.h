@@ -45,6 +45,15 @@ public:
         return totalNodes;
     }
 
+    constexpr uint64_t getHistoryNodes(movegen::Move move) const
+    {
+        uint64_t totalNodes {};
+        for (const auto& searcher : m_searchers) {
+            totalNodes += searcher->getHistoryNodes(move);
+        }
+        return totalNodes;
+    }
+
     constexpr movegen::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
 
@@ -177,6 +186,18 @@ public:
     }
 
 private:
+    constexpr double pvMoveNodeFraction(movegen::Move pvMove)
+    {
+        const uint64_t totalNodes = getNodes();
+        const uint64_t pvNodes = getHistoryNodes(pvMove);
+
+        if (totalNodes <= 0) {
+            return 1.0;
+        }
+
+        return static_cast<double>(pvNodes) / totalNodes;
+    }
+
     constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
     {
         Score alpha = s_minScore;
@@ -216,7 +237,7 @@ private:
                 bestMove = singleSearcher->getPvMove();
                 m_ponderMove = singleSearcher->getPonderMove();
 
-                TimeManager::updateMoveStability(bestMove, score, singleSearcher->getNodes());
+                TimeManager::updateMoveStability(bestMove, score, pvMoveNodeFraction(bestMove));
             } else {
                 Searcher::setSearchStopped(false);
 
@@ -290,7 +311,7 @@ private:
                 printScoreInfo(bestWinningResult.searcher, board, bestWinningResult.score, d);
                 m_ponderMove = bestWinningResult.searcher->getPonderMove();
 
-                TimeManager::updateMoveStability(bestMove, bestWinningResult.score, getNodes());
+                TimeManager::updateMoveStability(bestMove, bestWinningResult.score, pvMoveNodeFraction(bestMove));
             }
 
             /* only increment depth, if we didn't fall out of the window */

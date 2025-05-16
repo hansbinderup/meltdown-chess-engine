@@ -92,7 +92,6 @@ public:
         s_previousPvScore.reset();
         s_pvMoveStability = 0;
         s_pvScoreStability = 0;
-        s_previousPvNodes = 0;
         s_pvMoveStabilityFactor = 1.0;
         s_pvScoreStabilityFactor = 1.0;
         s_pvNodeScaleFactor = 1.0;
@@ -142,7 +141,7 @@ public:
      * - standardized stability tables (from Stash) are used to compute scale multipliers
      *
      * - stores pvMove, pvScore, and pvNodes for use in the next iteration */
-    static inline void updateMoveStability(movegen::Move pvMove, Score pvScore, uint64_t pvNodes)
+    static inline void updateMoveStability(movegen::Move pvMove, Score pvScore, double nodeFraction)
     {
         if (s_previousPvMove.has_value() && pvMove == *s_previousPvMove) {
             s_pvMoveStability++;
@@ -158,18 +157,8 @@ public:
             s_pvScoreStability = 0;
         }
 
-        if (pvNodes > 0) {
-            /* cast as doubles to preserve precision */
-            const double prev = static_cast<double>(s_previousPvNodes);
-            const double curr = static_cast<double>(pvNodes);
-
-            const double scalingDelta = (curr - prev) / curr;
-            const double baseFrac = spsa::timeManNodeFracBase / 100.0 - scalingDelta;
-
-            s_pvNodeScaleFactor = baseFrac * (spsa::timeManNodeFracMultiplier / 100.0);
-        } else {
-            s_pvNodeScaleFactor = 1.0;
-        }
+        const double nodeBaseFrac = spsa::timeManNodeFracBase / 100.0 - nodeFraction;
+        s_pvNodeScaleFactor = nodeBaseFrac * spsa::timeManNodeFracMultiplier / 100.0;
 
         /* pretty much standardized tables used by several engines (originally from Stash) */
         constexpr auto pvMoveStabilityTable = std::to_array<double>({ 2.5, 1.2, 0.9, 0.8, 0.75 });
@@ -182,7 +171,6 @@ public:
         /* update for next check */
         s_previousPvMove = pvMove;
         s_previousPvScore = pvScore;
-        s_previousPvNodes = pvNodes;
     }
 
 private:
@@ -248,7 +236,6 @@ private:
     /* stability storage - so we can compare with previous iteration */
     static inline std::optional<movegen::Move> s_previousPvMove;
     static inline std::optional<Score> s_previousPvScore;
-    static inline uint64_t s_previousPvNodes { 0 };
 
     /* counters to check for how long the given parameter has been stable - higher is better */
     static inline uint8_t s_pvMoveStability { 0 };
