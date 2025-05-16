@@ -149,6 +149,8 @@ constexpr uint64_t getAllAttacks(const BitBoard& board)
     return attacks;
 }
 
+/* computes discovered attacks based on the given position
+ * NOTE: queen attacks are not included - it's only rook and bishops */
 template<Player player>
 constexpr uint64_t getDiscoveredAttacks(const BitBoard& board, BoardPosition pos)
 {

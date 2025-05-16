@@ -265,6 +265,10 @@ static inline TermScore getQueenScore(const BitBoard& board, const TermContext& 
         if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
             ADD_SCORE(queenOpenFileBonus);
 
+        const uint64_t discoveredAttacks = attackgen::getDiscoveredAttacks<player>(board, pos);
+        if (discoveredAttacks != 0)
+            ADD_SCORE(queenDiscoveredAttackScore);
+
         const uint64_t moves
             = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]))
             & ~board.occupation[player] & ~theirPawnAttacks;
