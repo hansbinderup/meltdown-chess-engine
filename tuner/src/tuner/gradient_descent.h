@@ -4,6 +4,8 @@
 #include "tuner/training_data.h"
 #include "tuner/tuning_parameters.h"
 
+#include <fmt/chrono.h>
+
 #include <cmath>
 
 namespace tuner {
@@ -84,8 +86,18 @@ static double TunedEvaluationErrors(std::array<TrainingData, s_positions>& data,
     return total / (double)data.size();
 }
 
+static std::chrono::seconds estimateTimeLeft(const std::chrono::duration<double> timeSpent, size_t epoch)
+{
+    using namespace std::chrono;
+
+    const auto timeSpentEachEpoch = timeSpent / epoch;
+    return duration_cast<seconds>((s_epochs - epoch) * timeSpentEachEpoch);
+}
+
 static void runGradientDescentTuning()
 {
+    using namespace std::chrono;
+
     std::array<tuner::TrainingData, s_positions> trainingData {};
     bool res = tuner::unpackTrainingData(trainingData);
     if (!res) {
@@ -97,6 +109,8 @@ static void runGradientDescentTuning()
     GradientArray velocity = {};
 
     double rate = s_learningRate;
+
+    const auto startTime = steady_clock::now();
 
     for (size_t epoch = 1; epoch < s_epochs + 1; epoch++) {
         GradientArray gradient {};
@@ -122,7 +136,12 @@ static void runGradientDescentTuning()
         if (epoch % s_lrStepRate == 0)
             rate = rate / s_lrDropRate;
 
-        fmt::println("Finished epoch: {}, err: {:.8f}, lr: {}", epoch, error, rate);
+        const duration<double> timeSpent = steady_clock::now() - startTime;
+        const auto timeLeft = estimateTimeLeft(timeSpent, epoch);
+
+        fmt::println("Finished epoch: {}, err: {:.8f}, lr: {} | elapsed: {:%M:%S} eta: {:%M:%S}",
+            epoch, error, rate, duration_cast<seconds>(timeSpent), timeLeft);
+
         if (epoch % s_parameterPrintRate == 0) {
             prettyPrintToFile(params, epoch, error);
         }
