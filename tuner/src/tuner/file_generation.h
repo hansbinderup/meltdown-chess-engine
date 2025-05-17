@@ -30,10 +30,8 @@ void prettyPrintToFile(const tuner::GradientArray& params, size_t epochs, double
    Generated: {:02}/{:02}/{} at {:02}:{:02}
    -----------------------------------------------------------
    Parameters:
-     ▸ K-value          = {:.2f}
+     ▸ K-value          = {}
      ▸ Learning Rate    = {:.2f}
-     ▸ LR Step Rate     = {}
-     ▸ LR Drop Rate     = {:.2f}
      ▸ Epochs           = {}
      ▸ Error            = {:.8f}
    -----------------------------------------------------------
@@ -46,7 +44,7 @@ namespace evaluation {{
 
 )cpp",
         tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900, tm.tm_hour, tm.tm_min,
-        tuner::s_kValue, tuner::s_learningRate, tuner::s_lrStepRate, tuner::s_lrDropRate, epochs, error);
+        tuner::s_kValue, tuner::s_learningRate, epochs, error);
 
     fmt::print(file, "\nconstexpr Terms s_terms = {{\n");
 
