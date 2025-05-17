@@ -138,7 +138,7 @@ static void runGradientDescentTuning()
         fmt::println("Epoch: {} [{:.2f}%] | err: {:.8f} | elapsed: {:%M:%S} | eta: {:%M:%S}",
             epoch, progress, error, duration_cast<seconds>(timeSpent), timeLeft);
 
-        if (epoch % s_parameterPrintRate == 0) {
+        if (epoch == s_epochs || epoch % s_parameterPrintRate == 0) {
             prettyPrintToFile(params, epoch, error);
         }
     }
