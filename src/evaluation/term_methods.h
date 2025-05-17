@@ -44,6 +44,7 @@ namespace evaluation {
 }
 
 constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
+constexpr uint8_t majorsOn7thSize = s_terms.majorOn7thScore.size();
 
 /* TODO: divide into terms instead of pieces.. */
 
@@ -193,9 +194,6 @@ constexpr static inline TermScore getRookScore(const BitBoard& board, const uint
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
-    const uint64_t whiteKing = board.pieces[WhiteKing];
-    const uint64_t blackKing = board.pieces[BlackKing];
-
     helper::bitIterate(rooks, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
@@ -212,22 +210,10 @@ constexpr static inline TermScore getRookScore(const BitBoard& board, const uint
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
 
-            if (rooks & s_row7Mask) {
-                if ((blackPawns & s_row7Mask) || (blackKing & s_row8Mask)) {
-                    ADD_SCORE(rook7thRankBonus);
-                }
-            }
-
         } else {
             ADD_SCORE_INDEXED(psqtRooks, flipPosition(pos));
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
-
-            if (rooks & s_row2Mask) {
-                if ((whitePawns & s_row2Mask) || (whiteKing & s_row1Mask)) {
-                    ADD_SCORE(rook7thRankBonus);
-                }
-            }
         }
     });
 
@@ -288,6 +274,32 @@ constexpr static inline TermScore getKingScore(const BitBoard& board, const uint
             ADD_SCORE_INDEXED(psqtKings, flipPosition(pos));
         }
     });
+
+    return score;
+}
+
+template<Player player>
+constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board)
+{
+    TermScore score(0, 0);
+
+    constexpr auto ownQueen = player == PlayerWhite ? WhiteQueen : BlackQueen;
+    constexpr auto ownRook = player == PlayerWhite ? WhiteRook : BlackRook;
+
+    constexpr auto theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
+    constexpr auto theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
+
+    constexpr uint64_t row7Mask = player == PlayerWhite ? s_row7Mask : s_row2Mask;
+    constexpr uint64_t row8Mask = player == PlayerWhite ? s_row8Mask : s_row1Mask;
+
+    const uint64_t pawnsOn7th = board.pieces[theirPawn] & row7Mask;
+    const uint64_t kingOn8th = board.pieces[theirKing] & row8Mask;
+    const uint64_t majorsOn7th = (board.pieces[ownQueen] | board.pieces[ownRook]) & row7Mask;
+    const uint8_t majorsOn7thCount = std::min<uint8_t>(majorsOn7thSize, std::popcount(majorsOn7th));
+
+    if (majorsOn7thCount > 0 && (pawnsOn7th || kingOn8th)) {
+        ADD_SCORE_INDEXED(majorOn7thScore, majorsOn7thCount - 1);
+    }
 
     return score;
 }

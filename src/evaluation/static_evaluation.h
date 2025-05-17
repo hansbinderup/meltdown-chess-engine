@@ -7,6 +7,19 @@
 
 namespace evaluation {
 
+namespace {
+
+/* helper macro to apply score for both sides - with correct scoring sign
+ * positive for white
+ * negative for black */
+#define APPLY_SCORE(func, ...)                   \
+    {                                            \
+        score += func<PlayerWhite>(__VA_ARGS__); \
+        score -= func<PlayerBlack>(__VA_ARGS__); \
+    }
+
+}
+
 constexpr Score staticEvaluation(const BitBoard& board)
 {
     TermScore score(0, 0);
@@ -55,6 +68,8 @@ constexpr Score staticEvaluation(const BitBoard& board)
             break;
         }
     }
+
+    APPLY_SCORE(getMajorsOn7thScore, board);
 
     const Score evaluation = score.phaseScore(phaseScore);
     return board.player == PlayerWhite ? evaluation : -evaluation;
