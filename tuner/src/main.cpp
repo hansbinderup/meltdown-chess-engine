@@ -9,8 +9,9 @@ int main()
                  "Threads: {}\n"
                  "Positions: {}\n"
                  "Terms: {}\n"
+                 "Epochs: {}\n"
                  "Learning rate: {:.2f}\n\n",
-        tuner::s_threads, tuner::s_positions, tuner::s_nTerms, tuner::s_learningRate);
+        tuner::s_threads, tuner::s_positions, tuner::s_nTerms, tuner::s_epochs, tuner::s_learningRate);
 
     tuner::runGradientDescentTuning();
 
