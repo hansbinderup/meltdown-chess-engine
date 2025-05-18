@@ -1,6 +1,5 @@
 #pragma once
 
-#include "attack_generation.h"
 #include "bit_board.h"
 #include "evaluation/generated/tuned_terms.h"
 #include "evaluation/position_tables.h"
@@ -38,6 +37,13 @@
 
 namespace evaluation {
 
+/* A context to precompute heavy operations so we don't have to do that
+ * multiple times for a single evaluation
+ * NOTE: Only values that are being reused between terms should be added here */
+struct TermContext {
+    const std::array<uint64_t, magic_enum::enum_count<Player>()> pawnAttacks;
+};
+
 [[nodiscard]] constexpr uint64_t flipPosition(BoardPosition pos) noexcept
 {
     return pos ^ 56;
@@ -48,7 +54,7 @@ constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
 /* TODO: divide into terms instead of pieces.. */
 
 template<Player player>
-constexpr static inline TermScore getPawnScore(const BitBoard& board, const uint64_t pawns)
+static inline TermScore getPawnScore(const BitBoard& board, const uint64_t pawns)
 {
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     TermScore score(0, 0);
@@ -93,14 +99,13 @@ constexpr static inline TermScore getPawnScore(const BitBoard& board, const uint
 }
 
 template<Player player>
-constexpr static inline TermScore getKnightScore(const BitBoard& board, const uint64_t knights, uint8_t& phaseScore)
+static inline TermScore getKnightScore(const BitBoard& board, const TermContext& ctx, const uint64_t knights, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
-
-    const uint64_t pawnDefends = player == PlayerWhite ? attackgen::getWhitePawnAttacks(board) : attackgen::getBlackPawnAttacks(board);
+    const uint64_t pawnDefends = ctx.pawnAttacks[player];
 
     helper::bitIterate(knights, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Knight];
@@ -138,14 +143,13 @@ constexpr static inline TermScore getKnightScore(const BitBoard& board, const ui
 }
 
 template<Player player>
-constexpr static inline TermScore getBishopScore(const BitBoard& board, const uint64_t bishops, uint8_t& phaseScore)
+static inline TermScore getBishopScore(const BitBoard& board, const TermContext& ctx, const uint64_t bishops, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
-
-    const uint64_t pawnDefends = player == PlayerWhite ? attackgen::getWhitePawnAttacks(board) : attackgen::getBlackPawnAttacks(board);
+    const uint64_t pawnDefends = ctx.pawnAttacks[player];
 
     const int amntBishops = std::popcount(bishops);
     if (amntBishops >= 2)
@@ -186,7 +190,7 @@ constexpr static inline TermScore getBishopScore(const BitBoard& board, const ui
 }
 
 template<Player player>
-constexpr static inline TermScore getRookScore(const BitBoard& board, const uint64_t rooks, uint8_t& phaseScore)
+static inline TermScore getRookScore(const BitBoard& board, const uint64_t rooks, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
 
@@ -235,7 +239,7 @@ constexpr static inline TermScore getRookScore(const BitBoard& board, const uint
 }
 
 template<Player player>
-constexpr static inline TermScore getQueenScore(const BitBoard& board, const uint64_t queens, uint8_t& phaseScore)
+static inline TermScore getQueenScore(const BitBoard& board, const uint64_t queens, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
 
@@ -270,7 +274,7 @@ constexpr static inline TermScore getQueenScore(const BitBoard& board, const uin
 }
 
 template<Player player>
-constexpr static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
+static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
 {
     TermScore score(0, 0);
 

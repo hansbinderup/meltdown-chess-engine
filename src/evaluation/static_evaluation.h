@@ -1,16 +1,24 @@
 #pragma once
 
+#include "attack_generation.h"
 #include "bit_board.h"
 #include "evaluation/term_methods.h"
 
-#include <cstdint>
-
 namespace evaluation {
 
-constexpr Score staticEvaluation(const BitBoard& board)
+static inline TermContext prepareContext(const BitBoard& board)
+{
+    return TermContext {
+        .pawnAttacks { attackgen::getWhitePawnAttacks(board), attackgen::getBlackPawnAttacks(board) },
+    };
+}
+
+static inline Score staticEvaluation(const BitBoard& board)
 {
     TermScore score(0, 0);
-    uint8_t phaseScore {};
+
+    uint8_t phaseScore = 0;
+    auto ctx = prepareContext(board);
 
     // Material scoring
     for (const auto piece : magic_enum::enum_values<Piece>()) {
@@ -19,10 +27,10 @@ constexpr Score staticEvaluation(const BitBoard& board)
             score += getPawnScore<PlayerWhite>(board, board.pieces[piece]);
             break;
         case WhiteKnight:
-            score += getKnightScore<PlayerWhite>(board, board.pieces[piece], phaseScore);
+            score += getKnightScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case WhiteBishop:
-            score += getBishopScore<PlayerWhite>(board, board.pieces[piece], phaseScore);
+            score += getBishopScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case WhiteRook:
             score += getRookScore<PlayerWhite>(board, board.pieces[piece], phaseScore);
@@ -39,10 +47,10 @@ constexpr Score staticEvaluation(const BitBoard& board)
             score -= getPawnScore<PlayerBlack>(board, board.pieces[piece]);
             break;
         case BlackKnight:
-            score -= getKnightScore<PlayerBlack>(board, board.pieces[piece], phaseScore);
+            score -= getKnightScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case BlackBishop:
-            score -= getBishopScore<PlayerBlack>(board, board.pieces[piece], phaseScore);
+            score -= getBishopScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case BlackRook:
             score -= getRookScore<PlayerBlack>(board, board.pieces[piece], phaseScore);
