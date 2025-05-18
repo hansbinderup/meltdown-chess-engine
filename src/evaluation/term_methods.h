@@ -103,6 +103,9 @@ static inline TermScore getKnightScore(const BitBoard& board, const TermContext&
 {
     TermScore score(0, 0);
 
+    constexpr Player opponent = nextPlayer(player);
+    const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
+
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
@@ -111,7 +114,7 @@ static inline TermScore getKnightScore(const BitBoard& board, const TermContext&
         phaseScore += s_piecePhaseValues[Knight];
         ADD_SCORE_INDEXED(pieceValues, Knight);
 
-        const uint64_t moves = movegen::getKnightMoves(pos) & ~board.occupation[player];
+        const uint64_t moves = movegen::getKnightMoves(pos) & ~board.occupation[player] & ~theirPawnAttacks;
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(knightMobilityScore, movesCount);
 
@@ -147,6 +150,9 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
 {
     TermScore score(0, 0);
 
+    constexpr Player opponent = nextPlayer(player);
+    const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
+
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
@@ -159,7 +165,7 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
         phaseScore += s_piecePhaseValues[Bishop];
         ADD_SCORE_INDEXED(pieceValues, Bishop);
 
-        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
+        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]) & ~board.occupation[player] & ~theirPawnAttacks;
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(bishopMobilityScore, movesCount);
 
@@ -190,9 +196,12 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
 }
 
 template<Player player>
-static inline TermScore getRookScore(const BitBoard& board, const uint64_t rooks, uint8_t& phaseScore)
+static inline TermScore getRookScore(const BitBoard& board, const TermContext& ctx, const uint64_t rooks, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    constexpr Player opponent = nextPlayer(player);
+    const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
@@ -204,7 +213,7 @@ static inline TermScore getRookScore(const BitBoard& board, const uint64_t rooks
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
 
-        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
+        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]) & ~board.occupation[player] & ~theirPawnAttacks;
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(rookMobilityScore, movesCount);
 
@@ -239,9 +248,12 @@ static inline TermScore getRookScore(const BitBoard& board, const uint64_t rooks
 }
 
 template<Player player>
-static inline TermScore getQueenScore(const BitBoard& board, const uint64_t queens, uint8_t& phaseScore)
+static inline TermScore getQueenScore(const BitBoard& board, const TermContext& ctx, const uint64_t queens, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    constexpr Player opponent = nextPlayer(player);
+    const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
@@ -254,8 +266,9 @@ static inline TermScore getQueenScore(const BitBoard& board, const uint64_t quee
             ADD_SCORE(queenOpenFileBonus);
 
         const uint64_t moves
-            = movegen::getBishopMoves(pos, board.occupation[Both])
-            | movegen::getRookMoves(pos, board.occupation[Both]);
+            = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]))
+            & ~board.occupation[player] & ~theirPawnAttacks;
+
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(queenMobilityScore, movesCount);
 
@@ -281,8 +294,8 @@ static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
     helper::bitIterate(king, [&](BoardPosition pos) {
         /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
         const uint64_t virtualMoves
-            = movegen::getBishopMoves(pos, board.occupation[Both])
-            | movegen::getRookMoves(pos, board.occupation[Both]);
+            = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]))
+            & ~board.occupation[player];
         const int movesCount = std::popcount(virtualMoves);
         ADD_SCORE_INDEXED(kingVirtualMobilityScore, movesCount);
 

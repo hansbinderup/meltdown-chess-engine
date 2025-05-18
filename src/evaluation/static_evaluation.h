@@ -33,10 +33,10 @@ static inline Score staticEvaluation(const BitBoard& board)
             score += getBishopScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case WhiteRook:
-            score += getRookScore<PlayerWhite>(board, board.pieces[piece], phaseScore);
+            score += getRookScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case WhiteQueen:
-            score += getQueenScore<PlayerWhite>(board, board.pieces[piece], phaseScore);
+            score += getQueenScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case WhiteKing:
             score += getKingScore<PlayerWhite>(board, board.pieces[piece]);
@@ -53,10 +53,10 @@ static inline Score staticEvaluation(const BitBoard& board)
             score -= getBishopScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case BlackRook:
-            score -= getRookScore<PlayerBlack>(board, board.pieces[piece], phaseScore);
+            score -= getRookScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case BlackQueen:
-            score -= getQueenScore<PlayerBlack>(board, board.pieces[piece], phaseScore);
+            score -= getQueenScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
             break;
         case BlackKing:
             score -= getKingScore<PlayerBlack>(board, board.pieces[piece]);
