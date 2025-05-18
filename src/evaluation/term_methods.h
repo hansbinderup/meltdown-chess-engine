@@ -156,6 +156,9 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
         ADD_SCORE(bishopPairScore)
 
     helper::bitIterate(bishops, [&](BoardPosition pos) {
+        const uint64_t square = helper::positionToSquare(pos);
+        const uint64_t squaresOfOwnColor = square & s_lightSquares ? s_lightSquares : s_darkSquares;
+
         phaseScore += s_piecePhaseValues[Bishop];
         ADD_SCORE_INDEXED(pieceValues, Bishop);
 
@@ -163,10 +166,11 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(bishopMobilityScore, movesCount);
 
-        const uint64_t square = helper::positionToSquare(pos);
-
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtBishops, pos);
+
+            const uint64_t blockingPawns = std::popcount(whitePawns & squaresOfOwnColor);
+            ADD_SCORE_INDEXED(badBishopScore, blockingPawns);
 
             if (!(s_outpostSquareMaskTable[player][pos] & blackPawns) && square & s_whiteOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
@@ -176,6 +180,9 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
             }
         } else {
             ADD_SCORE_INDEXED(psqtBishops, flipPosition(pos));
+
+            const uint64_t blockingPawns = std::popcount(blackPawns & squaresOfOwnColor);
+            ADD_SCORE_INDEXED(badBishopScore, blockingPawns);
 
             if (!(s_outpostSquareMaskTable[player][pos] & whitePawns) && square & s_blackOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);

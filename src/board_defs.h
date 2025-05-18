@@ -140,6 +140,9 @@ constexpr static inline uint64_t s_row6Mask { 0xffULL << s_sixthRow };
 constexpr static inline uint64_t s_row7Mask { 0xffULL << s_seventhRow };
 constexpr static inline uint64_t s_row8Mask { 0xffULL << s_eightRow };
 
+constexpr static inline uint64_t s_lightSquares = { 0x5599559955995599 };
+constexpr static inline uint64_t s_darkSquares = { 0xaa66aa66aa66aa66 };
+
 constexpr static inline uint64_t s_whiteOutpostRankMask = s_row4Mask | s_row5Mask | s_row6Mask;
 constexpr static inline uint64_t s_blackOutpostRankMask = s_row3Mask | s_row4Mask | s_row5Mask;
 
