@@ -24,6 +24,15 @@
             s_trace.weightName[index]--;     \
     }
 
+#define ADD_SCORE_MULTIPLY_INDEXED(weightName, multiply, index) \
+    {                                                           \
+        score += (s_terms.weightName[index] * multiply);        \
+        if constexpr (player == PlayerWhite)                    \
+            s_trace.weightName[index] += multiply;              \
+        else                                                    \
+            s_trace.weightName[index] -= multiply;              \
+    }
+
 #else
 
 #define ADD_SCORE_INDEXED(weightName, index) \
@@ -31,10 +40,16 @@
         score += s_terms.weightName[index];  \
     }
 
+#define ADD_SCORE_MULTIPLY_INDEXED(weightName, multiply, index) \
+    {                                                           \
+        score += (s_terms.weightName[index] * multiply);        \
+    }
+
 #endif
 
-/* helper for single index tables */
+/* helpers for single index tables */
 #define ADD_SCORE(weightName) ADD_SCORE_INDEXED(weightName, 0)
+#define ADD_SCORE_MULTIPLY(weightName, multiply) ADD_SCORE_MULTIPLY_INDEXED(weightName, multiply, 0)
 
 namespace evaluation {
 
@@ -44,7 +59,6 @@ namespace evaluation {
 }
 
 constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
-constexpr uint8_t majorsOn7thSize = s_terms.majorOn7thScore.size();
 
 /* TODO: divide into terms instead of pieces.. */
 
@@ -295,10 +309,10 @@ constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board)
     const uint64_t pawnsOn7th = board.pieces[theirPawn] & row7Mask;
     const uint64_t kingOn8th = board.pieces[theirKing] & row8Mask;
     const uint64_t majorsOn7th = (board.pieces[ownQueen] | board.pieces[ownRook]) & row7Mask;
-    const uint8_t majorsOn7thCount = std::min<uint8_t>(majorsOn7thSize, std::popcount(majorsOn7th));
+    const uint8_t majorsOn7thCount = std::popcount(majorsOn7th);
 
     if (majorsOn7thCount > 0 && (pawnsOn7th || kingOn8th)) {
-        ADD_SCORE_INDEXED(majorOn7thScore, majorsOn7thCount - 1);
+        ADD_SCORE_MULTIPLY(majorOn7thScore, majorsOn7thCount);
     }
 
     return score;
