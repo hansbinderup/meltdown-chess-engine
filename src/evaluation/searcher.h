@@ -259,7 +259,7 @@ public:
 
         /* dangerous to repeat null search on a null search - skip it here */
         if constexpr (searchType != SearchType::NullSearch) {
-            if (depth > spsa::nullMoveReduction && !isChecked && m_ply) {
+            if (depth > spsa::nullMoveReduction && !isChecked && m_ply && !board.hasZugzwangProneMaterial()) {
                 if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
                     return nullMoveScore.value();
                 }
