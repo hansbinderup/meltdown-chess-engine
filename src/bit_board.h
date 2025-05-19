@@ -110,6 +110,17 @@ struct BitBoard {
         return (attacks[PlayerWhite] & occupation[PlayerBlack]) == 0 && (attacks[PlayerBlack] & occupation[PlayerWhite]) == 0;
     }
 
+    /* this is a very primitive way of checking for zugzwang position
+     * zugzwang is _very rare_ to happen outside of these conditions
+     * so for most cases this should be _super good enough_ */
+    constexpr inline bool hasZugzwangProneMaterial() const
+    {
+        if (player == PlayerWhite)
+            return occupation[PlayerWhite] == (pieces[WhitePawn] | pieces[WhiteKing]);
+        else
+            return occupation[PlayerBlack] == (pieces[BlackPawn] | pieces[BlackKing]);
+    }
+
     std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces {};
     std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation {};
     std::array<uint64_t, magic_enum::enum_count<Player>()> attacks {};
