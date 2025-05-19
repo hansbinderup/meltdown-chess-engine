@@ -249,38 +249,43 @@ public:
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
 
-        /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
-        if (depth < spsa::rfpReductionLimit && !isPv && !isChecked) {
-            const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + spsa::rfpMargin);
-            const Score evalMargin = spsa::rfpEvaluationMargin * depth;
+        /* static pruning - try to prove that the position is good enough to not need
+         * searching the entire branch */
+        if (!isPv && !isChecked) {
+            /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
+            if (depth < spsa::rfpReductionLimit) {
+                const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + spsa::rfpMargin);
+                const Score evalMargin = spsa::rfpEvaluationMargin * depth;
 
-            if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
-                return m_stackItr->eval - evalMargin;
-        }
+                if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
+                    return m_stackItr->eval - evalMargin;
+            }
 
-        /* dangerous to repeat null search on a null search - skip it here */
-        if constexpr (searchType != SearchType::NullSearch) {
-            if (depth > spsa::nullMoveReduction && !isChecked && m_ply && !board.hasZugzwangProneMaterial()) {
-                if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
-                    return nullMoveScore.value();
+            /* dangerous to repeat null search on a null search - skip it here */
+            if constexpr (searchType != SearchType::NullSearch) {
+                const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
+                if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
+                    if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                        return nullMoveScore.value();
+                    }
                 }
             }
-        }
 
-        /* https://www.chessprogramming.org/Razoring (Strelka) */
-        if (!isPv && !isChecked && depth <= spsa::razorReductionLimit) {
-            Score score = m_stackItr->eval + spsa::razorMarginShallow;
-            if (score < beta) {
-                if (depth == 1) {
-                    Score newScore = quiesence(board, alpha, beta);
-                    return (newScore > score) ? newScore : score;
-                }
-
-                score += spsa::razorMarginDeep;
-                if (score < beta && depth <= spsa::razorDeepReductionLimit) {
-                    const Score newScore = quiesence(board, alpha, beta);
-                    if (newScore < beta)
+            /* https://www.chessprogramming.org/Razoring (Strelka) */
+            if (depth <= spsa::razorReductionLimit) {
+                Score score = m_stackItr->eval + spsa::razorMarginShallow;
+                if (score < beta) {
+                    if (depth == 1) {
+                        Score newScore = quiesence(board, alpha, beta);
                         return (newScore > score) ? newScore : score;
+                    }
+
+                    score += spsa::razorMarginDeep;
+                    if (score < beta && depth <= spsa::razorDeepReductionLimit) {
+                        const Score newScore = quiesence(board, alpha, beta);
+                        if (newScore < beta)
+                            return (newScore > score) ? newScore : score;
+                    }
                 }
             }
         }
@@ -485,7 +490,8 @@ private:
         m_ply += 2;
 
         /* perform search with reduced depth (based on reduction limit) */
-        Score score = -negamax<SearchType::NullSearch>(depth - 1 - spsa::nullMoveReduction, nullMoveBoard, -beta, -beta + 1);
+        const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
+        Score score = -negamax<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta, -beta + 1);
 
         m_ply -= 2;
         m_stackItr -= 2;

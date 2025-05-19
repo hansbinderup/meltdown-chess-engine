@@ -31,7 +31,10 @@
     TUNABLE(razorMarginShallow, Score, 125, 0, 250, 10)    \
     TUNABLE(razorMarginDeep, Score, 175, 0, 250, 10)       \
     TUNABLE(razorDeepReductionLimit, uint8_t, 2, 0, 12, 1) \
-    TUNABLE(nullMoveReduction, uint8_t, 2, 0, 12, 1)       \
+    TUNABLE(nmpBaseMargin, int8_t, -120, -200, 0, 10)      \
+    TUNABLE(nmpMarginFactor, uint8_t, 20, 0, 100, 5)       \
+    TUNABLE(nmpReductionBase, uint8_t, 4, 0, 12, 1)        \
+    TUNABLE(nmpReductionFactor, uint8_t, 4, 0, 12, 1)      \
     TUNABLE(aspirationWindow, uint8_t, 50, 10, 100, 5)     \
     TUNABLE(timeManMovesToGo, uint8_t, 20, 10, 40, 2)      \
     TUNABLE(timeManHardLimit, uint8_t, 3, 1, 5, 1)         \
