@@ -3,6 +3,7 @@
 #include "engine/move_handling.h"
 #include "engine/thread_pool.h"
 #include "engine/tt_hash_table.h"
+#include "evaluation/lmr_table.h"
 #include "evaluation/move_ordering.h"
 #include "evaluation/pv_table.h"
 #include "evaluation/repetition.h"
@@ -316,20 +317,25 @@ public:
             Score score = 0;
             legalMoves++;
 
-            /*
-             * LMR
-             * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction
-             */
+            /* Late Move Reduction (LMR)
+             * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction */
             if (movesSearched == 0) {
                 score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
             } else {
                 if (movesSearched >= spsa::fullDepthMove
-                    && depth >= spsa::lmrReductionLimit
-                    && !isChecked
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
+
+                    const bool isGivingCheck = engine::isKingAttacked(m_stackItr->board);
+                    int8_t lmrReduction = spsa::lmrBaseReduction + getLmrReduction(depth, movesSearched);
+
+                    lmrReduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
+                    lmrReduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
+                    lmrReduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
+                    lmrReduction = std::clamp<uint8_t>(lmrReduction, 1, depth);
+
                     /* search current move with reduced depth */
-                    score = -negamax(depth - 2, m_stackItr->board, -alpha - 1, -alpha);
+                    score = -negamax(depth - lmrReduction, m_stackItr->board, -alpha - 1, -alpha);
                 } else {
                     /* TODO: hack to ensure full depth is reached */
                     score = alpha + 1;
