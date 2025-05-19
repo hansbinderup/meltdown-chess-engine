@@ -197,10 +197,19 @@ public:
     template<SearchType searchType = SearchType::Default>
     constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore)
     {
-        const bool isRoot = m_ply == 0;
-
         m_moveOrdering.pvTable().updateLength(m_ply);
-        if (m_ply) {
+
+        const bool isRoot = m_ply == 0;
+        if (!isRoot) {
+            /* mate distance pruning
+             * https://www.chessprogramming.org/Mate_Distance_Pruning */
+            alpha = std::max<Score>(alpha, -s_mateValue + m_ply);
+            beta = std::min<Score>(beta, s_mateValue - m_ply - 1);
+
+            if (alpha >= beta) {
+                return alpha;
+            }
+
             /* FIXME: make a little more sophisticated with material count etc */
             const bool isDraw = m_repetition.isRepetition(m_stackItr->hash) || board.halfMoves >= 100;
             if (isDraw) {
