@@ -89,3 +89,28 @@ struct fmt::formatter<TbHitPrint> : fmt::formatter<std::string_view> {
         return fmt::format_to(ctx.out(), "");
     }
 };
+
+/*
+ * helper type to specialize a fmt print
+ * use as eg:
+ * fmt::print("{}", NpsPrint(nodes, timeMs)); -> eg: " nps 1000000" or ""
+ * NOTE: will handle spacing by itself
+ */
+struct NpsPrint {
+    uint64_t nodes;
+    uint64_t timeMs;
+};
+
+template<>
+struct fmt::formatter<NpsPrint> : fmt::formatter<std::string_view> {
+    template<typename FormatContext>
+    auto format(const NpsPrint& nps, FormatContext& ctx) const
+    {
+        if (nps.timeMs > 0) {
+            return fmt::format_to(ctx.out(), " nps {}", nps.nodes / nps.timeMs * 1000);
+        }
+
+        return fmt::format_to(ctx.out(), "");
+    }
+};
+
