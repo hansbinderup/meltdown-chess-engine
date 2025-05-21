@@ -70,7 +70,6 @@ public:
             }
             moves[j] = key;
         }
-        m_pvTable.setIsScoring(false);
     }
 
     // Helper: calling inside loops will mean redundant colour checks
@@ -94,7 +93,7 @@ public:
             return ScoreTtHashMove;
         }
 
-        if (m_pvTable.isScoring() && m_pvTable.isPvMove(move, ply)) {
+        if (m_pvTable.isFollowing() && m_pvTable.isPvMove(move, ply)) {
             return ScorePvLine;
         }
 
