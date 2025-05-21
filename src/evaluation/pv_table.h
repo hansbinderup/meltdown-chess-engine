@@ -26,7 +26,6 @@ public:
         std::ranges::fill(m_pvLength, 0);
 
         m_isFollowing = false;
-        m_isScoring = false;
     }
 
     movegen::Move bestMove() const
@@ -60,19 +59,9 @@ public:
         m_isFollowing = val;
     }
 
-    void setIsScoring(bool val)
-    {
-        m_isScoring = val;
-    }
-
     bool isFollowing() const
     {
         return m_isFollowing;
-    }
-
-    bool isScoring() const
-    {
-        return m_isScoring;
     }
 
     bool isPvMove(movegen::Move move, uint8_t ply) const
@@ -86,7 +75,6 @@ public:
 
         for (const auto& move : moves) {
             if (isPvMove(move, ply)) {
-                m_isScoring = true;
                 m_isFollowing = true;
             }
         }
@@ -119,8 +107,6 @@ private:
     std::array<PVNode, s_pvTableSize> m_pvTable {};
     std::array<uint8_t, s_pvTableSize> m_pvLength {};
 
-    /* TODO: use single state instead of two bools - will be racy when we start multi threading */
-    bool m_isScoring;
     bool m_isFollowing;
 };
 }
