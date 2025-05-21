@@ -47,8 +47,8 @@
     TUNABLE(seePawnValue, int32_t, 100, 50, 1000, 10)            \
     TUNABLE(seeKnightValue, int32_t, 422, 50, 1000, 10)          \
     TUNABLE(seeBishopValue, int32_t, 422, 50, 1000, 10)          \
-    TUNABLE(seeRookValue, int32_t, 642, 50, 1000, 10)      \
-TUNABLE(seeQueenValue, int32_t, 1015, 50, 1500, 10)
+    TUNABLE(seeRookValue, int32_t, 642, 50, 1000, 10)            \
+    TUNABLE(seeQueenValue, int32_t, 1015, 50, 1500, 10)
 
 #ifdef SPSA
 

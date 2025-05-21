@@ -268,6 +268,20 @@ private:
             }
         }
 
+#ifdef SPSA
+        for (auto& option : spsa::uciOptions) {
+            if (option.name == inputName) {
+                const auto value = parsing::sv_next_split(input);
+                if (value != "value") {
+                    return false;
+                }
+
+                const auto inputValue = parsing::sv_next_split(input).value_or(input);
+                return ucioption::handleInput(option, inputValue);
+            }
+        }
+#endif
+
         return true;
     }
 
@@ -283,6 +297,11 @@ private:
             for (const auto& option : s_uciOptions) {
                 ucioption::printDebug(option);
             }
+#ifdef SPSA
+            for (const auto& option : spsa::uciOptions) {
+                ucioption::printDebug(option);
+            }
+#endif
         } else if (command == "clear") {
             s_evaluator.reset();
             engine::TtHashTable::clear();
@@ -394,8 +413,8 @@ private:
     static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_evaluator.setPondering(enabled); }),
         ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
-        ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](uint64_t val) { engine::TtHashTable::setSizeMb(val); }),
-        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = s_maxThreads }, [](uint64_t val) {
+        ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](int64_t val) { engine::TtHashTable::setSizeMb(val); }),
+        ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = s_maxThreads }, [](int64_t val) {
             s_evaluator.resizeSearchers(val);
         }),
     });
