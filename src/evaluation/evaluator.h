@@ -45,6 +45,15 @@ public:
         return totalNodes;
     }
 
+    constexpr uint64_t getTbHits() const
+    {
+        uint64_t totalTbHits {};
+        for (const auto& searcher : m_searchers) {
+            totalTbHits += searcher->getTbHits();
+        }
+        return totalTbHits;
+    }
+
     constexpr movegen::Move getBestMove(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
 
@@ -159,17 +168,18 @@ public:
     {
         const auto timeDiff = TimeManager::timeElapsedMs().count();
 
-        auto scoreTbHit = searcher->approxDtzScore(board, score);
-        score = scoreTbHit.first;
-        uint8_t tbHit = scoreTbHit.second;
+        const auto adjustedScore = searcher->approxDtzScore(board, score);
+        const uint64_t nodes = getNodes();
+        const uint64_t tbHits = getTbHits();
 
-        fmt::print("info score {} time {} depth {} seldepth {} nodes {} tbhits {} pv ",
-            ScorePrint(score),
+        fmt::print("info score {} time {} depth {} seldepth {} nodes {}{}{} pv ",
+            ScorePrint(adjustedScore),
             timeDiff,
             currentDepth,
             searcher->getSelDepth(),
-            getNodes(),
-            tbHit);
+            nodes,
+            NpsPrint(nodes, timeDiff),
+            TbHitPrint(tbHits));
 
         fmt::println("{}", fmt::join(searcher->getPvTable(), " "));
 
