@@ -171,13 +171,15 @@ public:
         const auto adjustedScore = searcher->approxDtzScore(board, score);
         const uint64_t nodes = getNodes();
         const uint64_t tbHits = getTbHits();
+        const uint16_t hashFull = engine::TtHashTable::getHashFull();
 
-        fmt::print("info score {} time {} depth {} seldepth {} nodes {}{}{} pv ",
+        fmt::print("info score {} time {} depth {} seldepth {} nodes {} hashfull {}{}{} pv ",
             ScorePrint(adjustedScore),
             timeDiff,
             currentDepth,
             searcher->getSelDepth(),
             nodes,
+            hashFull,
             NpsPrint(nodes, timeDiff),
             TbHitPrint(tbHits));
 
