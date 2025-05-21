@@ -15,7 +15,7 @@ namespace ucioption {
 /* uci types for easier creation */
 using string = std::string;
 using check = bool;
-using spin = uint64_t;
+using spin = int64_t;
 
 template<typename T>
 struct Storage {
@@ -27,11 +27,11 @@ struct Storage {
 using Variant = std::variant<
     Storage<std::string>,
     Storage<bool>,
-    Storage<uint64_t>>;
+    Storage<int64_t>>;
 
 struct Limits {
-    uint64_t min;
-    uint64_t max;
+    int64_t min;
+    int64_t max;
 };
 
 struct UciOption {
@@ -73,7 +73,7 @@ constexpr bool handleInput(UciOption& option, std::string_view input)
             }
         } else if constexpr (std::is_same_v<T, Storage<std::string>>) {
             arg.value = input;
-        } else if constexpr (std::is_same_v<T, Storage<uint64_t>>) {
+        } else if constexpr (std::is_same_v<T, Storage<int64_t>>) {
             const auto inputNum = parsing::to_number(input);
             if (!inputNum.has_value())
                 return false;
@@ -121,7 +121,7 @@ constexpr std::string_view uciTypeToString(Variant variant)
             return "check";
         } else if constexpr (std::is_same_v<T, Storage<std::string>>) {
             return "string";
-        } else if constexpr (std::is_same_v<T, Storage<uint64_t>>) {
+        } else if constexpr (std::is_same_v<T, Storage<int64_t>>) {
             return "spin";
         } else {
             static_assert(false, "string conversion has not yet been implemented");

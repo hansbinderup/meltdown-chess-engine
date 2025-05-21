@@ -92,5 +92,5 @@ jobs:
     - name: Safe directory
       run: git config --global --add safe.directory '*'
     - name: Build with SPSA enabled
-      run: tuner/scripts/build.sh --spsa
+      run: scripts/build.sh --spsa
 

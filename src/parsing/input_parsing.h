@@ -9,9 +9,9 @@
 
 namespace parsing {
 
-std::optional<uint64_t> to_number(std::string_view str)
+inline std::optional<int64_t> to_number(std::string_view str)
 {
-    int result {};
+    int64_t result {};
     auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
 
     // Check for conversion errors or extra characters
