@@ -127,6 +127,11 @@ public:
         s_blackMoveInc = std::chrono::milliseconds(inc);
     }
 
+    static inline void setMoveOverhead(uint64_t moveOverhead)
+    {
+        s_moveOverhead = std::chrono::milliseconds(moveOverhead);
+    }
+
     /* updates move/score/node stability counters and scaling factors
      *
      * - if pvMove remains the same across iterations, increment move stability
@@ -247,5 +252,5 @@ private:
     static inline double s_pvNodeScaleFactor { 1.0 };
 
     /* allow some extra time for processing etc */
-    static constexpr inline Duration s_moveOverhead { 50 };
+    static inline Duration s_moveOverhead { s_defaultMoveOverhead };
 };
