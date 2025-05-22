@@ -80,12 +80,12 @@ public:
 
     static inline void reset()
     {
-        s_whiteTime = 0;
-        s_blackTime = 0;
+        s_whiteTime = Duration::zero();
+        s_blackTime = Duration::zero();
+        s_whiteMoveInc = Duration::zero();
+        s_blackMoveInc = Duration::zero();
         s_movesToGo = 0;
         s_moveTime.reset();
-        s_whiteMoveInc = 0;
-        s_blackMoveInc = 0;
         s_timedOut = false;
 
         s_previousPvMove.reset();
@@ -99,12 +99,12 @@ public:
 
     static inline void setWhiteTime(uint64_t time)
     {
-        s_whiteTime = time;
+        s_whiteTime = std::chrono::milliseconds(time);
     }
 
     static inline void setBlackTime(uint64_t time)
     {
-        s_blackTime = time;
+        s_blackTime = std::chrono::milliseconds(time);
     }
 
     static inline void setMovesToGo(uint64_t moves)
@@ -114,17 +114,17 @@ public:
 
     static inline void setMoveTime(uint64_t time)
     {
-        s_moveTime = time;
+        s_moveTime = std::chrono::milliseconds(time);
     }
 
     static inline void setWhiteMoveInc(uint64_t inc)
     {
-        s_whiteMoveInc = inc;
+        s_whiteMoveInc = std::chrono::milliseconds(inc);
     }
 
     static inline void setBlackMoveInc(uint64_t inc)
     {
-        s_blackMoveInc = inc;
+        s_blackMoveInc = std::chrono::milliseconds(inc);
     }
 
     /* updates move/score/node stability counters and scaling factors
@@ -178,11 +178,11 @@ private:
     {
         using namespace std::chrono;
 
-        const auto timeLeft = subtractOverhead((board.player == PlayerWhite ? milliseconds(s_whiteTime) : milliseconds(s_blackTime)));
-        const auto timeInc = board.player == PlayerWhite ? milliseconds(s_whiteMoveInc) : milliseconds(s_blackMoveInc);
+        const auto timeLeft = subtractOverhead(board.player == PlayerWhite ? s_whiteTime : s_blackTime);
+        const auto timeInc = board.player == PlayerWhite ? s_whiteMoveInc : s_blackMoveInc;
 
         if (s_moveTime) {
-            s_softTimeLimit = milliseconds(s_moveTime.value()) + timeInc;
+            s_softTimeLimit = s_moveTime.value() + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
         } else if (s_movesToGo) {
             const auto time = timeLeft / s_movesToGo;
@@ -220,12 +220,12 @@ private:
         }
     }
 
-    static inline uint64_t s_whiteTime {};
-    static inline uint64_t s_blackTime {};
+    static inline Duration s_whiteTime {};
+    static inline Duration s_blackTime {};
     static inline uint64_t s_movesToGo {};
-    static inline std::optional<uint64_t> s_moveTime {};
-    static inline uint64_t s_whiteMoveInc {};
-    static inline uint64_t s_blackMoveInc {};
+    static inline std::optional<Duration> s_moveTime {};
+    static inline Duration s_whiteMoveInc {};
+    static inline Duration s_blackMoveInc {};
 
     static inline TimePoint s_startTime;
     static inline Duration s_softTimeLimit;
