@@ -61,7 +61,7 @@ public:
             searcher->setHashKey(hash);
         }
 
-        return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
+        return iterativeSearch(depthInput.value_or(s_maxSearchDepth), board);
     }
 
     constexpr bool startPondering(const BitBoard& board)
@@ -177,16 +177,18 @@ public:
     }
 
 private:
-    constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
+    constexpr movegen::Move iterativeSearch(uint8_t depth, const BitBoard& board)
     {
         Score alpha = s_minScore;
         Score beta = s_maxScore;
+        Score delta = spsa::aspirationWindow;
 
         /*
          * iterative deeping - with aspiration window
          * https://web.archive.org/web/20070705134903/www.seanet.com/%7Ebrucemo/topics/aspiration.htm
          */
         movegen::Move bestMove;
+        Score bestScore = s_minScore;
         uint8_t d = 1;
 
         while (d <= depth) {
@@ -200,21 +202,16 @@ private:
                 Searcher::setSearchStopped(false);
                 const auto score = singleSearcher->startSearch(d, board, alpha, beta);
 
-                if ((score <= alpha) || (score >= beta)) {
-                    alpha = s_minScore;
-                    beta = s_maxScore;
-
+                if (!updateAspirationWindow(score, bestScore, d, alpha, beta, delta)) {
                     continue;
                 }
 
-                /* prepare window for next iteration */
-                alpha = score - spsa::aspirationWindow;
-                beta = score + spsa::aspirationWindow;
-
                 printScoreInfo(singleSearcher.get(), board, score, d);
 
+                bestScore = score;
                 bestMove = singleSearcher->getPvMove();
                 m_ponderMove = singleSearcher->getPonderMove();
+
             } else {
                 Searcher::setSearchStopped(false);
 
@@ -297,6 +294,34 @@ private:
         stop();
 
         return bestMove;
+    }
+
+    bool updateAspirationWindow(const Score score, const Score bestScore, uint8_t& depth, Score& alpha, Score& beta, Score& delta)
+    {
+        bool res = true;
+
+        if (score <= alpha) {
+            /* fail low -> widen window down */
+            beta = (alpha + beta) / 2;
+            alpha = std::max<Score>(s_minScore, alpha - delta);
+            res = false;
+        } else if (score >= beta) {
+            /* fail high -> widen window up */
+            beta = std::min<Score>(s_maxScore, beta + delta);
+            res = false;
+        } else if (depth > spsa::aspirationDepthLimit) {
+            /* search was within window */
+            alpha = std::max<Score>(s_minScore, bestScore - delta);
+            beta = std::min<Score>(s_maxScore, bestScore + delta);
+        }
+
+        delta += delta / 2;
+        if (delta >= spsa::aspirationDeltaLimit) {
+            alpha = s_minScore;
+            beta = s_maxScore;
+        }
+
+        return res;
     }
 
     Searcher m_searcher {};
