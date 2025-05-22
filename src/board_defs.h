@@ -149,3 +149,4 @@ constexpr static inline uint8_t s_middleGamePhase { 24 };
 constexpr static inline size_t s_maxThreads { 128 };
 
 using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+constexpr static inline std::chrono::milliseconds s_defaultMoveOverhead { 50 };
