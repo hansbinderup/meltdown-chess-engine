@@ -248,7 +248,7 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
     return true;
 }
 
-inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz, WdlResult wdl, uint8_t& tbhit)
+inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz, WdlResult wdl)
 {
     switch (wdl) {
     case WdlResultLoss:
@@ -256,7 +256,6 @@ inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz
     case WdlResultBlessedLoss:
     case WdlResultDraw:
     case WdlResultCursedWin:
-        tbhit = 1;
         return 0;
     case WdlResultWin:
         break;
@@ -264,8 +263,6 @@ inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz
     case WdlResultTableNotActive:
         return score;
     }
-
-    tbhit = 1;
 
     /* If we're already at DTZ 0, it implies a forced draw or mate, so no further approximation needed */
     if (dtz == 0) {

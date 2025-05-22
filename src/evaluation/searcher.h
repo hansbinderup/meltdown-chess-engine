@@ -53,6 +53,11 @@ public:
         return m_nodes;
     }
 
+    constexpr uint64_t getTbHits() const
+    {
+        return m_tbHits;
+    }
+
     constexpr uint8_t getSelDepth() const
     {
         return m_selDepth;
@@ -123,6 +128,7 @@ public:
     {
         m_stackItr = m_stack.begin();
         m_nodes = 0;
+        m_tbHits = 0;
         m_selDepth = 0;
     }
 
@@ -141,11 +147,9 @@ public:
         m_repetition.add(hash);
     }
 
-    constexpr std::pair<Score, uint8_t> approxDtzScore(const BitBoard& board, Score score)
+    constexpr Score approxDtzScore(const BitBoard& board, Score score)
     {
-        uint8_t tbHit = 0;
-        score = syzygy::approximateDtzScore(board, score, m_dtz, m_wdl, tbHit);
-        return { score, tbHit };
+        return syzygy::approximateDtzScore(board, score, m_dtz, m_wdl);
     }
 
     constexpr auto& getPvTable() const
@@ -299,6 +303,8 @@ public:
                 Score score = 0;
                 syzygy::probeWdl(board, score);
                 engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
+
+                m_tbHits++;
                 return score;
             }
         }
@@ -574,6 +580,7 @@ private:
     static inline std::atomic_bool s_searchStopped { true };
 
     uint64_t m_nodes {};
+    uint64_t m_tbHits {};
     uint8_t m_ply {};
     Repetition m_repetition;
     MoveOrdering m_moveOrdering {};
