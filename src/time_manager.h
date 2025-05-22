@@ -189,22 +189,21 @@ private:
         if (s_moveTime) {
             s_softTimeLimit = s_moveTime.value() + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
-        } else if (s_movesToGo) {
-            const auto time = timeLeft / s_movesToGo;
-            s_softTimeLimit = time + timeInc;
-            s_hardTimeLimit = s_softTimeLimit;
         } else if (timeLeft.count() == 0 && timeInc.count() == 0) {
             /* no time was specified - search until stopped */
             s_softTimeLimit = Duration::max();
             s_hardTimeLimit = s_softTimeLimit;
         } else {
-            /*
-             * The above are "fixed" time controls. In real life we have to manage time ourselves.
+            /* The above are "fixed" time controls. In real life we have to manage time ourselves.
              * Our time management model is based on the write from Sam Roelants:
-             * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md
-             */
-            const auto baseTime = duration_cast<milliseconds>(timeLeft * spsa::timeManBaseFrac / 1000.0
-                + timeInc * spsa::timeManIncFrac / 100.0);
+             * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md */
+
+            /* if no "movesToGo" is provided then try to estimate one using our base parameters */
+            const auto baseTime = (s_movesToGo
+                                          ? timeLeft / s_movesToGo
+                                          : timeLeft * spsa::timeManBaseFrac / 1000.0)
+                + timeInc * spsa::timeManIncFrac / 100.0;
+
             const auto limitTime = duration_cast<milliseconds>(timeLeft * spsa::timeManLimitFrac / 100.0);
 
             s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime));
