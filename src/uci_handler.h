@@ -419,5 +419,8 @@ private:
         ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = s_maxThreads }, [](int64_t val) {
             s_evaluator.resizeSearchers(val);
         }),
+        ucioption::make<ucioption::spin>("MoveOverhead", s_defaultMoveOverhead.count(), ucioption::Limits { .min = 0, .max = 10000 }, [](uint64_t val) {
+            TimeManager::setMoveOverhead(val);
+        }),
     });
 };
