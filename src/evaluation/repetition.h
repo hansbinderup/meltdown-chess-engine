@@ -23,10 +23,10 @@ public:
         uint8_t reps = 0;
         const int16_t end = std::max<int16_t>(m_count - board.halfMoves, 0);
 
-        /* NOTE: -2: we only care about our own moves
+        /* NOTE: -1: we only care about our own moves
          * NOTE: we only want to search to an irreversible position hence only check back to half moves
          * NOTE: search backwards -> more likely to be found early if it's a repeated position */
-        for (int16_t i = m_count - 2; i >= end; i -= 2) {
+        for (int16_t i = m_count - 1; i >= end; i -= 2) {
             if (m_repetitions[i] == hash) {
                 if (++reps == 2)
                     return true;
