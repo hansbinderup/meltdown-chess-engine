@@ -1,6 +1,6 @@
 {
     "dev_engine": {
-        "options": ["Syzygy=/path/to/syzygy/tables", "Ponder=false"]
+        "options": ["SyzygyPath=/path/to/syzygy/tables", "Ponder=false"]
     },
     "base_engine": {
         "options": []

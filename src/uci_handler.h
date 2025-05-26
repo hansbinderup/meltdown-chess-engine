@@ -394,7 +394,7 @@ private:
     constexpr static inline std::size_t s_inputBufferSize { 1024 * 6 };
 
     /* UCI options callbacks */
-    static inline void syzygyCallback(std::string_view path)
+    static inline void syzygyPathCallback(std::string_view path)
     {
         syzygy::deinit();
 
@@ -408,7 +408,13 @@ private:
     /* declare UCI options */
     static inline auto s_uciOptions = std::to_array<ucioption::UciOption>({
         ucioption::make<ucioption::check>("Ponder", false, [](bool enabled) { s_evaluator.setPondering(enabled); }),
-        ucioption::make<ucioption::string>("Syzygy", "<empty>", syzygyCallback),
+        ucioption::make<ucioption::string>("SyzygyPath", "<empty>", syzygyPathCallback),
+        ucioption::make<ucioption::spin>("SyzygyProbeLimit", 0, ucioption::Limits { .min = 0, .max = 7 }, [](int64_t val) {
+            /* FIXME: we don't currently use the probe limit - we use it dynamically based on table depths
+             * we could provide this option and allow overwrite, but for now just act like we're doing that to
+             * mute warnings from OpenBench */
+            std::ignore = val;
+        }),
         ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](int64_t val) { engine::TtHashTable::setSizeMb(val); }),
         ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = s_maxThreads }, [](int64_t val) {
             s_evaluator.resizeSearchers(val);
