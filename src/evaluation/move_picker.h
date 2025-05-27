@@ -18,8 +18,8 @@ enum KillerMoveType {
 
 enum PickerPhase {
     Syzygy,
-    TtMove,
     PvMove,
+    TtMove,
     CaptureGood,
     PromotionGood,
     KillerMoveFirst,
@@ -72,17 +72,17 @@ public:
             return pickNextMove<player>(phase, board, moves, ply, ttMove);
         }
 
-        case TtMove: {
-            if (const auto pickedMove = pickTtMove(moves, ttMove))
+        case PvMove: {
+            if (const auto pickedMove = pickPvMove(moves, ply))
                 return pickedMove;
 
-            phase = PickerPhase::PvMove;
+            phase = PickerPhase::TtMove;
 
             return pickNextMove<player>(phase, board, moves, ply, ttMove);
         }
 
-        case PvMove: {
-            if (const auto pickedMove = pickPvMove(moves, ply))
+        case TtMove: {
+            if (const auto pickedMove = pickTtMove(moves, ttMove))
                 return pickedMove;
 
             phase = PickerPhase::CaptureGood;
