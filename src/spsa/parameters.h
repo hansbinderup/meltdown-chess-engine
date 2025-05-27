@@ -36,14 +36,14 @@
     TUNABLE(nmpReductionBase, uint8_t, 4, 0, 12, 1)              \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 0, 12, 1)            \
     TUNABLE(aspirationWindow, uint8_t, 50, 10, 100, 5)           \
-    TUNABLE(timeManIncFrac, uint16_t, 75, 1, 150, 5)             \
-    TUNABLE(timeManBaseFrac, uint16_t, 50, 1, 150, 5)            \
-    TUNABLE(timeManLimitFrac, uint16_t, 75, 1, 150, 5)           \
-    TUNABLE(timeManSoftFrac, uint16_t, 50, 1, 150, 5)            \
-    TUNABLE(timeManHardFrac, uint16_t, 300, 100, 500, 20)        \
-    TUNABLE(timeManNodeFracBase, uint8_t, 150, 1, 200, 10)       \
-    TUNABLE(timeManNodeFracMultiplier, uint8_t, 170, 1, 200, 10) \
-    TUNABLE(timeManScoreMargin, uint8_t, 10, 1, 20, 1)           \
+    TUNABLE(timeManIncFrac, uint16_t, 80, 1, 150, 5)             \
+    TUNABLE(timeManBaseFrac, uint16_t, 49, 1, 150, 5)            \
+    TUNABLE(timeManLimitFrac, uint16_t, 80, 1, 150, 5)           \
+    TUNABLE(timeManSoftFrac, uint16_t, 49, 1, 150, 5)            \
+    TUNABLE(timeManHardFrac, uint16_t, 330, 100, 500, 20)        \
+    TUNABLE(timeManNodeFracBase, uint8_t, 136, 1, 200, 10)       \
+    TUNABLE(timeManNodeFracMultiplier, uint8_t, 171, 1, 200, 10) \
+    TUNABLE(timeManScoreMargin, uint8_t, 11, 1, 20, 1)           \
     TUNABLE(seePawnValue, int32_t, 100, 50, 1000, 10)            \
     TUNABLE(seeKnightValue, int32_t, 422, 50, 1000, 10)          \
     TUNABLE(seeBishopValue, int32_t, 422, 50, 1000, 10)          \
