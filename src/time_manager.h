@@ -183,13 +183,15 @@ private:
     {
         using namespace std::chrono;
 
-        const auto timeLeft = subtractOverhead(board.player == PlayerWhite ? s_whiteTime : s_blackTime);
+        const auto timeInput = board.player == PlayerWhite ? s_whiteTime : s_blackTime;
         const auto timeInc = board.player == PlayerWhite ? s_whiteMoveInc : s_blackMoveInc;
+        const auto timeLeft = subtractOverhead(timeInput);
 
         if (s_moveTime) {
+            /* FIXME: should we account for move overhead here? */
             s_softTimeLimit = s_moveTime.value() + timeInc;
             s_hardTimeLimit = s_softTimeLimit;
-        } else if (timeLeft.count() == 0 && timeInc.count() == 0) {
+        } else if (timeInput.count() == 0 && timeInc.count() == 0) {
             /* no time was specified - search until stopped */
             s_softTimeLimit = Duration::max();
             s_hardTimeLimit = s_softTimeLimit;
