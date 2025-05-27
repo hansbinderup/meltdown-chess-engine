@@ -85,15 +85,6 @@ public:
             if (const auto pickedMove = pickPvMove(moves, ply))
                 return pickedMove;
 
-            phase = PickerPhase::CaptureGood;
-
-            return pickNextMove<player>(phase, board, moves, ply, ttMove);
-        }
-
-        case CaptureGood: {
-            if (const auto pickedMove = pickCapture<true>(board, moves))
-                return pickedMove;
-
             phase = PickerPhase::PromotionGood;
 
             return pickNextMove<player>(phase, board, moves, ply, ttMove);
@@ -101,6 +92,15 @@ public:
 
         case PromotionGood: {
             if (const auto pickedMove = pickPromotion<true>(moves))
+                return pickedMove;
+
+            phase = PickerPhase::CaptureGood;
+
+            return pickNextMove<player>(phase, board, moves, ply, ttMove);
+        }
+
+        case CaptureGood: {
+            if (const auto pickedMove = pickCapture<true>(board, moves))
                 return pickedMove;
 
             phase = PickerPhase::KillerMoveFirst;
@@ -223,6 +223,35 @@ private:
     }
 
     template<bool isGood>
+    constexpr std::optional<movegen::Move> pickPromotion(movegen::ValidMoves& moves)
+    {
+        if constexpr (isGood) {
+            /* Currently, good captures are considered better than good promotions, and bad captures are worse than bad promotions */
+            for (uint16_t i = 0; i < moves.count(); i++) {
+                if (!moves[i].isNull() && moves[i].promotionType() == PromotionQueen && !moves[i].isCapture()) {
+                    const auto pickedMove = moves[i];
+
+                    moves.nullifyMove(i);
+
+                    return pickedMove;
+                }
+            }
+        } else {
+            for (uint16_t i = 0; i < moves.count(); i++) {
+                if (!moves[i].isNull() && moves[i].isPromotionMove() && !moves[i].isCapture()) {
+                    const auto pickedMove = moves[i];
+
+                    moves.nullifyMove(i);
+
+                    return pickedMove;
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    template<bool isGood>
     constexpr std::optional<movegen::Move> pickCapture(const BitBoard& board, movegen::ValidMoves& moves)
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
@@ -253,35 +282,6 @@ private:
             moves.nullifyMove(bestMoveIndex);
 
         return bestMove;
-    }
-
-    template<bool isGood>
-    constexpr std::optional<movegen::Move> pickPromotion(movegen::ValidMoves& moves)
-    {
-        if constexpr (isGood) {
-            /* Currently, good captures are considered better than good promotions, and bad captures are worse than bad promotions */
-            for (uint16_t i = 0; i < moves.count(); i++) {
-                if (!moves[i].isNull() && moves[i].promotionType() == PromotionQueen && !moves[i].isCapture()) {
-                    const auto pickedMove = moves[i];
-
-                    moves.nullifyMove(i);
-
-                    return pickedMove;
-                }
-            }
-        } else {
-            for (uint16_t i = 0; i < moves.count(); i++) {
-                if (!moves[i].isNull() && moves[i].isPromotionMove() && !moves[i].isCapture()) {
-                    const auto pickedMove = moves[i];
-
-                    moves.nullifyMove(i);
-
-                    return pickedMove;
-                }
-            }
-        }
-
-        return std::nullopt;
     }
 
     constexpr std::optional<movegen::Move> pickKillerMove(KillerMoveType type, movegen::ValidMoves& moves, uint8_t ply)
