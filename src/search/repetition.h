@@ -1,6 +1,8 @@
 #pragma once
 
+#include "core/bit_board.h"
 #include "core/board_defs.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -17,33 +19,34 @@ public:
         m_count--;
     }
 
-    bool isRepetition(uint64_t hash)
+    bool isRepetition(const BitBoard& board, uint64_t hash, uint8_t ply)
     {
-        for (uint64_t entry : *this) {
-            if (entry == hash)
+        uint8_t reps = 0;
+
+        /* count back the history checking only our positions (hence -2) until we reach a
+         * non-reversible position (half-moves) */
+        for (int16_t i = m_count - 2; i >= 0; i -= 2) {
+
+            /* No draw can occur before a zeroing move */
+            if (i < (m_count - board.halfMoves))
+                break;
+
+            /* if the same position occurred after the root (i > m_count - ply),
+             * a twofold repetition is enough to consider it a potential draw  during search
+             * otherwise, count full repetitions and return true on the third (legal threefold draw) */
+            if (m_repetitions[i] == hash && (i > m_count - ply || ++reps == 2))
                 return true;
         }
 
         return false;
     }
 
-    const uint64_t* begin() const
-    {
-        return m_repetitions.begin();
-    }
-
-    const uint64_t* end() const
-    {
-        return m_repetitions.begin() + m_count;
-    }
-
     void reset()
     {
-        std::ranges::fill(m_repetitions, 0);
         m_count = 0;
     }
 
 private:
-    uint16_t m_count {};
+    int16_t m_count {};
     std::array<uint64_t, s_maxHalfMoves> m_repetitions {};
 };
