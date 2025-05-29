@@ -214,6 +214,7 @@ private:
     {
         Score alpha = s_minScore;
         Score beta = s_maxScore;
+        Score delta = spsa::aspirationWindow;
 
         /*
          * iterative deeping - with aspiration window
@@ -227,6 +228,11 @@ private:
                 break;
             }
 
+            if (delta >= spsa::aspirationWindowLimit) {
+                alpha = s_minScore;
+                beta = s_maxScore;
+            }
+
             if (m_searchers.size() == 1) {
                 const auto& singleSearcher = m_searchers.front();
 
@@ -235,16 +241,21 @@ private:
 
                 /* only adjust window when we're reached a certain depth */
                 if (d >= spsa::aspirationDepthLimit) {
-                    if ((score <= alpha) || (score >= beta)) {
-                        alpha = s_minScore;
-                        beta = s_maxScore;
-
+                    if (score <= alpha) {
+                        alpha -= delta;
+                        beta = (alpha + beta) / 2;
+                        delta *= 2;
                         continue;
+                    } else if (score >= beta) {
+                        beta += delta;
+                        delta *= 2;
+                        continue;
+                    } else {
+                        /* prepare window for next iteration */
+                        alpha = score - spsa::aspirationWindow;
+                        beta = score + spsa::aspirationWindow;
+                        delta = spsa::aspirationWindow;
                     }
-
-                    /* prepare window for next iteration */
-                    alpha = score - spsa::aspirationWindow;
-                    beta = score + spsa::aspirationWindow;
                 }
 
                 printScoreInfo(singleSearcher.get(), board, score, d);
