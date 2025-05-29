@@ -16,7 +16,7 @@ constexpr size_t s_threads { 14 };
 constexpr size_t s_parameterPrintRate { 50 };
 
 /* these can be configured */
-constexpr double s_kValue { 2.25 }; /* modify if the tuning values are too high / low */
+constexpr double s_kValue { 3.0 }; /* modify if the tuning values are too high / low */
 constexpr double s_learningRate { 1.0 }; /* AdamW handles learning rate adjustments */
 
 }
