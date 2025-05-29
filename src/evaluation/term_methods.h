@@ -65,7 +65,7 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx, co
 
     TermScore score(0, 0);
 
-    /* fast and simple way to compute pawns attacking our king */
+    /* fast and simple way to compute pawns attacking their king zone */
     ctx.kingAttacks[opponent] += std::popcount(ctx.kingZone[opponent] & ctx.pawnAttacks[player]);
 
     helper::bitIterate(pawns, [&](BoardPosition pos) {
@@ -120,16 +120,18 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
 
     helper::bitIterate(knights, [&](BoardPosition pos) {
+        const uint64_t moves = movegen::getKnightMoves(pos);
+        const uint64_t square = helper::positionToSquare(pos);
+
         phaseScore += s_piecePhaseValues[Knight];
         ADD_SCORE_INDEXED(pieceValues, Knight);
 
-        const uint64_t moves = movegen::getKnightMoves(pos);
-        const int movesCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
-        ADD_SCORE_INDEXED(knightMobilityScore, movesCount);
+        /* update mobility score based on possible moves that are not attacked by their pawns */
+        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        ADD_SCORE_INDEXED(knightMobilityScore, mobilityCount);
 
+        /* moves into opponent king zone -> update potential king attacks */
         ctx.kingAttacks[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
-
-        const uint64_t square = helper::positionToSquare(pos);
 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKnights, pos);
@@ -173,16 +175,18 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         ADD_SCORE(bishopPairScore)
 
     helper::bitIterate(bishops, [&](BoardPosition pos) {
+        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
+        const uint64_t square = helper::positionToSquare(pos);
+
         phaseScore += s_piecePhaseValues[Bishop];
         ADD_SCORE_INDEXED(pieceValues, Bishop);
 
-        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
-        const int movesCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
-        ADD_SCORE_INDEXED(bishopMobilityScore, movesCount);
+        /* update mobility score based on possible moves that are not attacked by their pawns */
+        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        ADD_SCORE_INDEXED(bishopMobilityScore, mobilityCount);
 
+        /* moves into opponent king zone -> update potential king attacks */
         ctx.kingAttacks[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
-
-        const uint64_t square = helper::positionToSquare(pos);
 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtBishops, pos);
@@ -223,13 +227,16 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, co
     const uint64_t blackKing = board.pieces[BlackKing];
 
     helper::bitIterate(rooks, [&](BoardPosition pos) {
+        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
+
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
 
-        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
-        const int movesCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
-        ADD_SCORE_INDEXED(rookMobilityScore, movesCount);
+        /* update mobility score based on possible moves that are not attacked by their pawns */
+        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        ADD_SCORE_INDEXED(rookMobilityScore, mobilityCount);
 
+        /* moves into opponent king zone -> update potential king attacks */
         ctx.kingAttacks[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
 
         if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
@@ -274,16 +281,19 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, c
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
     helper::bitIterate(queens, [&](BoardPosition pos) {
+        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]);
+
         phaseScore += s_piecePhaseValues[Queen];
         ADD_SCORE_INDEXED(pieceValues, Queen);
 
         if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
             ADD_SCORE(queenOpenFileBonus);
 
-        const uint64_t moves = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]));
-        const int movesCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
-        ADD_SCORE_INDEXED(queenMobilityScore, movesCount);
+        /* update mobility score based on possible moves that are not attacked by their pawns */
+        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        ADD_SCORE_INDEXED(queenMobilityScore, mobilityCount);
 
+        /* moves into opponent king zone -> update potential king attacks */
         ctx.kingAttacks[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
 
         if constexpr (player == PlayerWhite) {
@@ -310,8 +320,8 @@ static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
         const uint64_t virtualMoves
             = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]))
             & ~board.occupation[player];
-        const int movesCount = std::popcount(virtualMoves);
-        ADD_SCORE_INDEXED(kingVirtualMobilityScore, movesCount);
+        const int virtualMovesCount = std::popcount(virtualMoves);
+        ADD_SCORE_INDEXED(kingVirtualMobilityScore, virtualMovesCount);
 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKings, pos);
