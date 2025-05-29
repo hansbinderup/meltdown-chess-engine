@@ -228,7 +228,7 @@ public:
         m_movePicker.pvTable().updateLength(m_ply);
         if (m_ply) {
             /* FIXME: make a little more sophisticated with material count etc */
-            const bool isDraw = m_repetition.isRepetition(m_stackItr->hash) || board.halfMoves >= 100;
+            const bool isDraw = m_repetition.isRepetition(m_stackItr->hash, board) || board.halfMoves >= 100;
             if (isDraw) {
                 /* draw score is 0 but to avoid blindness towards three fold lines
                  * we add a slight variance to the draw score

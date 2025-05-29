@@ -1,6 +1,8 @@
 #pragma once
 
+#include "core/bit_board.h"
 #include "core/board_defs.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -17,24 +19,27 @@ public:
         m_count--;
     }
 
-    bool isRepetition(uint64_t hash)
+    bool isRepetition(uint64_t hash, const BitBoard& board)
     {
-        for (uint64_t entry : *this) {
-            if (entry == hash)
+        if (m_count < 2)
+            return false;
+
+        /* 3 fold repetitions allow for 2 repetitions before drawn */
+        uint8_t rep = 0;
+
+        /* m_count points at next index */
+        const int16_t lastIndex = m_count - 1;
+
+        /* only search back irresible moves */
+        const int16_t end = std::max<int16_t>(0, lastIndex - board.halfMoves);
+
+        /* check our last position (lastIndex - 1) and only check our positions (i -= 2) */
+        for (int16_t i = lastIndex - 1; i >= end; i -= 2) {
+            if (m_repetitions[i] == hash && ++rep >= 2)
                 return true;
         }
 
         return false;
-    }
-
-    const uint64_t* begin() const
-    {
-        return m_repetitions.begin();
-    }
-
-    const uint64_t* end() const
-    {
-        return m_repetitions.begin() + m_count;
     }
 
     void reset()
