@@ -120,14 +120,14 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
 
     helper::bitIterate(knights, [&](BoardPosition pos) {
-        const uint64_t moves = movegen::getKnightMoves(pos);
+        const uint64_t moves = movegen::getKnightMoves(pos) & ~board.occupation[player];
         const uint64_t square = helper::positionToSquare(pos);
 
         phaseScore += s_piecePhaseValues[Knight];
         ADD_SCORE_INDEXED(pieceValues, Knight);
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
-        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
         ADD_SCORE_INDEXED(knightMobilityScore, mobilityCount);
 
         /* moves into opponent king zone -> update potential king attacks */
@@ -175,14 +175,14 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         ADD_SCORE(bishopPairScore)
 
     helper::bitIterate(bishops, [&](BoardPosition pos) {
-        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]);
+        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]) & ~board.occupation[player];
         const uint64_t square = helper::positionToSquare(pos);
 
         phaseScore += s_piecePhaseValues[Bishop];
         ADD_SCORE_INDEXED(pieceValues, Bishop);
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
-        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
         ADD_SCORE_INDEXED(bishopMobilityScore, mobilityCount);
 
         /* moves into opponent king zone -> update potential king attacks */
@@ -227,13 +227,13 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, co
     const uint64_t blackKing = board.pieces[BlackKing];
 
     helper::bitIterate(rooks, [&](BoardPosition pos) {
-        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]);
+        const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]) & ~board.occupation[player];
 
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
-        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
         ADD_SCORE_INDEXED(rookMobilityScore, mobilityCount);
 
         /* moves into opponent king zone -> update potential king attacks */
@@ -281,7 +281,9 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, c
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
     helper::bitIterate(queens, [&](BoardPosition pos) {
-        const uint64_t moves = movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]);
+        const uint64_t moves
+            = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]))
+            & ~board.occupation[player];
 
         phaseScore += s_piecePhaseValues[Queen];
         ADD_SCORE_INDEXED(pieceValues, Queen);
@@ -290,7 +292,7 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, c
             ADD_SCORE(queenOpenFileBonus);
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
-        const int mobilityCount = std::popcount(moves & ~board.occupation[player] & ~theirPawnAttacks);
+        const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
         ADD_SCORE_INDEXED(queenMobilityScore, mobilityCount);
 
         /* moves into opponent king zone -> update potential king attacks */
@@ -338,6 +340,10 @@ static inline TermScore getKingZoneScore(TermContext& ctx)
 {
     TermScore score(0, 0);
 
+    /* apply score / penalty based on the amount of attacks towards the king zone
+     * the king zone is the 9 squares around the king ie. all king's attack for a given square
+     * the work has been done while iterating each piece, so here we can simply
+     * collect the counts and apply a score */
     const uint8_t kingZoneCount = std::min<uint8_t>(ctx.kingAttacks[player], kingZoneSize - 1);
     ADD_SCORE_INDEXED(kingZone, kingZoneCount);
 

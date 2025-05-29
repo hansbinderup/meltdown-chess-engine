@@ -8,7 +8,14 @@ namespace evaluation {
 
 /* helper macro to apply score for both sides - with correct scoring sign
  * positive for white
- * negative for black */
+ * negative for black
+ *
+ * usage:
+ *
+ *    template<Player player>
+ *    TermScore termFunc(arg1, arg2, ... argN);
+ *
+ *    APPLY_SCORE(termFunc, arg1, arg2, ... argN) */
 #define APPLY_SCORE(func, ...)                   \
     {                                            \
         score += func<PlayerWhite>(__VA_ARGS__); \
