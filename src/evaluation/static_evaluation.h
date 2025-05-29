@@ -6,10 +6,28 @@
 
 namespace evaluation {
 
+/* helper macro to apply score for both sides - with correct scoring sign
+ * positive for white
+ * negative for black
+ *
+ * usage:
+ *
+ *    template<Player player>
+ *    TermScore termFunc(arg1, arg2, ... argN);
+ *
+ *    APPLY_SCORE(termFunc, arg1, arg2, ... argN) */
+#define APPLY_SCORE(func, ...)                   \
+    {                                            \
+        score += func<PlayerWhite>(__VA_ARGS__); \
+        score -= func<PlayerBlack>(__VA_ARGS__); \
+    }
+
 static inline TermContext prepareContext(const BitBoard& board)
 {
     return TermContext {
         .pawnAttacks { attackgen::getWhitePawnAttacks(board), attackgen::getBlackPawnAttacks(board) },
+        .kingZone { attackgen::getKingAttacks<PlayerWhite>(board), attackgen::getKingAttacks<PlayerBlack>(board) },
+        .attacksToKingZone { 0, 0 },
     };
 }
 
@@ -24,7 +42,7 @@ static inline Score staticEvaluation(const BitBoard& board)
     for (const auto piece : magic_enum::enum_values<Piece>()) {
         switch (piece) {
         case WhitePawn:
-            score += getPawnScore<PlayerWhite>(board, board.pieces[piece]);
+            score += getPawnScore<PlayerWhite>(board, ctx, board.pieces[piece]);
             break;
         case WhiteKnight:
             score += getKnightScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
@@ -44,7 +62,7 @@ static inline Score staticEvaluation(const BitBoard& board)
 
             /* BLACK PIECES - should all be negated! */
         case BlackPawn:
-            score -= getPawnScore<PlayerBlack>(board, board.pieces[piece]);
+            score -= getPawnScore<PlayerBlack>(board, ctx, board.pieces[piece]);
             break;
         case BlackKnight:
             score -= getKnightScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
@@ -63,6 +81,8 @@ static inline Score staticEvaluation(const BitBoard& board)
             break;
         }
     }
+
+    APPLY_SCORE(getKingZoneScore, ctx);
 
     const Score evaluation = score.phaseScore(phaseScore);
     return board.player == PlayerWhite ? evaluation : -evaluation;
