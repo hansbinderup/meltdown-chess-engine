@@ -79,7 +79,7 @@ public:
             searcher->setHashKey(hash);
         }
 
-        return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
+        return iterativeSearch(depthInput.value_or(s_maxSearchDepth), board);
     }
 
     constexpr bool startPondering(const BitBoard& board)
@@ -210,7 +210,7 @@ private:
         return static_cast<double>(pvNodes) / totalNodes;
     }
 
-    constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
+    constexpr movegen::Move iterativeSearch(uint8_t depth, const BitBoard& board)
     {
         Score alpha = s_minScore;
         Score beta = s_maxScore;
@@ -233,16 +233,19 @@ private:
                 Searcher::setSearchStopped(false);
                 const auto score = singleSearcher->startSearch(d, board, alpha, beta);
 
-                if ((score <= alpha) || (score >= beta)) {
-                    alpha = s_minScore;
-                    beta = s_maxScore;
+                /* only adjust window when we're reached a certain depth */
+                if (d >= spsa::aspirationDepthLimit) {
+                    if ((score <= alpha) || (score >= beta)) {
+                        alpha = s_minScore;
+                        beta = s_maxScore;
 
-                    continue;
+                        continue;
+                    }
+
+                    /* prepare window for next iteration */
+                    alpha = score - spsa::aspirationWindow;
+                    beta = score + spsa::aspirationWindow;
                 }
-
-                /* prepare window for next iteration */
-                alpha = score - spsa::aspirationWindow;
-                beta = score + spsa::aspirationWindow;
 
                 printScoreInfo(singleSearcher.get(), board, score, d);
 
