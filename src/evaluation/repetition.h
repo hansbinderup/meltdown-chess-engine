@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bit_board.h"
 #include "board_defs.h"
 #include <algorithm>
 #include <array>
@@ -17,24 +18,23 @@ public:
         m_count--;
     }
 
-    bool isRepetition(uint64_t hash)
+    bool isRepetition(uint64_t hash, const BitBoard& board)
     {
-        for (uint64_t entry : *this) {
-            if (entry == hash)
+        if (board.halfMoves <= 2)
+            return false;
+
+        auto itr = m_repetitions.begin() + m_count - 1;
+        const auto end = itr - board.halfMoves;
+
+        while (itr >= end) {
+            if (*itr == hash) {
                 return true;
+            }
+
+            itr -= 2;
         }
 
         return false;
-    }
-
-    const uint64_t* begin() const
-    {
-        return m_repetitions.begin();
-    }
-
-    const uint64_t* end() const
-    {
-        return m_repetitions.begin() + m_count;
     }
 
     void reset()
