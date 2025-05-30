@@ -54,6 +54,16 @@ struct TermScore {
         return *this;
     }
 
+    constexpr TermScore& operator*=(int multiply) noexcept
+    {
+        int16_t sMg = mg() * multiply;
+        int16_t sEg = eg() * multiply;
+
+        value = (static_cast<uint16_t>(sEg) << 16) | static_cast<uint16_t>(sMg);
+
+        return *this;
+    }
+
     constexpr TermScore operator+(const TermScore& other) const noexcept
     {
         int16_t sMg = mg() + other.mg();
@@ -66,6 +76,14 @@ struct TermScore {
     {
         int16_t sMg = mg() - other.mg();
         int16_t sEg = eg() - other.eg();
+
+        return TermScore(sMg, sEg);
+    }
+
+    constexpr TermScore operator*(int multiply) const noexcept
+    {
+        int16_t sMg = mg() * multiply;
+        int16_t sEg = eg() * multiply;
 
         return TermScore(sMg, sEg);
     }
