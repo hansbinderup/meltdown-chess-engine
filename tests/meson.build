@@ -5,7 +5,7 @@ catch2_dep = catch2.get_variable('catch2_with_main_dep')
 unit_test_names = [
   'test_perft',
   'test_zobrist_hashing',
-  'test_tt_hash_table',
+  'test_transposition',
   'test_move_gen_hashing',
   'test_killer_moves',
   'test_history_moves',

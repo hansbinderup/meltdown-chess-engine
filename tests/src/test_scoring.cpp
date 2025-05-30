@@ -6,6 +6,8 @@
 #define private public
 #include "evaluation/evaluator.h"
 
+using namespace search;
+
 constexpr auto getPiece(const BitBoard& board, movegen::Move move)
 {
     return board.getAttackerAtSquare(move.fromSquare(), board.player);
@@ -13,7 +15,7 @@ constexpr auto getPiece(const BitBoard& board, movegen::Move move)
 
 TEST_CASE("Scoring", "[scoring]")
 {
-    engine::TtHashTable::setSizeMb(16);
+    core::TranspositionTable::setSizeMb(16);
 
     SECTION("Test flipped score")
     {
@@ -52,9 +54,9 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(board.has_value());
 
             movegen::ValidMoves moves;
-            engine::getAllMoves<movegen::MoveCapture>(*board, moves);
+            core::getAllMoves<movegen::MoveCapture>(*board, moves);
 
-            auto phase = evaluation::PickerPhase::TtMove;
+            auto phase = PickerPhase::TtMove;
             movegen::ValidMoves results {};
 
             while (const auto moveOpt = s_evaluator.m_searchers.at(0)->m_movePicker.pickNextMove(phase, *board, moves, 0)) {
@@ -67,7 +69,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(getPiece(*board, results[2]) == WhiteRook);
 
             // Reset nullified moves
-            engine::getAllMoves<movegen::MoveCapture>(*board, moves);
+            core::getAllMoves<movegen::MoveCapture>(*board, moves);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
             REQUIRE(getPiece(*board, move) == WhitePawn);
@@ -79,9 +81,9 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(board.has_value());
 
             movegen::ValidMoves moves;
-            engine::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
+            core::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
 
-            auto phase = evaluation::PickerPhase::TtMove;
+            auto phase = PickerPhase::TtMove;
             movegen::ValidMoves results {};
 
             while (const auto moveOpt = s_evaluator.m_searchers.at(0)->m_movePicker.pickNextMove(phase, *board, moves, 0)) {
@@ -93,7 +95,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(getPiece(*board, results[2]) == WhiteRook);
 
             // Reset nullified moves
-            engine::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
+            core::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
             REQUIRE(getPiece(*board, move) == WhiteQueen); // evading attack + checking king = better move!

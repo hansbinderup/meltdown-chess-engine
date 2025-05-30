@@ -1,6 +1,6 @@
 
-#include "bit_board.h"
-#include "engine/move_handling.h"
+#include "core/bit_board.h"
+#include "core/move_handling.h"
 #include "parsing/fen_parser.h"
 #include <catch2/catch_test_macros.hpp>
 
@@ -8,14 +8,14 @@ constexpr uint8_t s_defaultSearchDepth = 3;
 
 void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 {
-    const uint64_t originalHash = engine::generateHashKey(board);
+    const uint64_t originalHash = core::generateHashKey(board);
 
     movegen::ValidMoves moves;
-    engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+    core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
     for (const auto& move : moves) {
         uint64_t hash = originalHash;
-        const auto newBoard = engine::performMove(board, move, hash);
-        const auto newHash = engine::generateHashKey(newBoard);
+        const auto newBoard = core::performMove(board, move, hash);
+        const auto newHash = core::generateHashKey(newBoard);
 
         REQUIRE(hash == newHash);
 
@@ -27,7 +27,7 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 
 TEST_CASE("Movegen Hashing", "[movegen]")
 {
-    engine::TtHashTable::setSizeMb(16);
+    core::TranspositionTable::setSizeMb(16);
 
     SECTION("Test from start position")
     {

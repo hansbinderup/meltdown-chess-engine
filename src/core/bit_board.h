@@ -1,8 +1,8 @@
 #pragma once
 
+#include "core/board_defs.h"
 #include "magic_enum/magic_enum.hpp"
 #include <array>
-#include <board_defs.h>
 #include <cstdint>
 #include <optional>
 

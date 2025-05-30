@@ -1,15 +1,15 @@
 #pragma once
 
-#include "bit_board.h"
+#include "core/bit_board.h"
 
-#include "evaluation/history_moves.h"
-#include "evaluation/killer_moves.h"
-#include "evaluation/pv_table.h"
 #include "evaluation/see_swap.h"
 #include "movegen/move_types.h"
+#include "search/history_moves.h"
+#include "search/killer_moves.h"
+#include "search/pv_table.h"
 #include <cstdint>
 
-namespace evaluation {
+namespace search {
 
 enum KillerMoveType {
     First,

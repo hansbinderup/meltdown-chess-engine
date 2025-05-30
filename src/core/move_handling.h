@@ -1,33 +1,33 @@
 #pragma once
 
-#include "attack_generation.h"
-#include "bit_board.h"
-#include "engine/tt_hash_table.h"
-#include "engine/zobrist_hashing.h"
-#include "helpers/formatters.h"
+#include "core/attack_generation.h"
+#include "core/bit_board.h"
+#include "core/transposition.h"
+#include "core/zobrist_hashing.h"
 #include "movegen/move_generation.h"
 #include "movegen/move_types.h"
 #include "parsing/piece_parsing.h"
+#include "utils/formatters.h"
 
 #include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
 
 #include <cstring>
 
-namespace engine {
+namespace core {
 
 namespace {
 
 constexpr static inline void clearPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
-    piece &= ~helper::positionToSquare(pos);
-    engine::hashPiece(type, pos, hash); // remove from hash
+    piece &= ~utils::positionToSquare(pos);
+    core::hashPiece(type, pos, hash); // remove from hash
 }
 
 constexpr static inline void setPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
-    piece |= helper::positionToSquare(pos);
-    engine::hashPiece(type, pos, hash); // add to hash
+    piece |= utils::positionToSquare(pos);
+    core::hashPiece(type, pos, hash); // add to hash
 }
 
 constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, BoardPosition toPos, Piece type, uint64_t& hash)
@@ -247,7 +247,7 @@ constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64
     hashPlayer(hash);
 
     /* prefetch as soon as we have calculated the key/hash */
-    engine::TtHashTable::prefetch(hash);
+    core::TranspositionTable::prefetch(hash);
 
     return newBoard;
 }
@@ -270,7 +270,7 @@ constexpr void printPositionDebug(const BitBoard& board)
 
         for (uint8_t column = 0; column < 8; column++) {
             const auto pos = intToBoardPosition((row - 1) * 8 + column);
-            uint64_t square = helper::positionToSquare(pos);
+            uint64_t square = utils::positionToSquare(pos);
             auto attacker = board.getAttackerAtSquare<PlayerWhite>(square);
             if (!attacker.has_value()) {
                 attacker = board.getAttackerAtSquare<PlayerBlack>(square);

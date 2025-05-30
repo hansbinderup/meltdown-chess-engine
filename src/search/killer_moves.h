@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace evaluation {
+namespace search {
 
 class KillerMoves {
 public:

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bit_board.h"
-#include "board_defs.h"
+#include "core/bit_board.h"
+#include "core/board_defs.h"
 #include "movegen/move_types.h"
 #include "spsa/parameters.h"
 

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "bit_board.h"
+#include "core/bit_board.h"
 #include "evaluation/generated/tuned_terms.h"
 #include "evaluation/position_tables.h"
-#include "helpers/bit_operations.h"
 #include "movegen/bishops.h"
 #include "movegen/knights.h"
 #include "movegen/rooks.h"
+#include "utils/bit_operations.h"
 
 #include <array>
 
@@ -59,8 +59,8 @@ static inline TermScore getPawnScore(const BitBoard& board, const uint64_t pawns
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     TermScore score(0, 0);
 
-    helper::bitIterate(pawns, [&](BoardPosition pos) {
-        const uint64_t square = helper::positionToSquare(pos);
+    utils::bitIterate(pawns, [&](BoardPosition pos) {
+        const uint64_t square = utils::positionToSquare(pos);
 
         ADD_SCORE_INDEXED(pieceValues, Pawn);
 
@@ -71,9 +71,9 @@ static inline TermScore getPawnScore(const BitBoard& board, const uint64_t pawns
         if ((pawns & s_isolationMaskTable[pos]) == 0)
             ADD_SCORE(isolatedPawnPenalty);
 
-        const auto kingPos = helper::lsbToPosition(board.pieces[ourKing]);
+        const auto kingPos = utils::lsbToPosition(board.pieces[ourKing]);
         if (s_passedPawnMaskTable[player][kingPos] & square) {
-            const uint8_t shieldDistance = std::min(helper::verticalDistance(kingPos, pos), pawnShieldSize);
+            const uint8_t shieldDistance = std::min(utils::verticalDistance(kingPos, pos), pawnShieldSize);
             ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
         }
 
@@ -110,7 +110,7 @@ static inline TermScore getKnightScore(const BitBoard& board, const TermContext&
     const uint64_t blackPawns = board.pieces[BlackPawn];
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
 
-    helper::bitIterate(knights, [&](BoardPosition pos) {
+    utils::bitIterate(knights, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Knight];
         ADD_SCORE_INDEXED(pieceValues, Knight);
 
@@ -118,7 +118,7 @@ static inline TermScore getKnightScore(const BitBoard& board, const TermContext&
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(knightMobilityScore, movesCount);
 
-        const uint64_t square = helper::positionToSquare(pos);
+        const uint64_t square = utils::positionToSquare(pos);
 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKnights, pos);
@@ -161,7 +161,7 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
     if (amntBishops >= 2)
         ADD_SCORE(bishopPairScore)
 
-    helper::bitIterate(bishops, [&](BoardPosition pos) {
+    utils::bitIterate(bishops, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Bishop];
         ADD_SCORE_INDEXED(pieceValues, Bishop);
 
@@ -169,7 +169,7 @@ static inline TermScore getBishopScore(const BitBoard& board, const TermContext&
         const int movesCount = std::popcount(moves);
         ADD_SCORE_INDEXED(bishopMobilityScore, movesCount);
 
-        const uint64_t square = helper::positionToSquare(pos);
+        const uint64_t square = utils::positionToSquare(pos);
 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtBishops, pos);
@@ -209,7 +209,7 @@ static inline TermScore getRookScore(const BitBoard& board, const TermContext& c
     const uint64_t whiteKing = board.pieces[WhiteKing];
     const uint64_t blackKing = board.pieces[BlackKing];
 
-    helper::bitIterate(rooks, [&](BoardPosition pos) {
+    utils::bitIterate(rooks, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
 
@@ -258,7 +258,7 @@ static inline TermScore getQueenScore(const BitBoard& board, const TermContext& 
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
-    helper::bitIterate(queens, [&](BoardPosition pos) {
+    utils::bitIterate(queens, [&](BoardPosition pos) {
         phaseScore += s_piecePhaseValues[Queen];
         ADD_SCORE_INDEXED(pieceValues, Queen);
 
@@ -291,7 +291,7 @@ static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
 {
     TermScore score(0, 0);
 
-    helper::bitIterate(king, [&](BoardPosition pos) {
+    utils::bitIterate(king, [&](BoardPosition pos) {
         /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
         const uint64_t virtualMoves
             = (movegen::getBishopMoves(pos, board.occupation[Both]) | movegen::getRookMoves(pos, board.occupation[Both]))

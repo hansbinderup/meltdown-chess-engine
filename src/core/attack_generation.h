@@ -1,13 +1,13 @@
 #pragma once
 
-#include "board_defs.h"
+#include "core/board_defs.h"
 
-#include "bit_board.h"
-#include "helpers/bit_operations.h"
+#include "core/bit_board.h"
 #include "movegen/bishops.h"
 #include "movegen/kings.h"
 #include "movegen/knights.h"
 #include "movegen/rooks.h"
+#include "utils/bit_operations.h"
 
 #include <cstdint>
 
@@ -25,7 +25,7 @@ constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
         knights = board.pieces[BlackKnight];
     }
 
-    helper::bitIterate(knights, [&](BoardPosition from) {
+    utils::bitIterate(knights, [&](BoardPosition from) {
         attacks |= movegen::getKnightMoves(from);
     });
 
@@ -45,7 +45,7 @@ constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
         rooks = board.pieces[BlackRook];
     }
 
-    helper::bitIterate(rooks, [&](BoardPosition from) {
+    utils::bitIterate(rooks, [&](BoardPosition from) {
         attacks |= movegen::getRookMoves(from, occupancy);
     });
 
@@ -65,7 +65,7 @@ constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
         bishops = board.pieces[BlackBishop];
     }
 
-    helper::bitIterate(bishops, [&](BoardPosition from) {
+    utils::bitIterate(bishops, [&](BoardPosition from) {
         attacks |= movegen::getBishopMoves(from, occupancy);
     });
 
@@ -85,7 +85,7 @@ constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
         queens = board.pieces[BlackQueen];
     }
 
-    helper::bitIterate(queens, [&](BoardPosition from) {
+    utils::bitIterate(queens, [&](BoardPosition from) {
         attacks |= movegen::getRookMoves(from, occupancy);
         attacks |= movegen::getBishopMoves(from, occupancy);
     });
@@ -108,7 +108,7 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
         return 0;
     }
 
-    return movegen::getKingMoves(helper::lsbToPosition(king));
+    return movegen::getKingMoves(utils::lsbToPosition(king));
 }
 
 constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)

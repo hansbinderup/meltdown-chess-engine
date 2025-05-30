@@ -96,7 +96,7 @@ public:
                 const auto piece = parsing::pieceFromChar(c);
                 if (piece.has_value()) {
                     const auto pos = intToBoardPosition((row * 8) + column);
-                    board.pieces[piece.value()] |= helper::positionToSquare(pos);
+                    board.pieces[piece.value()] |= utils::positionToSquare(pos);
                     column++;
                 } else {
                     const uint8_t skip = c - '0';

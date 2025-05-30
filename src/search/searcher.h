@@ -1,24 +1,23 @@
 #pragma once
 
-#include "engine/move_handling.h"
-#include "engine/thread_pool.h"
-#include "engine/tt_hash_table.h"
-#include "evaluation/lmr_table.h"
-#include "evaluation/move_picker.h"
-#include "evaluation/pv_table.h"
-#include "evaluation/repetition.h"
+#include "core/move_handling.h"
+#include "core/thread_pool.h"
+#include "core/time_manager.h"
+#include "core/transposition.h"
 #include "evaluation/static_evaluation.h"
+#include "search/lmr_table.h"
+#include "search/move_picker.h"
+#include "search/pv_table.h"
+#include "search/repetition.h"
 #include "spsa/parameters.h"
-#include "time_manager.h"
 
-#include "fmt/ranges.h"
+#include "core/zobrist_hashing.h"
 #include "movegen/move_types.h"
 #include "syzygy/syzygy.h"
-#include <engine/zobrist_hashing.h>
 
 #include <future>
 
-namespace evaluation {
+namespace search {
 
 enum SearchType {
     Default,
@@ -172,7 +171,7 @@ public:
         fmt::println("");
 
         movegen::ValidMoves captures;
-        engine::getAllMoves<movegen::MoveCapture>(board, captures);
+        core::getAllMoves<movegen::MoveCapture>(board, captures);
         if (captures.count()) {
             fmt::print("Captures[{}]: ", captures.count());
 
@@ -187,7 +186,7 @@ public:
         TimeManager::startInfinite();
 
         movegen::ValidMoves moves;
-        engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+        core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         const Score score = negamax(depth, board);
 
         TimeManager::stop();
@@ -204,7 +203,7 @@ public:
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
                      "Static eval:     {}\n",
-            m_nodes, score, fmt::join(m_movePicker.pvTable(), " "), staticEvaluation(board));
+            m_nodes, score, fmt::join(m_movePicker.pvTable(), " "), evaluation::staticEvaluation(board));
     }
 
     template<SearchType searchType = SearchType::Default>
@@ -225,9 +224,9 @@ public:
         }
 
         const bool isPv = beta - alpha > 1;
-        const auto hashProbe = engine::TtHashTable::probe(m_stackItr->hash);
+        const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
         if (hashProbe.has_value() && m_ply && !isPv) {
-            const auto testResult = engine::testEntry(*hashProbe, m_ply, depth, alpha, beta);
+            const auto testResult = core::testEntry(*hashProbe, m_ply, depth, alpha, beta);
             if (testResult.has_value()) {
                 return testResult.value();
             }
@@ -235,10 +234,10 @@ public:
 
         // Engine is not designed to search deeper than this! Make sure to stop before it's too late
         if (m_ply >= s_maxSearchDepth) {
-            return staticEvaluation(board);
+            return evaluation::staticEvaluation(board);
         }
 
-        const bool isChecked = engine::isKingAttacked(board);
+        const bool isChecked = core::isKingAttacked(board);
         if (isChecked) {
             /* Dangerous position - increase search depth
              * NOTE: there's rarely many legal moves in this position
@@ -253,7 +252,7 @@ public:
         m_nodes++;
 
         /* entries for the TT hash */
-        engine::TtHashFlag hashFlag = engine::TtHashAlpha;
+        core::TtFlag hashFlag = core::TtAlpha;
         movegen::Move alphaMove {};
 
         uint32_t legalMoves = 0;
@@ -311,7 +310,7 @@ public:
             } else if (board.isQuietPosition()) {
                 Score score = 0;
                 syzygy::probeWdl(board, score);
-                engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, movegen::Move {}, s_maxSearchDepth, m_ply, engine::TtHashExact);
+                core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, movegen::Move {}, s_maxSearchDepth, m_ply, core::TtExact);
 
                 m_tbHits++;
                 return score;
@@ -319,7 +318,7 @@ public:
         }
 
         if (!tbMoves) {
-            engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+            core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
 
             if (m_movePicker.pvTable().isFollowing()) {
                 m_movePicker.pvTable().updatePvScoring(moves, m_ply);
@@ -350,7 +349,7 @@ public:
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
 
-                    const bool isGivingCheck = engine::isKingAttacked(m_stackItr->board);
+                    const bool isGivingCheck = core::isKingAttacked(m_stackItr->board);
                     int8_t lmrReduction = spsa::lmrBaseReduction + getLmrReduction(depth, movesSearched);
 
                     lmrReduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
@@ -386,7 +385,7 @@ public:
                 return score;
 
             if (score >= beta) {
-                engine::TtHashTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, engine::TtHashBeta);
+                core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
                 m_movePicker.killerMoves().update(move, m_ply);
                 return beta;
             }
@@ -399,7 +398,7 @@ public:
             if (score > alpha) {
                 alpha = score;
 
-                hashFlag = engine::TtHashExact;
+                hashFlag = core::TtExact;
                 alphaMove = move;
 
                 m_movePicker.historyMoves().update(board, move, m_ply);
@@ -418,7 +417,7 @@ public:
             }
         }
 
-        engine::TtHashTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
         return alpha;
     }
 
@@ -429,9 +428,9 @@ private:
         m_selDepth = std::max(m_selDepth, m_ply);
 
         if (m_ply >= s_maxSearchDepth)
-            return staticEvaluation(board);
+            return evaluation::staticEvaluation(board);
 
-        const auto hashProbe = engine::TtHashTable::probe(m_stackItr->hash);
+        const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
 
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
@@ -449,14 +448,14 @@ private:
             /* try to return early if we already "know the result" of the current qsearch
              * most of the time our score is based on the final qsearch, so this should give the
              * same result as searching the full line */
-            const auto testResult = engine::testEntry(*hashProbe, m_ply, 0, alpha, beta);
+            const auto testResult = core::testEntry(*hashProbe, m_ply, 0, alpha, beta);
             if (testResult.has_value()) {
                 return testResult.value();
             }
         }
 
         movegen::ValidMoves moves;
-        engine::getAllMoves<movegen::MoveCapture>(board, moves);
+        core::getAllMoves<movegen::MoveCapture>(board, moves);
         auto phase = PickerPhase::TtMove;
 
         const auto ttMove = tryFetchTtMove(hashProbe);
@@ -497,9 +496,9 @@ private:
         m_repetition.add(hash);
 
         if (nullMoveBoard.enPessant.has_value())
-            engine::hashEnpessant(nullMoveBoard.enPessant.value(), hash);
+            core::hashEnpessant(nullMoveBoard.enPessant.value(), hash);
 
-        engine::hashPlayer(hash);
+        core::hashPlayer(hash);
 
         /* enPessant is invalid if we skip move */
         nullMoveBoard.enPessant.reset();
@@ -531,9 +530,9 @@ private:
     bool makeMove(const BitBoard& board, movegen::Move move)
     {
         uint64_t hash = m_stackItr->hash;
-        const auto newBoard = engine::performMove(board, move, hash);
+        const auto newBoard = core::performMove(board, move, hash);
 
-        if (engine::isKingAttacked(newBoard, board.player)) {
+        if (core::isKingAttacked(newBoard, board.player)) {
             /* invalid move */
             return false;
         }
@@ -559,7 +558,7 @@ private:
     }
 
     /* fetch a potential TT move from a potential TT entry */
-    inline std::optional<movegen::Move> tryFetchTtMove(std::optional<engine::TtHashEntryData> entry)
+    inline std::optional<movegen::Move> tryFetchTtMove(std::optional<core::TtEntryData> entry)
     {
         if (!entry.has_value()) {
             return std::nullopt;
@@ -571,13 +570,13 @@ private:
     /* try to fetch the static evaluation from the TT entry, if any
      * otherwise compute the static evaluation based on the current board
      * position - and then try to update the TT with that evaluation  */
-    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<engine::TtHashEntryData> entry)
+    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<core::TtEntryData> entry)
     {
         if (entry.has_value()) {
             return entry->eval;
         } else {
-            const Score eval = staticEvaluation(board);
-            engine::TtHashTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), 0, m_ply, engine::TtHashAlpha);
+            const Score eval = evaluation::staticEvaluation(board);
+            core::TranspositionTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), 0, m_ply, core::TtAlpha);
             return eval;
         }
     }

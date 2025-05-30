@@ -143,7 +143,7 @@ constexpr static inline uint64_t s_row8Mask { 0xffULL << s_eightRow };
 constexpr static inline uint64_t s_whiteOutpostRankMask = s_row4Mask | s_row5Mask | s_row6Mask;
 constexpr static inline uint64_t s_blackOutpostRankMask = s_row3Mask | s_row4Mask | s_row5Mask;
 
-constexpr static inline std::size_t s_defaultTtHashTableSizeMb { 16 };
+constexpr static inline std::size_t s_defaultTtSizeMb { 16 };
 
 constexpr static inline uint8_t s_middleGamePhase { 24 };
 constexpr static inline size_t s_maxThreads { 128 };

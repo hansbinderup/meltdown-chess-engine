@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bit_board.h"
+#include "core/bit_board.h"
 #include "fmt/base.h"
 #include "movegen/move_types.h"
 
@@ -213,8 +213,8 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
         if (!from.has_value() || !to.has_value())
             continue;
 
-        const auto attacker = board.getAttackerAtSquare(helper::positionToSquare(*from), board.player);
-        const auto target = board.getTargetAtSquare(helper::positionToSquare(*to), board.player);
+        const auto attacker = board.getAttackerAtSquare(utils::positionToSquare(*from), board.player);
+        const auto target = board.getTargetAtSquare(utils::positionToSquare(*to), board.player);
         if (!attacker.has_value())
             continue;
 

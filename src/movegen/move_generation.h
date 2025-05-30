@@ -1,14 +1,14 @@
 #pragma once
 
 #include "bishops.h"
-#include "helpers/bit_operations.h"
 #include "kings.h"
 #include "knights.h"
 #include "pawns.h"
 #include "rooks.h"
+#include "utils/bit_operations.h"
 
-#include "bit_board.h"
-#include "board_defs.h"
+#include "core/bit_board.h"
+#include "core/board_defs.h"
 
 namespace movegen {
 
@@ -17,11 +17,11 @@ namespace {
 template<MoveType type>
 constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    helper::bitIterate(knights, [&](BoardPosition from) {
+    utils::bitIterate(knights, [&](BoardPosition from) {
         uint64_t moves = getKnightMoves(from) & ~ownOccupation;
 
-        helper::bitIterate(moves, [&](BoardPosition pos) {
-            const bool isCapture = helper::positionToSquare(pos) & theirOccupation;
+        utils::bitIterate(moves, [&](BoardPosition pos) {
+            const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, pos, isCapture));
             } else if constexpr (type == MoveCapture) {
@@ -35,11 +35,11 @@ constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_
 template<MoveType type>
 constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    helper::bitIterate(rooks, [&](BoardPosition from) {
+    utils::bitIterate(rooks, [&](BoardPosition from) {
         uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
-        helper::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = helper::positionToSquare(to) & theirOccupation;
+        utils::bitIterate(moves, [&](BoardPosition to) {
+            const bool isCapture = utils::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, to, isCapture));
@@ -54,11 +54,11 @@ constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t 
 template<MoveType type>
 constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation)
 {
-    helper::bitIterate(bishops, [&](BoardPosition from) {
+    utils::bitIterate(bishops, [&](BoardPosition from) {
         uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
 
-        helper::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = helper::positionToSquare(to) & theirOccupation;
+        utils::bitIterate(moves, [&](BoardPosition to) {
+            const bool isCapture = utils::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, to, isCapture));
@@ -80,11 +80,11 @@ constexpr static inline void generateQueenMoves(ValidMoves& validMoves, uint64_t
 template<MoveType type>
 constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, uint64_t attacks)
 {
-    helper::bitIterate(king, [&](BoardPosition from) {
+    utils::bitIterate(king, [&](BoardPosition from) {
         uint64_t moves = s_kingsTable.at(from) & ~ownOccupation & ~attacks;
 
-        helper::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = helper::positionToSquare(to) & theirOccupation;
+        utils::bitIterate(moves, [&](BoardPosition to) {
+            const bool isCapture = utils::positionToSquare(to) & theirOccupation;
 
             if constexpr (type == MovePseudoLegal) {
                 validMoves.addMove(Move::create(from, to, isCapture));

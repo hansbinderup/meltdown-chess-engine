@@ -1,7 +1,7 @@
 #pragma once
 
-#include "bit_board.h"
-#include "engine/move_handling.h"
+#include "core/bit_board.h"
+#include "core/move_handling.h"
 #include "movegen/move_types.h"
 #include <charconv>
 #include <optional>
@@ -86,7 +86,7 @@ static inline std::optional<movegen::Move> moveFromString(const BitBoard& board,
     }
 
     movegen::ValidMoves moves;
-    engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+    core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
     for (const auto& move : moves) {
         if (compareMove(move, fromIndex, toIndex, promotion)) {
             return move;

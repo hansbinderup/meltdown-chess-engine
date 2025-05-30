@@ -1,7 +1,7 @@
 #pragma once
 
-#include "attack_generation.h"
-#include "bit_board.h"
+#include "core/attack_generation.h"
+#include "core/bit_board.h"
 #include "evaluation/term_methods.h"
 
 namespace evaluation {

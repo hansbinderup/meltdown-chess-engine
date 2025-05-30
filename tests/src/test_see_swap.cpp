@@ -28,7 +28,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         REQUIRE(board.has_value());
 
         movegen::ValidMoves moves;
-        engine::getAllMoves<movegen::MoveCapture>(*board, moves);
+        core::getAllMoves<movegen::MoveCapture>(*board, moves);
         REQUIRE(moves.count() == 1);
 
         Score score = evaluation::SeeSwap::run(*board, moves[0]);
@@ -41,7 +41,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         REQUIRE(board.has_value());
 
         movegen::ValidMoves moves;
-        engine::getAllMoves<movegen::MoveCapture>(*board, moves);
+        core::getAllMoves<movegen::MoveCapture>(*board, moves);
         const auto move = findMoveToTarget(*board, moves, WhiteKnight, E5);
 
         REQUIRE(move.has_value());

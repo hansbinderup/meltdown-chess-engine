@@ -1,7 +1,7 @@
 #pragma once
 
-#include "helpers/bit_operations.h"
 #include "movegen/move_types.h"
+#include "utils/bit_operations.h"
 
 #include <cstdint>
 
@@ -12,7 +12,7 @@ namespace {
 constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, bool capture)
 {
 
-    helper::bitIterate(moves, [&](BoardPosition to) {
+    utils::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
         validMoves.addMove(movegen::Move::create(from, to, capture));
     });
@@ -21,7 +21,7 @@ constexpr void backtrackPawnMoves(ValidMoves& validMoves, uint64_t moves, int8_t
 constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, bool doublePush)
 {
 
-    helper::bitIterate(moves, [&](BoardPosition to) {
+    utils::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
         validMoves.addMove(movegen::Move::createEnPessant(from, to, doublePush));
     });
@@ -29,7 +29,7 @@ constexpr void backtrackPawnEnPessantMoves(ValidMoves& validMoves, uint64_t move
 
 constexpr void backtrackPawnPromotions(ValidMoves& validMoves, uint64_t moves, int8_t bitCnt, bool capture)
 {
-    helper::bitIterate(moves, [&](BoardPosition to) {
+    utils::bitIterate(moves, [&](BoardPosition to) {
         const int from = to - bitCnt; // Backtrack the pawn's original position
 
         /* add queen first - is usually the preferred piece */
@@ -114,7 +114,7 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
 
 constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, BoardPosition enPessant, uint64_t occupation)
 {
-    const uint64_t enPessantSquare = helper::positionToSquare(enPessant);
+    const uint64_t enPessantSquare = utils::positionToSquare(enPessant);
 
     // TODO: masks row 5?
     uint64_t moveLeft = ((pawns & ~s_aFileMask) << 7) & enPessantSquare & ~occupation;
@@ -126,7 +126,7 @@ constexpr static inline void getWhiteEnPessantMoves(ValidMoves& validMoves, uint
 
 constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint64_t pawns, BoardPosition enPessant, uint64_t occupation)
 {
-    const uint64_t enPessantSquare = helper::positionToSquare(enPessant);
+    const uint64_t enPessantSquare = utils::positionToSquare(enPessant);
 
     // TODO: masks row 4?
     uint64_t moveLeft = ((pawns & ~s_aFileMask) >> 9) & enPessantSquare & ~occupation;

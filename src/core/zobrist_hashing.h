@@ -1,12 +1,12 @@
 #pragma once
 
-#include "bit_board.h"
-#include "board_defs.h"
-#include "helpers/bit_operations.h"
+#include "core/bit_board.h"
+#include "core/board_defs.h"
 #include "magic_enum/magic_enum.hpp"
+#include "utils/bit_operations.h"
 #include <array>
 
-namespace engine {
+namespace core {
 
 namespace {
 
@@ -99,7 +99,7 @@ constexpr uint64_t generateHashKey(const BitBoard& board)
     for (const auto pieceEnum : magic_enum::enum_values<Piece>()) {
         uint64_t piece = board.pieces[pieceEnum];
 
-        helper::bitIterate(piece, [&](BoardPosition pos) {
+        utils::bitIterate(piece, [&](BoardPosition pos) {
             key ^= s_pieceHashTable[pieceEnum][pos];
         });
     }

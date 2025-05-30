@@ -1,14 +1,15 @@
 #pragma once
 
-#include "engine/bench.h"
+#include "core/board_defs.h"
 #include "evaluation/evaluator.h"
-#include "evaluation/perft.h"
 #include "parsing/fen_parser.h"
 #include "parsing/input_parsing.h"
 #include "spsa/parameters.h"
+#include "tools/bench.h"
+#include "tools/perft.h"
 
+#include "interface/uci_options.h"
 #include "syzygy/syzygy.h"
-#include "uci_options.h"
 #include "version/version.h"
 
 #include <iostream>
@@ -24,7 +25,7 @@ public:
     static void run()
     {
         s_board.reset();
-        engine::TtHashTable::setSizeMb(s_defaultTtHashTableSizeMb);
+        core::TranspositionTable::setSizeMb(s_defaultTtSizeMb);
         s_evaluator.reset();
 
         startInputThread();
@@ -130,13 +131,13 @@ private:
 
         /* helper to iterate list of moves - can be passed as both fen string or startpos */
         constexpr const auto iterateMovesFnc = [](std::string_view sv) {
-            uint64_t hash = engine::generateHashKey(s_board);
+            uint64_t hash = core::generateHashKey(s_board);
             while (true) {
                 const auto moveSv = parsing::sv_next_split(sv);
                 const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
 
                 if (move.has_value()) {
-                    s_board = engine::performMove(s_board, move.value(), hash);
+                    s_board = core::performMove(s_board, move.value(), hash);
                     s_evaluator.updateRepetition(hash);
                 } else {
                     break;
@@ -176,7 +177,7 @@ private:
     {
         s_board.reset();
         s_evaluator.reset();
-        engine::TtHashTable::clear();
+        core::TranspositionTable::clear();
 
         return true;
     }
@@ -285,7 +286,7 @@ private:
     {
         auto [command, args] = parsing::split_sv_by_space(input);
         if (command == "position") {
-            engine::printPositionDebug(s_board);
+            core::printPositionDebug(s_board);
         } else if (command == "eval") {
             const auto depth = parsing::to_number(args);
             s_evaluator.printEvaluation(s_board, depth);
@@ -300,7 +301,7 @@ private:
 #endif
         } else if (command == "clear") {
             s_evaluator.reset();
-            engine::TtHashTable::clear();
+            core::TranspositionTable::clear();
         } else if (command == "syzygy") {
             Score score = 0;
             const auto wdl = syzygy::probeWdl(s_board, score);
@@ -316,7 +317,7 @@ private:
     {
         const auto depth = parsing::to_number(args);
         if (depth.has_value()) {
-            Perft::run(s_board, depth.value());
+            tools::Perft::run(s_board, depth.value());
         } else {
             fmt::println("invalid input: {}", args);
         }
@@ -334,9 +335,9 @@ private:
     {
         const auto depth = parsing::to_number(args);
         if (depth.has_value()) {
-            engine::Bench::run(s_evaluator, *depth);
+            tools::Bench::run(s_evaluator, *depth);
         } else {
-            engine::Bench::run(s_evaluator);
+            tools::Bench::run(s_evaluator);
         }
 
         return true;
@@ -415,7 +416,7 @@ private:
              * mute warnings from OpenBench */
             std::ignore = val;
         }),
-        ucioption::make<ucioption::spin>("Hash", s_defaultTtHashTableSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](int64_t val) { engine::TtHashTable::setSizeMb(val); }),
+        ucioption::make<ucioption::spin>("Hash", s_defaultTtSizeMb, ucioption::Limits { .min = 1, .max = 1024 }, [](int64_t val) { core::TranspositionTable::setSizeMb(val); }),
         ucioption::make<ucioption::spin>("Threads", 1, ucioption::Limits { .min = 1, .max = s_maxThreads }, [](int64_t val) {
             s_evaluator.resizeSearchers(val);
         }),

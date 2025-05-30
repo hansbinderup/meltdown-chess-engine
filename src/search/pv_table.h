@@ -1,6 +1,6 @@
 #pragma once
 
-#include "board_defs.h"
+#include "core/board_defs.h"
 #include "movegen/move_types.h"
 
 #include <algorithm>
@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <ranges>
 
-namespace evaluation {
+namespace search {
 
 /*
  * This class implements a triangular PV table.
