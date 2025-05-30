@@ -292,7 +292,7 @@ private:
 
         for (uint16_t i = 0; i < moves.count(); i++) {
 
-            if (!moves[i].isNull() && moves[i] == killerMove && moves[i].isQuietMove()) {
+            if (!moves[i].isNull() && moves[i] == killerMove && !moves[i].isNoisyMove()) {
                 auto pickedMove = moves[i];
 
                 moves.nullifyMove(i);
@@ -311,7 +311,7 @@ private:
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < moves.count(); i++) {
-            if (!moves[i].isNull() && moves[i].isQuietMove()) {
+            if (!moves[i].isNull() && !moves[i].isNoisyMove()) {
                 if (const auto attacker = board.getAttackerAtSquare<player>(moves[i].fromSquare())) {
                     const int32_t score = m_historyMoves.get(attacker.value(), moves[i].toPos());
 

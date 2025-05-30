@@ -340,6 +340,18 @@ public:
             const uint64_t prevNodes = m_nodes;
             legalMoves++;
 
+            if (phase > PickerPhase::PromotionGood
+                && (move.isNoisyMove() || move.isQuietMove())
+                && movesSearched > 0
+                && !isRoot
+                && !scoreIsMate(alpha)) {
+                const auto seeScore = evaluation::SeeSwap::run(board, move);
+                const uint8_t margin = move.isNoisyMove() ? spsa::seeNoisyMargin : spsa::seeQuietMargin;
+                if ((margin * depth) <= seeScore) {
+                    continue;
+                }
+            }
+
             /* Late Move Reduction (LMR)
              * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction */
             if (movesSearched == 0) {

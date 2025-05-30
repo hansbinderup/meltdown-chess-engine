@@ -35,6 +35,8 @@
     TUNABLE(nmpMarginFactor, uint8_t, 20, 0, 100, 5)             \
     TUNABLE(nmpReductionBase, uint8_t, 4, 0, 12, 1)              \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 0, 12, 1)            \
+    TUNABLE(seeQuietMargin, uint8_t, 40, 10, 100, 5)             \
+    TUNABLE(seeNoisyMargin, uint8_t, 100, 10, 150, 5)            \
     TUNABLE(aspirationWindow, uint8_t, 50, 10, 100, 5)           \
     TUNABLE(timeManIncFrac, uint16_t, 75, 1, 150, 5)             \
     TUNABLE(timeManBaseFrac, uint16_t, 50, 1, 150, 5)            \

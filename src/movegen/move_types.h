@@ -181,7 +181,8 @@ public:
 
     constexpr inline bool isQuietMove() const
     {
-        return !isNoisyMove();
+        const auto flag = getFlag();
+        return flag == MoveFlag::Quiet;
     }
 
     constexpr inline bool isNoisyMove() const

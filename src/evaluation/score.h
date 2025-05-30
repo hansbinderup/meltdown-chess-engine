@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 
 using Score = int16_t;
@@ -40,3 +41,8 @@ constexpr inline int16_t scoreAbsolute(int16_t score, uint8_t ply)
     return score;
 }
 
+constexpr inline bool scoreIsMate(Score score)
+{
+    /* FIXME: 128 is max moves */
+    return std::abs(score) >= (s_mateValue - 128);
+}
