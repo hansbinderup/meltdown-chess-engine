@@ -6,7 +6,7 @@
 
 namespace tuner {
 
-constexpr size_t s_epochs { 2500 };
+constexpr size_t s_epochs { 2000 };
 constexpr size_t s_gamePhases { magic_enum::enum_count<Phases>() };
 constexpr size_t s_nTerms { sizeof(evaluation::Terms) / sizeof(evaluation::TermScore) };
 constexpr double s_beta1 { 0.9 }; /* momementum */
