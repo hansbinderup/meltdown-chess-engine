@@ -58,12 +58,15 @@ constexpr uint8_t kingZoneSize = s_terms.kingZone.size();
 /* TODO: divide into terms instead of pieces.. */
 
 template<Player player>
-static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx, const uint64_t pawns)
+static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
 {
+    TermScore score(0, 0);
+
+    constexpr Piece ourPawns = player == PlayerWhite ? WhitePawn : BlackPawn;
+    const uint64_t pawns = board.pieces[ourPawns];
+
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     constexpr Player opponent = nextPlayer(player);
-
-    TermScore score(0, 0);
 
     /* fast and simple way to compute pawns attacking their king zone */
     ctx.attacksToKingZone[opponent] += std::popcount(ctx.kingZone[opponent] & ctx.pawnAttacks[player]);
@@ -108,9 +111,12 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx, co
 }
 
 template<Player player>
-static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, const uint64_t knights, uint8_t& phaseScore)
+static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    constexpr Piece ourKnights = player == PlayerWhite ? WhiteKnight : BlackKnight;
+    const uint64_t knights = board.pieces[ourKnights];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
@@ -159,9 +165,12 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
 }
 
 template<Player player>
-static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, const uint64_t bishops, uint8_t& phaseScore)
+static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    constexpr Piece ourBishops = player == PlayerWhite ? WhiteBishop : BlackBishop;
+    const uint64_t bishops = board.pieces[ourBishops];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
@@ -213,9 +222,12 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
 }
 
 template<Player player>
-static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, const uint64_t rooks, uint8_t& phaseScore)
+static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    constexpr Piece ourRooks = player == PlayerWhite ? WhiteRook : BlackRook;
+    const uint64_t rooks = board.pieces[ourRooks];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
@@ -270,9 +282,12 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, co
 }
 
 template<Player player>
-static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, const uint64_t queens, uint8_t& phaseScore)
+static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, uint8_t& phaseScore)
 {
     TermScore score(0, 0);
+
+    constexpr Piece ourQueens = player == PlayerWhite ? WhiteQueen : BlackQueen;
+    const uint64_t queens = board.pieces[ourQueens];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
@@ -313,9 +328,12 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, c
 }
 
 template<Player player>
-static inline TermScore getKingScore(const BitBoard& board, const uint64_t king)
+static inline TermScore getKingScore(const BitBoard& board)
 {
     TermScore score(0, 0);
+
+    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
+    const uint64_t king = board.pieces[ourKing];
 
     utils::bitIterate(king, [&](BoardPosition pos) {
         /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
