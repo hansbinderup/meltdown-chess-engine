@@ -38,50 +38,15 @@ static inline Score staticEvaluation(const BitBoard& board)
     uint8_t phaseScore = 0;
     auto ctx = prepareContext(board);
 
-    // Material scoring
-    for (const auto piece : magic_enum::enum_values<Piece>()) {
-        switch (piece) {
-        case WhitePawn:
-            score += getPawnScore<PlayerWhite>(board, ctx, board.pieces[piece]);
-            break;
-        case WhiteKnight:
-            score += getKnightScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case WhiteBishop:
-            score += getBishopScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case WhiteRook:
-            score += getRookScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case WhiteQueen:
-            score += getQueenScore<PlayerWhite>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case WhiteKing:
-            score += getKingScore<PlayerWhite>(board, board.pieces[piece]);
-            break;
+    /* piece scores - should be computed first as they populate ctx */
+    APPLY_SCORE(getPawnScore, board, ctx);
+    APPLY_SCORE(getKnightScore, board, ctx, phaseScore);
+    APPLY_SCORE(getBishopScore, board, ctx, phaseScore);
+    APPLY_SCORE(getRookScore, board, ctx, phaseScore);
+    APPLY_SCORE(getQueenScore, board, ctx, phaseScore);
+    APPLY_SCORE(getKingScore, board);
 
-            /* BLACK PIECES - should all be negated! */
-        case BlackPawn:
-            score -= getPawnScore<PlayerBlack>(board, ctx, board.pieces[piece]);
-            break;
-        case BlackKnight:
-            score -= getKnightScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case BlackBishop:
-            score -= getBishopScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case BlackRook:
-            score -= getRookScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case BlackQueen:
-            score -= getQueenScore<PlayerBlack>(board, ctx, board.pieces[piece], phaseScore);
-            break;
-        case BlackKing:
-            score -= getKingScore<PlayerBlack>(board, board.pieces[piece]);
-            break;
-        }
-    }
-
+    /* terms that consume ctx */
     APPLY_SCORE(getKingZoneScore, ctx);
 
     const Score evaluation = score.phaseScore(phaseScore);
