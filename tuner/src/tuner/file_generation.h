@@ -30,7 +30,7 @@ void prettyPrintToFile(const tuner::GradientArray& params, size_t epochs, double
    Generated: {:02}/{:02}/{} at {:02}:{:02}
    -----------------------------------------------------------
    Parameters:
-     ▸ K-value          = {}
+     ▸ K-value          = {:.2f}
      ▸ Learning Rate    = {:.2f}
      ▸ Epochs           = {}
      ▸ Error            = {:.8f}
