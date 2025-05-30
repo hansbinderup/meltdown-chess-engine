@@ -345,16 +345,15 @@ public:
             if (movesSearched == 0) {
                 score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
             } else {
-                if (movesSearched >= spsa::fullDepthMove
-                    && !move.isCapture()
-                    && !move.isPromotionMove()) {
-
+                if (movesSearched >= spsa::lmrMoveSearchedLimit && depth > spsa::lmrDepthLimit) {
                     const bool isGivingCheck = core::isKingAttacked(m_stackItr->board);
                     int8_t lmrReduction = spsa::lmrBaseReduction + getLmrReduction(depth, movesSearched);
 
                     lmrReduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
                     lmrReduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
                     lmrReduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
+                    lmrReduction += static_cast<int8_t>(phase > PickerPhase::PromotionGood); /* reduce more when done searching expected good moves */
+                    lmrReduction += static_cast<int8_t>(phase > PickerPhase::KillerMoveSecond); /* reduce even more when reaching expected bad moves */
                     lmrReduction = std::clamp<uint8_t>(lmrReduction, 1, depth);
 
                     /* search current move with reduced depth */

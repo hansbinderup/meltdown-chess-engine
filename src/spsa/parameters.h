@@ -22,7 +22,8 @@
  *
  * For more details, see: src/spsa/README.md */
 #define TUNABLE_LIST(TUNABLE)                                    \
-    TUNABLE(fullDepthMove, uint8_t, 4, 0, 12, 1)                 \
+    TUNABLE(lmrDepthLimit, uint8_t, 1, 0, 5, 1)                  \
+    TUNABLE(lmrMoveSearchedLimit, uint8_t, 3, 0, 12, 1)          \
     TUNABLE(lmrBaseReduction, uint8_t, 1, 1, 12, 1)              \
     TUNABLE(rfpReductionLimit, uint8_t, 3, 0, 12, 1)             \
     TUNABLE(rfpMargin, Score, 100, 0, 150, 10)                   \
