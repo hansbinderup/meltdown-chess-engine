@@ -1,19 +1,22 @@
 #pragma once
 
-#include "engine/thread_pool.h"
-#include "engine/tt_hash_table.h"
+#include "core/thread_pool.h"
+#include "core/time_manager.h"
+#include "core/transposition.h"
+#include "core/zobrist_hashing.h"
 #include "evaluation/move_vote_map.h"
-#include "evaluation/searcher.h"
-#include "time_manager.h"
+#include "movegen/move_types.h"
+#include "search/searcher.h"
 
 #include "fmt/ranges.h"
-#include "movegen/move_types.h"
 #include <atomic>
-#include <engine/zobrist_hashing.h>
 
 #include <chrono>
 
 namespace evaluation {
+
+using search::Searcher;
+using search::SearcherResult;
 
 class Evaluator {
 public:
@@ -73,7 +76,7 @@ public:
             TimeManager::start(board);
         }
 
-        const uint64_t hash = engine::generateHashKey(board);
+        const uint64_t hash = core::generateHashKey(board);
 
         for (auto& searcher : m_searchers) {
             searcher->setHashKey(hash);
@@ -180,7 +183,7 @@ public:
         const auto adjustedScore = searcher->approxDtzScore(board, score);
         const uint64_t nodes = getNodes();
         const uint64_t tbHits = getTbHits();
-        const uint16_t hashFull = engine::TtHashTable::getHashFull();
+        const uint16_t hashFull = core::TranspositionTable::getHashFull();
 
         fmt::print("info score {} time {} depth {} seldepth {} nodes {} hashfull {}{}{} pv ",
             ScorePrint(adjustedScore),

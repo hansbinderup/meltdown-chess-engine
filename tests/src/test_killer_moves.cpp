@@ -1,9 +1,9 @@
-#include "evaluation/killer_moves.h"
 #include "movegen/move_types.h"
+#include "search/killer_moves.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace evaluation;
+using namespace search;
 using namespace movegen;
 
 constexpr uint8_t g_testPly = 5;

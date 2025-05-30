@@ -5,7 +5,7 @@
 /* std::aligned_alloc and std::free are not available for windows
  * create helpers to make cross compilation easier */
 
-namespace helper {
+namespace utils {
 
 constexpr void* alignedAlloc(size_t alignment, size_t size)
 {

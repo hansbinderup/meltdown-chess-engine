@@ -2,13 +2,15 @@
 #include <catch2/catch_test_macros.hpp>
 
 #define private public
-#include <evaluation/perft.h>
+#include <tools/perft.h>
 
 /* results found here: https://www.chessprogramming.org/Perft_Results */
 
+using namespace tools;
+
 TEST_CASE("Perft", "[perft]")
 {
-    engine::TtHashTable::setSizeMb(16);
+    core::TranspositionTable::setSizeMb(16);
 
     BitBoard board;
     board.reset();

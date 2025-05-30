@@ -1,5 +1,5 @@
-#include "engine/bench.h"
-#include "uci_handler.h"
+#include "interface/uci_handler.h"
+#include "tools/bench.h"
 #include "version/version.h"
 
 #include "fmt/base.h"
@@ -10,7 +10,7 @@ int main(int argc, char** argv)
     for (const auto arg : args) {
         if (std::strcmp(arg, "bench") == 0) {
             evaluation::Evaluator evaluator {};
-            engine::Bench::run(evaluator);
+            tools::Bench::run(evaluator);
             return 0;
         }
     }

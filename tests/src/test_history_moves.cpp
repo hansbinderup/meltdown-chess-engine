@@ -1,16 +1,16 @@
-#include "bit_board.h"
-#include "evaluation/history_moves.h"
-#include "helpers/bit_operations.h"
+#include "core/bit_board.h"
 #include "movegen/move_types.h"
+#include "search/history_moves.h"
+#include "utils/bit_operations.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace evaluation;
+using namespace search;
 using namespace movegen;
 
 constexpr inline void setPieceAtSquare(BitBoard& board, Piece type, BoardPosition pos)
 {
-    board.pieces[type] |= helper::positionToSquare(pos);
+    board.pieces[type] |= utils::positionToSquare(pos);
 }
 
 TEST_CASE("HistoryMoves: Updating quiet moves", "[HistoryMoves]")

@@ -4,7 +4,7 @@
 #include <latch>
 
 #define private public
-#include "engine/thread_pool.h"
+#include "core/thread_pool.h"
 
 TEST_CASE("Test Thread Pool", "[ThreadPool]")
 {

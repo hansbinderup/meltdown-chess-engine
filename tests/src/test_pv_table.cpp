@@ -1,9 +1,9 @@
-#include "evaluation/pv_table.h"
 #include "movegen/move_types.h"
+#include "search/pv_table.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace evaluation;
+using namespace search;
 using namespace movegen;
 
 void prepareTableLength(PVTable& table, uint8_t ply)

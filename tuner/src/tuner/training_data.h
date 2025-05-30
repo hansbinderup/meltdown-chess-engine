@@ -2,7 +2,7 @@
 
 #include "tuner/tuning_parameters.h"
 
-#include "bit_board.h"
+#include "core/bit_board.h"
 #include "evaluation/static_evaluation.h"
 #include "parsing/fen_parser.h"
 

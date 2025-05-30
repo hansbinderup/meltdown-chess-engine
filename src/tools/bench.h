@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace engine {
+namespace tools {
 
 class Bench {
 public:
@@ -15,11 +15,11 @@ public:
     {
         s_nodesCount = 0;
 
-        const std::size_t previousHashSize = engine::TtHashTable::getSizeMb();
+        const std::size_t previousHashSize = core::TranspositionTable::getSizeMb();
 
         /* lots of different positions - use a fairly universal size
          * FIXME: add hash size as an optional argument */
-        engine::TtHashTable::setSizeMb(128);
+        core::TranspositionTable::setSizeMb(128);
 
         using namespace std::chrono;
         const auto startTime = steady_clock::now();
@@ -57,7 +57,7 @@ public:
         fmt::println("{} nodes {:.0f} nps", s_nodesCount, nps);
 
         if (previousHashSize > 0) {
-            engine::TtHashTable::setSizeMb(previousHashSize);
+            core::TranspositionTable::setSizeMb(previousHashSize);
         }
     }
 

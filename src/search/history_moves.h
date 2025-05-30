@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "bit_board.h"
+#include "core/bit_board.h"
 #include "movegen/move_types.h"
 #include <algorithm>
 
-namespace evaluation {
+namespace search {
 
 class HistoryMoves {
 public:

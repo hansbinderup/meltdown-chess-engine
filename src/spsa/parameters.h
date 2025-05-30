@@ -52,7 +52,7 @@
 
 #ifdef SPSA
 
-#include "uci_options.h"
+#include "interface/uci_options.h"
 #include <array>
 
 #define TUNABLE_CONSTEXPR(type) static inline type

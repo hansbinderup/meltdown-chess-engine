@@ -1,53 +1,53 @@
 #pragma once
 
 #include "fmt/base.h"
-#include "helpers/memory.h"
 #include "movegen/move_types.h"
+#include "utils/memory.h"
 #include <atomic>
 #include <cassert>
 #include <cstdint>
 
-namespace engine {
+namespace core {
 
-enum TtHashFlag : uint8_t {
-    TtHashExact = 0,
-    TtHashAlpha = 1,
-    TtHashBeta = 2,
+enum TtFlag : uint8_t {
+    TtExact = 0,
+    TtAlpha = 1,
+    TtBeta = 2,
 };
 
-struct TtHashEntryData {
+struct TtEntryData {
     uint8_t depth;
-    TtHashFlag flag;
+    TtFlag flag;
     Score score;
     Score eval;
     movegen::Move move;
 };
 
-static_assert(std::atomic<TtHashEntryData>::is_always_lock_free);
+static_assert(std::atomic<TtEntryData>::is_always_lock_free);
 
-struct TtHashEntry {
+struct TtEntry {
     std::atomic<uint64_t> key { 0 };
-    std::atomic<TtHashEntryData> data;
+    std::atomic<TtEntryData> data;
 };
 
-constexpr inline std::optional<Score> testEntry(const TtHashEntryData& entryData, uint8_t ply, uint8_t depth, Score alpha, Score beta)
+constexpr inline std::optional<Score> testEntry(const TtEntryData& entryData, uint8_t ply, uint8_t depth, Score alpha, Score beta)
 {
     if (entryData.depth < depth || entryData.score == s_noScore)
         return std::nullopt;
 
     const Score relScore = scoreRelative(entryData.score, ply);
 
-    if (entryData.flag == TtHashExact)
+    if (entryData.flag == TtExact)
         return relScore;
-    else if (entryData.flag == TtHashAlpha && relScore <= alpha)
+    else if (entryData.flag == TtAlpha && relScore <= alpha)
         return relScore;
-    else if (entryData.flag == TtHashBeta && relScore >= beta)
+    else if (entryData.flag == TtBeta && relScore >= beta)
         return relScore;
 
     return std::nullopt;
 }
 
-class TtHashTable {
+class TranspositionTable {
 public:
     /* frees the memory of the current table (if any) and allocates the amount provided in MB
      * NOTE: NOT THREAD SAFE */
@@ -58,16 +58,16 @@ public:
             return;
         }
 
-        if (s_ttHashSize > 0) {
-            helper::alignedFree(s_ttHashTable);
+        if (s_tableSize > 0) {
+            utils::alignedFree(s_table);
         }
 
-        s_ttHashSize = tableSizeFromMb(sizeMb);
-        s_ttHashTable = static_cast<TtHashEntry*>(helper::alignedAlloc(alignof(TtHashEntry), s_ttHashSize * sizeof(TtHashEntry)));
+        s_tableSize = tableSizeFromMb(sizeMb);
+        s_table = static_cast<TtEntry*>(utils::alignedAlloc(alignof(TtEntry), s_tableSize * sizeof(TtEntry)));
 
-        if (s_ttHashTable == nullptr) {
+        if (s_table == nullptr) {
             fmt::println("Could not allocate memory for hash table");
-            s_ttHashSize = 0;
+            s_tableSize = 0;
         }
 
         clear();
@@ -76,26 +76,26 @@ public:
     /* prefetches the memory and loads it into L1 cache line */
     constexpr static void prefetch([[maybe_unused]] uint64_t key)
     {
-        assert(s_ttHashSize > 0);
-        __builtin_prefetch(&s_ttHashTable[key % s_ttHashSize]);
+        assert(s_tableSize > 0);
+        __builtin_prefetch(&s_table[key % s_tableSize]);
     }
 
     static std::size_t getSizeMb()
     {
-        return (s_ttHashSize / 1024 / 1024) * sizeof(TtHashEntry);
+        return (s_tableSize / 1024 / 1024) * sizeof(TtEntry);
     }
 
     static void clear()
     {
-        for (size_t i = 0; i < s_ttHashSize; i++) {
-            s_ttHashTable[i].key = 0;
-            s_ttHashTable[i].data = TtHashEntryData();
+        for (size_t i = 0; i < s_tableSize; i++) {
+            s_table[i].key = 0;
+            s_table[i].data = TtEntryData();
         }
     }
 
     static uint16_t getHashFull()
     {
-        assert(s_ttHashSize >= 1000);
+        assert(s_tableSize >= 1000);
 
         /* should be returned as permill */
         uint16_t permill = 0;
@@ -104,7 +104,7 @@ public:
          * the permill occupation must be accessing 1000 random entries and
          * check if they're already written to */
         for (uint16_t i = 0; i < 1000; i++) {
-            if (s_ttHashTable[i].key.load(std::memory_order_relaxed) != 0) {
+            if (s_table[i].key.load(std::memory_order_relaxed) != 0) {
                 permill++;
             }
         }
@@ -112,11 +112,11 @@ public:
         return permill;
     }
 
-    constexpr static std::optional<TtHashEntryData> probe(uint64_t key)
+    constexpr static std::optional<TtEntryData> probe(uint64_t key)
     {
-        assert(s_ttHashSize > 0);
+        assert(s_tableSize > 0);
 
-        auto& entry = s_ttHashTable[key % s_ttHashSize];
+        auto& entry = s_table[key % s_tableSize];
 
         uint64_t entryKey = entry.key.load(std::memory_order_relaxed);
         auto entryData = entry.data.load(std::memory_order_relaxed);
@@ -128,11 +128,11 @@ public:
         return entryData;
     }
 
-    constexpr static void writeEntry(uint64_t key, Score score, Score eval, movegen::Move move, uint8_t depth, uint8_t ply, TtHashFlag flag)
+    constexpr static void writeEntry(uint64_t key, Score score, Score eval, movegen::Move move, uint8_t depth, uint8_t ply, TtFlag flag)
     {
-        assert(s_ttHashSize > 0);
+        assert(s_tableSize > 0);
 
-        auto& entry = s_ttHashTable[key % s_ttHashSize];
+        auto& entry = s_table[key % s_tableSize];
         const auto entryKey = entry.key.load(std::memory_order_relaxed);
         const auto entryData = entry.data.load(std::memory_order_relaxed);
 
@@ -140,9 +140,9 @@ public:
         if (key != entryKey
             || entryData.move.isNull()
             || depth >= entryData.depth
-            || (flag == TtHashExact && entryData.flag != TtHashExact)) {
+            || (flag == TtExact && entryData.flag != TtExact)) {
 
-            TtHashEntryData newData {
+            TtEntryData newData {
                 .depth = depth,
                 .flag = flag,
                 .score = scoreAbsolute(score, ply),
@@ -158,11 +158,11 @@ public:
 
     constexpr static std::size_t tableSizeFromMb(size_t sizeMb)
     {
-        return (sizeMb * 1024 * 1024) / sizeof(TtHashEntry);
+        return (sizeMb * 1024 * 1024) / sizeof(TtEntry);
     }
 
 private:
-    static inline std::size_t s_ttHashSize { 0 };
-    static inline TtHashEntry* s_ttHashTable;
+    static inline std::size_t s_tableSize { 0 };
+    static inline TtEntry* s_table;
 };
 }

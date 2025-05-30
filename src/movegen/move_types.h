@@ -1,7 +1,7 @@
 #pragma once
 
-#include "board_defs.h"
-#include "helpers/bit_operations.h"
+#include "core/board_defs.h"
+#include "utils/bit_operations.h"
 
 #include <cstdint>
 
@@ -150,12 +150,12 @@ public:
 
     constexpr inline uint64_t fromSquare() const
     {
-        return helper::positionToSquare(fromPos());
+        return utils::positionToSquare(fromPos());
     }
 
     constexpr inline uint64_t toSquare() const
     {
-        return helper::positionToSquare(toPos());
+        return utils::positionToSquare(toPos());
     }
 
     constexpr inline PromotionType promotionType() const

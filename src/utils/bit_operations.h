@@ -1,10 +1,10 @@
 #pragma once
 
-#include "board_defs.h"
+#include "core/board_defs.h"
 #include <bit>
 #include <cstdint>
 
-namespace helper {
+namespace utils {
 
 [[nodiscard]] constexpr uint64_t positionToSquare(BoardPosition pos) noexcept
 {

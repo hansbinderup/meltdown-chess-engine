@@ -1,10 +1,12 @@
 #pragma once
 
-#include "bit_board.h"
-#include "engine/move_handling.h"
+#include "core/bit_board.h"
+#include "core/move_handling.h"
 #include <chrono>
 
-#include "helpers/formatters.h"
+#include "utils/formatters.h"
+
+namespace tools {
 
 class Perft {
 public:
@@ -43,20 +45,20 @@ private:
     constexpr static void search(const BitBoard& board, uint8_t depth, bool printMove = false)
     {
         movegen::ValidMoves moves;
-        engine::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+        core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
         uint64_t legalMoves = 0;
 
         if (depth == 0) {
             for (const auto& move : moves) {
-                auto newBoard = engine::performMove(board, move, s_hash);
-                if (engine::isKingAttacked(newBoard, board.player)) {
+                auto newBoard = core::performMove(board, move, s_hash);
+                if (core::isKingAttacked(newBoard, board.player)) {
                     // invalid move
                     continue;
                 }
 
                 legalMoves++;
 
-                if (engine::isKingAttacked(newBoard)) {
+                if (core::isKingAttacked(newBoard)) {
                     s_checks++;
                 }
 
@@ -86,9 +88,9 @@ private:
         }
 
         for (const auto& move : moves) {
-            auto newBoard = engine::performMove(board, move, s_hash);
+            auto newBoard = core::performMove(board, move, s_hash);
 
-            if (engine::isKingAttacked(newBoard, board.player)) {
+            if (core::isKingAttacked(newBoard, board.player)) {
                 // invalid move
                 continue;
             }
@@ -130,3 +132,5 @@ private:
     static inline uint64_t s_prevNodes {};
     static inline uint64_t s_hash {};
 };
+
+}
