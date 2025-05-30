@@ -30,15 +30,18 @@ fmt_dep = fmt.get_variable('fmt_dep')
 fathom = subproject('fathom')
 fathom_dep = fathom.get_variable('fathom_dep')
 
-# extra steps are required for windows static binaries
-if host_machine.system() == 'windows'
-   add_project_link_arguments('-static', '-static-libgcc', '-static-libstdc++',  language: 'cpp')
-endif
-
 meltdown_dep = declare_dependency(
   include_directories: 'src',
   dependencies: [magic_enum_dep, fmt_dep, fathom_dep]
 )
+
+# statically link the C++ standard library and libgcc to avoid runtime issues
+# use full static linking (-static) only on Windows to avoid DLL dependencies
+if host_machine.system() == 'windows'
+  add_project_link_arguments('-static', '-static-libgcc', '-static-libstdc++', language: 'cpp')
+else
+  add_project_link_arguments('-static-libgcc', '-static-libstdc++', language: 'cpp')
+endif
 
 # build tuner instead of meltdown engine
 if get_option('tuning') == true
