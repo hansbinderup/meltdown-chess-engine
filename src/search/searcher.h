@@ -454,6 +454,10 @@ private:
             }
         }
 
+        /* entries for the TT hash */
+        core::TtFlag hashFlag = core::TtAlpha;
+        movegen::Move alphaMove {};
+
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(board, moves);
         auto phase = PickerPhase::TtMove;
@@ -476,10 +480,13 @@ private:
                 return beta;
 
             if (score > alpha) {
+                alphaMove = move;
+                hashFlag = core::TtExact;
                 alpha = score;
             }
         }
 
+        core::TranspositionTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, 0, m_ply, hashFlag);
         return alpha;
     }
 
