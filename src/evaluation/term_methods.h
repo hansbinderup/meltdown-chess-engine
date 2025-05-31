@@ -90,6 +90,7 @@ template<Player player>
 
 constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
 constexpr uint8_t kingZoneSize = s_terms.kingZone.size();
+constexpr uint8_t majorsOn7thSize = s_terms.majorsOn7thScore.size();
 
 template<Player player>
 static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
@@ -275,9 +276,6 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
     const uint64_t whitePawns = board.pieces[WhitePawn];
     const uint64_t blackPawns = board.pieces[BlackPawn];
 
-    const uint64_t whiteKing = board.pieces[WhiteKing];
-    const uint64_t blackKing = board.pieces[BlackKing];
-
     utils::bitIterate(rooks, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]) & ~board.occupation[player];
 
@@ -300,23 +298,10 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
             ADD_SCORE_INDEXED(psqtRooks, pos);
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
-
-            if (rooks & s_row7Mask) {
-                if ((blackPawns & s_row7Mask) || (blackKing & s_row8Mask)) {
-                    ADD_SCORE(rook7thRankBonus);
-                }
-            }
-
         } else {
             ADD_SCORE_INDEXED(psqtRooks, flipPosition(pos));
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
-
-            if (rooks & s_row2Mask) {
-                if ((whitePawns & s_row2Mask) || (whiteKing & s_row1Mask)) {
-                    ADD_SCORE(rook7thRankBonus);
-                }
-            }
         }
     });
 
@@ -492,6 +477,37 @@ static inline TermScore getChecksScore(const BitBoard& board, TermContext& ctx)
     ADD_SCORE_MULTI_INDEXED(unsafeChecks, std::popcount(bishopChecks & unsafeMask), Bishop);
     ADD_SCORE_MULTI_INDEXED(unsafeChecks, std::popcount(rookChecks & unsafeMask), Rook);
     ADD_SCORE_MULTI_INDEXED(unsafeChecks, std::popcount(queenChecks & unsafeMask), Queen);
+
+    return score;
+}
+
+template<Player player>
+constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board)
+{
+    TermScore score(0, 0);
+
+    constexpr auto ownQueen = player == PlayerWhite ? WhiteQueen : BlackQueen;
+    constexpr auto ownRook = player == PlayerWhite ? WhiteRook : BlackRook;
+    constexpr auto theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
+    constexpr auto theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
+    constexpr uint64_t row7Mask = player == PlayerWhite ? s_row7Mask : s_row2Mask;
+    constexpr uint64_t row8Mask = player == PlayerWhite ? s_row8Mask : s_row1Mask;
+
+    const uint64_t pawnsOn7th = board.pieces[theirPawn] & row7Mask;
+    const uint64_t kingOn8th = board.pieces[theirKing] & row8Mask;
+    const uint64_t majorsOn7th = (board.pieces[ownQueen] | board.pieces[ownRook]) & row7Mask;
+    const uint8_t majorsOn7thCount = std::min<uint8_t>(std::popcount(majorsOn7th), majorsOn7thSize);
+
+    /* apply a bonus if one or more major pieces (rook/queen) occupy the 7th rank (relative to player)
+     * and are supported by the presence of enemy pawns on the 7th or the enemy king on the 8th
+     *
+     * NOTE: score is applied as indexed instead of multiplied as my tests have shown:
+     *  - single major is pretty strong
+     *  - double major is very strong (more than 2x single)
+     *  - three majors is not any better than 2 (way worse than 3x single) */
+    if (majorsOn7thCount > 0 && (pawnsOn7th || kingOn8th)) {
+        ADD_SCORE_INDEXED(majorsOn7thScore, majorsOn7thCount - 1);
+    }
 
     return score;
 }
