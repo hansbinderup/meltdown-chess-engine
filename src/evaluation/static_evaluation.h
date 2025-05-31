@@ -50,6 +50,7 @@ static inline Score staticEvaluation(const BitBoard& board)
     /* terms that consume ctx */
     APPLY_SCORE(getKingZoneScore, ctx);
     APPLY_SCORE(getPieceAttacksScore, board, ctx);
+    APPLY_SCORE(getMajorsOn7thScore, board);
 
     const Score evaluation = score.phaseScore(phaseScore);
     return board.player == PlayerWhite ? evaluation : -evaluation;
