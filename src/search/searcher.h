@@ -382,9 +382,6 @@ public:
 
             undoMove();
 
-            if (isSearchStopped())
-                return score;
-
             movesSearched++;
 
             if (isRoot) {
@@ -409,6 +406,9 @@ public:
                 m_movePicker.historyMoves().update(board, move, m_ply);
                 m_movePicker.pvTable().updateTable(move, m_ply);
             }
+
+            if (isSearchStopped())
+                return s_minScore;
         }
 
         if (legalMoves == 0) {
@@ -479,9 +479,6 @@ private:
             const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
             undoMove();
 
-            if (isSearchStopped())
-                return score;
-
             if (score > bestScore) {
                 bestScore = score;
             }
@@ -496,6 +493,9 @@ private:
                 hashFlag = core::TtExact;
                 alpha = score;
             }
+
+            if (isSearchStopped())
+                return s_minScore;
         }
 
         core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, alphaMove, 0, m_ply, hashFlag);
