@@ -254,6 +254,7 @@ public:
         /* entries for the TT hash */
         core::TtFlag hashFlag = core::TtAlpha;
         movegen::Move alphaMove {};
+        Score bestScore = s_noScore;
 
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
@@ -384,20 +385,24 @@ public:
             if (isSearchStopped())
                 return score;
 
-            if (score >= beta) {
-                core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
-                m_movePicker.killerMoves().update(move, m_ply);
-                return beta;
-            }
-
             movesSearched++;
+
             if (isRoot) {
                 m_movePicker.historyMoves().addNodes(move, m_nodes - prevNodes);
             }
 
+            if (score > bestScore) {
+                bestScore = score;
+            }
+
+            if (score >= beta) {
+                core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
+                m_movePicker.killerMoves().update(move, m_ply);
+                return bestScore;
+            }
+
             if (score > alpha) {
                 alpha = score;
-
                 hashFlag = core::TtExact;
                 alphaMove = move;
 
@@ -417,8 +422,8 @@ public:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
-        return alpha;
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
+        return bestScore;
     }
 
 private:
