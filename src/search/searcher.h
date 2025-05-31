@@ -500,6 +500,9 @@ private:
 
         core::hashPlayer(hash);
 
+        /* prefetch as soon as we've calculated the hash */
+        core::TranspositionTable::prefetch(hash);
+
         /* enPessant is invalid if we skip move */
         nullMoveBoard.enPessant.reset();
 
