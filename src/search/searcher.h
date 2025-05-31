@@ -261,6 +261,10 @@ public:
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
 
+        /* improving heuristics
+         * https://www.chessprogramming.org/Improving */
+        const bool isImproving = !isChecked && (m_ply >= 2) && (m_stackItr->eval > (m_stackItr - 2)->eval);
+
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
         if (!isPv && !isChecked) {
@@ -355,6 +359,9 @@ public:
                     lmrReduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
                     lmrReduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
                     lmrReduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
+                    lmrReduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving (less interesting line) */
+
+                    /* last - ensure we don't reduce below the actual depth.. */
                     lmrReduction = std::clamp<uint8_t>(lmrReduction, 1, depth);
 
                     /* search current move with reduced depth */
