@@ -459,6 +459,11 @@ private:
             }
         }
 
+        /* entries for the TT hash */
+        core::TtFlag hashFlag = core::TtAlpha;
+        movegen::Move alphaMove = movegen::nullMove();
+        Score bestScore = m_stackItr->eval;
+
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(board, moves);
         auto phase = PickerPhase::TtMove;
@@ -477,15 +482,24 @@ private:
             if (isSearchStopped())
                 return score;
 
-            if (score >= beta)
-                return beta;
+            if (score > bestScore) {
+                bestScore = score;
+            }
+
+            if (score >= beta) {
+                core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, move, 0, m_ply, core::TtBeta);
+                return bestScore;
+            }
 
             if (score > alpha) {
+                alphaMove = move;
+                hashFlag = core::TtExact;
                 alpha = score;
             }
         }
 
-        return alpha;
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, alphaMove, 0, m_ply, hashFlag);
+        return bestScore;
     }
 
     /*
