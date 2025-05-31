@@ -431,9 +431,15 @@ private:
             return evaluation::staticEvaluation(board);
 
         const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const bool isChecked = core::isKingAttacked(board);
 
-        /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        if (isChecked) {
+            /* be careful in case of check mate! */
+            m_stackItr->eval = -s_mateValue + m_ply;
+        } else {
+            /* update current stack with the static evaluation */
+            m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        }
 
         /* hard cutoff */
         if (m_stackItr->eval >= beta) {
@@ -457,6 +463,7 @@ private:
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(board, moves);
         auto phase = PickerPhase::TtMove;
+        uint16_t movesSearched = 0;
 
         const auto ttMove = tryFetchTtMove(hashProbe);
         while (const auto& moveOpt = m_movePicker.pickNextMove(phase, board, moves, m_ply, ttMove)) {
@@ -467,6 +474,8 @@ private:
             }
 
             const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
+            movesSearched++;
+
             undoMove();
 
             if (isSearchStopped())
@@ -478,6 +487,11 @@ private:
             if (score > alpha) {
                 alpha = score;
             }
+        }
+
+        /* was a checkmate! */
+        if (isChecked && movesSearched == 0) {
+            return -s_mateValue + m_ply;
         }
 
         return alpha;
