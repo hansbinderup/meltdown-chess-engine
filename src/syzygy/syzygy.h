@@ -193,6 +193,8 @@ inline void printDtzDebug(const BitBoard& board)
     }
 }
 
+/* NOTE: this method is not thread safe (tb_probe_root is declared as non-thread safe)
+ * NOTE: this method should only be called once from root */
 inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& moves, WdlResult& wdl, uint8_t& dtz)
 {
     std::array<uint32_t, TB_MAX_MOVES> results;

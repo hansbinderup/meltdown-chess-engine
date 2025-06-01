@@ -310,9 +310,10 @@ public:
         bool tbMoves = false;
         movegen::ValidMoves moves {};
         if (syzygy::isTableActive(board)) {
-            if (isRoot) {
+            /* generateSyzygyMoves is not thread safe - allow primary searcher only to take this path! */
+            if (isRoot && m_isPrimary) {
                 tbMoves = syzygy::generateSyzygyMoves(board, moves, m_wdl, m_dtz);
-            } else if (board.isQuietPosition()) {
+            } else if (!isRoot && board.isQuietPosition()) {
                 Score score = 0;
                 syzygy::probeWdl(board, score);
                 core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, movegen::Move {}, s_maxSearchDepth, m_ply, core::TtExact);
