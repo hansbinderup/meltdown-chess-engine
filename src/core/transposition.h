@@ -15,9 +15,40 @@ enum TtFlag : uint8_t {
     TtBeta = 2,
 };
 
+/* Storage for smaller (< 8 bits) types stored in TT data
+ * 0b00000011 -> flag (2 bits)
+ * 0b00000100 -> ttPv (1 bit) */
+struct TtInfo {
+    TtInfo() = default;
+    TtInfo(TtFlag flag, bool isPv)
+        : data((flag & s_flagMask)
+              | (isPv << s_ttPvShift))
+    {
+    }
+
+    /* tt flag - which bound the entry has */
+    inline TtFlag flag() const
+    {
+        return static_cast<TtFlag>(data & s_flagMask);
+    }
+
+    /* flag to indicate if this entry is following the PV line */
+    inline bool ttPv() const
+    {
+        return data & s_ttPvFlag;
+    }
+
+private:
+    uint8_t data;
+
+    static constexpr inline uint8_t s_flagMask { 0b11 };
+    static constexpr inline uint8_t s_ttPvFlag { 0b100 };
+    static constexpr inline uint8_t s_ttPvShift { 2 };
+};
+
 struct TtEntryData {
     uint8_t depth;
-    TtFlag flag;
+    TtInfo info;
     Score score;
     Score eval;
     movegen::Move move;
@@ -36,12 +67,13 @@ constexpr inline std::optional<Score> testEntry(const TtEntryData& entryData, ui
         return std::nullopt;
 
     const Score relScore = scoreRelative(entryData.score, ply);
+    const auto flag = entryData.info.flag();
 
-    if (entryData.flag == TtExact)
+    if (flag == TtExact)
         return relScore;
-    else if (entryData.flag == TtAlpha && relScore <= alpha)
+    else if (flag == TtAlpha && relScore <= alpha)
         return relScore;
-    else if (entryData.flag == TtBeta && relScore >= beta)
+    else if (flag == TtBeta && relScore >= beta)
         return relScore;
 
     return std::nullopt;
@@ -104,7 +136,9 @@ public:
          * the permill occupation must be accessing 1000 random entries and
          * check if they're already written to */
         for (uint16_t i = 0; i < 1000; i++) {
-            if (s_table[i].key.load(std::memory_order_relaxed) != 0) {
+            const uint64_t key = s_table[i].key.load(std::memory_order_relaxed);
+
+            if (key != 0) {
                 permill++;
             }
         }
@@ -128,7 +162,7 @@ public:
         return entryData;
     }
 
-    constexpr static void writeEntry(uint64_t key, Score score, Score eval, movegen::Move move, uint8_t depth, uint8_t ply, TtFlag flag)
+    constexpr static void writeEntry(uint64_t key, Score score, Score eval, movegen::Move move, bool ttPv, uint8_t depth, uint8_t ply, TtFlag flag)
     {
         assert(s_tableSize > 0);
 
@@ -140,8 +174,8 @@ public:
         /* only update entry if a better one is found */
         if (!sameKey
             || entryData.move.isNull()
-            || depth >= entryData.depth
-            || (flag == TtExact && entryData.flag != TtExact)) {
+            || depth + (2 * ttPv) >= entryData.depth
+            || (flag == TtExact && entryData.info.flag() != TtExact)) {
 
             /* don't overwrite move if we have one stored! */
             if (sameKey && move.isNull()) {
@@ -150,7 +184,7 @@ public:
 
             TtEntryData newData {
                 .depth = depth,
-                .flag = flag,
+                .info = TtInfo(flag, ttPv),
                 .score = scoreAbsolute(score, ply),
                 .eval = eval,
                 .move = move,
