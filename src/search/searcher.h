@@ -35,12 +35,22 @@ struct SearcherResult {
     Score score;
     movegen::Move pvMove;
     uint8_t searchedDepth;
-    Searcher* searcher;
+    std::weak_ptr<Searcher> searcher;
 };
 
-class Searcher {
-public:
+class Searcher : public std::enable_shared_from_this<Searcher> {
+
+private:
+    /* enable_shared_from_this only works if the object itself is a shared_ptr
+     * therefore hide constructor and provide a factory instead */
     Searcher() = default;
+
+public:
+    static std::shared_ptr<Searcher> create()
+    {
+        /* std::make_shared doesn't work with default constructor not available - create manually */
+        return std::shared_ptr<Searcher>(new Searcher());
+    }
 
     void setHashKey(uint64_t hash)
     {
@@ -104,7 +114,7 @@ public:
                 .score = negamax(depth, board, alpha, beta),
                 .pvMove = m_movePicker.pvTable().bestMove(),
                 .searchedDepth = m_movePicker.pvTable().size(),
-                .searcher = this
+                .searcher = weak_from_this()
             };
 
             /* Stop any searches going on in other threads, so we're not waiting on the slowest search */

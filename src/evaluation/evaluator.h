@@ -31,7 +31,7 @@ public:
             return;
         } else {
             for (size_t i = m_searchers.size(); i < size; i++) {
-                m_searchers.emplace_back(std::make_unique<Searcher>());
+                m_searchers.emplace_back(Searcher::create());
             }
         }
 
@@ -181,7 +181,7 @@ public:
         }
     }
 
-    constexpr void printScoreInfo(Searcher* searcher, const BitBoard& board, Score score, uint8_t currentDepth)
+    constexpr void printScoreInfo(std::shared_ptr<Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth)
     {
         const auto timeDiff = TimeManager::timeElapsedMs().count();
 
@@ -257,7 +257,7 @@ private:
                 alpha = score - spsa::aspirationWindow;
                 beta = score + spsa::aspirationWindow;
 
-                printScoreInfo(singleSearcher.get(), board, score, d);
+                printScoreInfo(singleSearcher, board, score, d);
 
                 bestMove = singleSearcher->getPvMove();
                 m_ponderMove = singleSearcher->getPonderMove();
@@ -338,8 +338,14 @@ private:
                 alpha = bestWinningResult.score - spsa::aspirationWindow;
                 beta = bestWinningResult.score + spsa::aspirationWindow;
 
-                printScoreInfo(bestWinningResult.searcher, board, bestWinningResult.score, d);
-                m_ponderMove = bestWinningResult.searcher->getPonderMove();
+                const auto searcher = bestWinningResult.searcher.lock();
+                if (!searcher) {
+                    /* should not happen during a search - have we been stopped? */
+                    break;
+                }
+
+                printScoreInfo(searcher, board, bestWinningResult.score, d);
+                m_ponderMove = searcher->getPonderMove();
 
                 TimeManager::updateMoveStability(bestMove, bestWinningResult.score, pvMoveNodeFraction(bestMove));
             }
@@ -354,12 +360,11 @@ private:
         return bestMove;
     }
 
-    Searcher m_searcher {};
     std::atomic_bool m_killed { false };
 
     ThreadPool m_threadPool { 3 }; /* Iterative deepening, time handler, default=1 searcher */
 
-    std::vector<std::unique_ptr<Searcher>> m_searchers {};
+    std::vector<std::shared_ptr<Searcher>> m_searchers {};
     MoveVoteMap<s_maxThreads> m_movesVotes {};
 
     bool m_isPondering { false };
