@@ -83,6 +83,7 @@ public:
         }
 
         const uint64_t hash = core::generateHashKey(board);
+        core::TranspositionTable::incrementAge();
 
         for (auto& searcher : m_searchers) {
             searcher->setHashKey(hash);
