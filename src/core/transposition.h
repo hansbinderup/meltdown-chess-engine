@@ -15,9 +15,44 @@ enum TtFlag : uint8_t {
     TtBeta = 2,
 };
 
+/* Helper to encode smaller types into 8 bit storage
+ * 0b00000011 -> flag (2 bits)
+ * 0b01111100 -> age  (5 bits) */
+struct TtInfo {
+    TtInfo() = default;
+    TtInfo(TtFlag flag, uint8_t age)
+        : data((flag & s_flagMask)
+              | ((age << s_ageShift) & s_ageMask))
+    {
+    }
+
+    TtFlag flag() const
+    {
+        return static_cast<TtFlag>(data & s_flagMask);
+    }
+
+    uint8_t age() const
+    {
+        return (data & s_ageMask) >> s_ageShift;
+    }
+
+    constexpr static inline uint8_t maxAge()
+    {
+        return s_maxAge;
+    }
+
+private:
+    uint8_t data;
+
+    static constexpr inline uint8_t s_flagMask { 0b11 };
+    static constexpr inline uint8_t s_ageMask { 0b1111100 };
+    static constexpr inline uint8_t s_ageShift { 2 };
+    static constexpr inline uint8_t s_maxAge { 1 << 5 };
+};
+
 struct TtEntryData {
     uint8_t depth;
-    TtFlag flag;
+    TtInfo info;
     Score score;
     Score eval;
     movegen::Move move;
@@ -36,12 +71,13 @@ constexpr inline std::optional<Score> testEntry(const TtEntryData& entryData, ui
         return std::nullopt;
 
     const Score relScore = scoreRelative(entryData.score, ply);
+    const auto flag = entryData.info.flag();
 
-    if (entryData.flag == TtExact)
+    if (flag == TtExact)
         return relScore;
-    else if (entryData.flag == TtAlpha && relScore <= alpha)
+    else if (flag == TtAlpha && relScore <= alpha)
         return relScore;
-    else if (entryData.flag == TtBeta && relScore >= beta)
+    else if (flag == TtBeta && relScore >= beta)
         return relScore;
 
     return std::nullopt;
@@ -104,7 +140,10 @@ public:
          * the permill occupation must be accessing 1000 random entries and
          * check if they're already written to */
         for (uint16_t i = 0; i < 1000; i++) {
-            if (s_table[i].key.load(std::memory_order_relaxed) != 0) {
+            const uint64_t key = s_table[i].key.load(std::memory_order_relaxed);
+            const uint8_t age = s_table[i].data.load(std::memory_order_relaxed).info.age();
+
+            if (key != 0 && s_age.load(std::memory_order_relaxed) == age) {
                 permill++;
             }
         }
@@ -139,12 +178,13 @@ public:
         /* only update entry if a better one is found */
         if (key != entryKey
             || entryData.move.isNull()
+            || s_age.load(std::memory_order_relaxed) != entryData.info.age()
             || depth >= entryData.depth
-            || (flag == TtExact && entryData.flag != TtExact)) {
+            || (flag == TtExact && entryData.info.flag() != TtExact)) {
 
             TtEntryData newData {
                 .depth = depth,
-                .flag = flag,
+                .info = TtInfo(flag, s_age.load(std::memory_order_relaxed)),
                 .score = scoreAbsolute(score, ply),
                 .eval = eval,
                 .move = move,
@@ -161,8 +201,19 @@ public:
         return (sizeMb * 1024 * 1024) / sizeof(TtEntry);
     }
 
+    static inline void incrementAge()
+    {
+        uint8_t expected = s_age.load();
+        uint8_t desired;
+
+        do {
+            desired = (expected + 1) % 32;
+        } while (!s_age.compare_exchange_weak(expected, desired));
+    }
+
 private:
     static inline std::size_t s_tableSize { 0 };
     static inline TtEntry* s_table;
+    static inline std::atomic<uint8_t> s_age { 0 };
 };
 }
