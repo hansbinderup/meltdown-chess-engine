@@ -241,6 +241,11 @@ private:
                 Searcher::setSearchStopped(false);
                 const auto score = singleSearcher->startSearch(d, board, alpha, beta);
 
+                /* use previous search if we timed out - it means that the current search was incomplete */
+                if (TimeManager::hasTimedOut()) {
+                    break;
+                }
+
                 if ((score <= alpha) || (score >= beta)) {
                     alpha = s_minScore;
                     beta = s_maxScore;
@@ -278,6 +283,11 @@ private:
                             ++numSearchResults;
                         }
                     }
+                }
+
+                /* use previous search if we timed out - it means that the current search was incomplete */
+                if (TimeManager::hasTimedOut()) {
+                    break;
                 }
 
                 if (numSearchResults == 0) {

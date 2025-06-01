@@ -101,8 +101,7 @@ public:
 
         const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
-                .score
-                = negamax(depth, board, alpha, beta),
+                .score = negamax(depth, board, alpha, beta),
                 .pvMove = m_movePicker.pvTable().bestMove(),
                 .searchedDepth = m_movePicker.pvTable().size(),
                 .searcher = this
@@ -388,7 +387,7 @@ public:
             undoMove();
 
             if (isSearchStopped())
-                return score;
+                return s_minScore;
 
             if (score >= beta) {
                 core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
@@ -476,7 +475,7 @@ private:
             undoMove();
 
             if (isSearchStopped())
-                return score;
+                return s_minScore;
 
             if (score >= beta)
                 return beta;
