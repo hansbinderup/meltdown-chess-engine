@@ -20,14 +20,15 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
 
     const auto move = movegen::Move::create(A2, A4, false);
 
-    TranspositionTable::writeEntry(key, score, eval, move, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key, score, eval, move, false, depth, ply, TtExact);
     auto retrieved = TranspositionTable::probe(key);
 
     REQUIRE(retrieved.has_value());
     REQUIRE(retrieved->score == score);
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
-    REQUIRE(retrieved->flag == TtExact);
+    REQUIRE(retrieved->info.flag() == TtExact);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
@@ -40,14 +41,15 @@ TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
 
     const auto move = movegen::Move::create(A2, A4, false);
 
-    TranspositionTable::writeEntry(key, score, eval, move, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key, score, eval, move, false, depth, ply, TtExact);
     auto retrieved = TranspositionTable::probe(key);
 
     REQUIRE(retrieved.has_value());
     REQUIRE(retrieved->score == score);
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
-    REQUIRE(retrieved->flag == TtExact);
+    REQUIRE(retrieved->info.flag() == TtExact);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
@@ -60,14 +62,15 @@ TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
 
     const auto move = movegen::Move::create(A2, A4, false);
 
-    TranspositionTable::writeEntry(key, score, eval, move, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key, score, eval, move, false, depth, ply, TtExact);
     auto retrieved = TranspositionTable::probe(key);
 
     REQUIRE(retrieved.has_value());
     REQUIRE(retrieved->score == score);
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
-    REQUIRE(retrieved->flag == TtExact);
+    REQUIRE(retrieved->info.flag() == TtExact);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
@@ -83,15 +86,42 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
     const auto move1 = movegen::Move::create(A2, A4, false);
     const auto move2 = movegen::Move::create(D7, D7, false);
 
-    TranspositionTable::writeEntry(key, oldScore, oldEval - 10, move1, 3, ply, TtExact);
-    TranspositionTable::writeEntry(key, newScore, newEval, move2, 6, ply, TtExact); // Deeper depth
+    TranspositionTable::writeEntry(key, oldScore, oldEval - 10, move1, false, 3, ply, TtExact);
+    TranspositionTable::writeEntry(key, newScore, newEval, move2, false, 6, ply, TtExact); // Deeper depth
 
     auto retrieved = TranspositionTable::probe(key);
     REQUIRE(retrieved.has_value());
     REQUIRE(retrieved->score == newScore);
     REQUIRE(retrieved->eval == newEval);
     REQUIRE(retrieved->move == move2);
-    REQUIRE(retrieved->flag == TtExact);
+    REQUIRE(retrieved->info.flag() == TtExact);
+    REQUIRE(retrieved->info.pv() == false);
+}
+
+TEST_CASE("Transposition Table - Depth Overwrite Rule with PV", "[TT]")
+{
+    core::TranspositionTable::setSizeMb(16);
+
+    uint64_t key = 0xDEADBEEFCAFEBABE;
+    Score oldScore = 10;
+    Score newScore = 50;
+    Score oldEval = 0;
+    Score newEval = 10;
+
+    const auto move1 = movegen::Move::create(A2, A4, false);
+    const auto move2 = movegen::Move::create(D7, D7, false);
+
+    TranspositionTable::writeEntry(key, oldScore, oldEval - 10, move1, false, 3, ply, TtExact);
+    TranspositionTable::writeEntry(key, oldScore, newEval, move2, true, 0, ply, TtExact); /* depth is too low - don't overwrite */
+    TranspositionTable::writeEntry(key, newScore, newEval, move2, true, 1, ply, TtExact); /* lower depth but with PV flag */
+
+    auto retrieved = TranspositionTable::probe(key);
+    REQUIRE(retrieved.has_value());
+    REQUIRE(retrieved->score == newScore);
+    REQUIRE(retrieved->eval == newEval);
+    REQUIRE(retrieved->move == move2);
+    REQUIRE(retrieved->info.flag() == TtExact);
+    REQUIRE(retrieved->info.pv() == true);
 }
 
 TEST_CASE("Transposition Table - Collision Handling", "[TT]")
@@ -104,8 +134,8 @@ TEST_CASE("Transposition Table - Collision Handling", "[TT]")
     const auto move1 = movegen::Move::create(A2, A4, false);
     const auto move2 = movegen::Move::create(D7, D7, false);
 
-    TranspositionTable::writeEntry(key1, 30, 0, move1, depth, ply, TtExact);
-    TranspositionTable::writeEntry(key2, 99, 0, move2, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key1, 30, 0, move1, false, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key2, 99, 0, move2, false, depth, ply, TtExact);
 
     auto retrieved1 = TranspositionTable::probe(key1);
     auto retrieved2 = TranspositionTable::probe(key2);
@@ -115,7 +145,8 @@ TEST_CASE("Transposition Table - Collision Handling", "[TT]")
     REQUIRE(retrieved2.has_value());
     REQUIRE(retrieved2->score == 99);
     REQUIRE(retrieved2->move == move2);
-    REQUIRE(retrieved2->flag == TtExact);
+    REQUIRE(retrieved2->info.flag() == TtExact);
+    REQUIRE(retrieved2->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - absolute mating Scores", "[TT]")
@@ -127,14 +158,15 @@ TEST_CASE("Transposition Table - absolute mating Scores", "[TT]")
     uint64_t key = 0xCAFEBABEDEADBEEF;
 
     const auto move = movegen::Move::create(A2, A4, false);
-    TranspositionTable::writeEntry(key, nearMate, 0, move, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key, nearMate, 0, move, false, depth, ply, TtExact);
 
     auto retrieved = TranspositionTable::probe(key);
 
     REQUIRE(retrieved.has_value());
     REQUIRE(retrieved->score == scoreAbsolute(nearMate, ply)); /* score should be absolute */
     REQUIRE(retrieved->move == move);
-    REQUIRE(retrieved->flag == TtExact);
+    REQUIRE(retrieved->info.flag() == TtExact);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
@@ -143,7 +175,7 @@ TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
 
     uint64_t key = 0xF00DBABE12345678;
     const auto move = movegen::Move::create(A2, A4, false);
-    TranspositionTable::writeEntry(key, 77, 0, move, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key, 77, 0, move, false, depth, ply, TtExact);
 
     TranspositionTable::clear();
 
@@ -159,7 +191,7 @@ TEST_CASE("Transposition Table - Write eval only", "[TT]")
     const auto move = movegen::nullMove();
     Score eval = 42;
 
-    TranspositionTable::writeEntry(key, s_noScore, eval, move, depth, ply, TtAlpha);
+    TranspositionTable::writeEntry(key, s_noScore, eval, move, false, depth, ply, TtAlpha);
 
     auto retrieved = TranspositionTable::probe(key);
 
@@ -167,7 +199,8 @@ TEST_CASE("Transposition Table - Write eval only", "[TT]")
     REQUIRE(retrieved->score == s_noScore);
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
-    REQUIRE(retrieved->flag == TtAlpha);
+    REQUIRE(retrieved->info.flag() == TtAlpha);
+    REQUIRE(retrieved->info.pv() == false);
 
     /* testing entry should never succeed! */
     REQUIRE_FALSE(testEntry(*retrieved, ply, 0, s_minScore, s_maxScore));
@@ -185,9 +218,9 @@ TEST_CASE("Transposition Table - Test entry", "[TT]")
     uint64_t key3 = 0xBABECAFEBEEFDEAD;
 
     const auto move = movegen::Move::create(A2, A4, false);
-    TranspositionTable::writeEntry(key1, nearMate, 0, move, depth, ply, TtExact);
-    TranspositionTable::writeEntry(key2, nearMate, 0, move, depth, ply, TtAlpha);
-    TranspositionTable::writeEntry(key3, nearMate, 0, move, depth, ply, TtBeta);
+    TranspositionTable::writeEntry(key1, nearMate, 0, move, false, depth, ply, TtExact);
+    TranspositionTable::writeEntry(key2, nearMate, 0, move, false, depth, ply, TtAlpha);
+    TranspositionTable::writeEntry(key3, nearMate, 0, move, false, depth, ply, TtBeta);
 
     auto retrieved = TranspositionTable::probe(key1);
 

@@ -249,13 +249,16 @@ public:
         }
 
         if (depth == 0) {
-            return quiesence(board, alpha, beta);
+            return quiesence(board, alpha, beta, isPv);
         }
 
         m_nodes++;
 
+        /* is the position part of the current or a previous PV line? */
+        const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
+
         /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, ttProbe);
+        m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
 
         /* improving heuristics -> have the position improved since our last position? */
         const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
@@ -287,13 +290,13 @@ public:
                 Score score = m_stackItr->eval + spsa::razorMarginShallow;
                 if (score < beta) {
                     if (depth == 1) {
-                        Score newScore = quiesence(board, alpha, beta);
+                        Score newScore = quiesence(board, alpha, beta, isPv);
                         return (newScore > score) ? newScore : score;
                     }
 
                     score += spsa::razorMarginDeep;
                     if (score < beta && depth <= spsa::razorDeepReductionLimit) {
-                        const Score newScore = quiesence(board, alpha, beta);
+                        const Score newScore = quiesence(board, alpha, beta, isPv);
                         if (newScore < beta)
                             return (newScore > score) ? newScore : score;
                     }
@@ -328,7 +331,7 @@ public:
                     if (wdlTtFlag == core::TtExact
                         || (wdlTtFlag == core::TtAlpha && wdlScore <= alpha)
                         || (wdlTtFlag == core::TtBeta && wdlScore >= beta)) {
-                        core::TranspositionTable::writeEntry(m_stackItr->hash, wdlScore, s_noScore, movegen::nullMove(), depth, m_ply, wdlTtFlag);
+                        core::TranspositionTable::writeEntry(m_stackItr->hash, wdlScore, s_noScore, movegen::nullMove(), ttPv, depth, m_ply, wdlTtFlag);
                         return wdlScore;
                     }
 
@@ -453,7 +456,7 @@ public:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, depth, m_ply, ttFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, ttPv, depth, m_ply, ttFlag);
         return bestScore;
     }
 
@@ -464,7 +467,7 @@ private:
         return negamax<searchType>(depth, board, window - 1, window, cutNode);
     }
 
-    constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta)
+    constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta, bool isPv)
     {
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
@@ -479,13 +482,14 @@ private:
 
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
         const bool isChecked = core::isKingAttacked(board);
+        const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
         if (isChecked) {
             /* be careful to cause cutoffs when checked */
             m_stackItr->eval = -s_mateValue + m_ply;
         } else {
             /* update current stack with the static evaluation */
-            m_stackItr->eval = fetchOrStoreEval(board, ttProbe);
+            m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
         }
 
         /* stand pat */
@@ -524,7 +528,7 @@ private:
                 continue;
             }
 
-            const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
+            const Score score = -quiesence(m_stackItr->board, -beta, -alpha, isPv);
             undoMove();
 
             if (isSearchStopped())
@@ -558,7 +562,7 @@ private:
             return -s_mateValue + m_ply;
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, 0, m_ply, ttFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, ttPv, 0, m_ply, ttFlag);
         return bestScore;
     }
 
@@ -650,13 +654,13 @@ private:
     /* try to fetch the static evaluation from the TT entry, if any
      * otherwise compute the static evaluation based on the current board
      * position - and then try to update the TT with that evaluation  */
-    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<core::TtEntryData> entry)
+    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<core::TtEntryData> entry, bool ttPv)
     {
         if (entry.has_value() && entry->eval != s_noScore) {
             return entry->eval;
         } else {
             const Score eval = evaluation::staticEvaluation(board);
-            core::TranspositionTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), 0, m_ply, core::TtAlpha);
+            core::TranspositionTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), ttPv, 0, m_ply, core::TtAlpha);
             return eval;
         }
     }
