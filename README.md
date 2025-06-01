@@ -13,9 +13,7 @@
 
 </div>
 
-NOTE: this is a hobby project that is work in progress.
-
-C++26 chess engine.
+C++23 UCI compliant-ish Chess Engine.
 
 <details>
 <summary>Design goals</summary>
@@ -61,12 +59,10 @@ All binaries are statically compiled so it should be easy to run.
 If you prefer to compile without Docker you must ensure that `meson` (min. v1.1) is installed and your compiler supports cpp23.
 You can then run step #3 from above.
 
-## Nightly builds
+## Playing strength
 
-Every night at 23:30 a nightly build will be triggered by the github actions scheduler.
-This build will be untagged (pre-release draft) to not polute actual releases.
+Each release varies in playing strength. The estimated strength, relative to previous release, will be provided with each release.
 
-A test server will scan for nightly builds and pick them up when they notice that a new one has been built.
-The server will then run matchmaking on Lichess to test the engine's current state.
+### [Meltdown CCRL](https://computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?family=Meltdown&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents)
 
-A manual nightly build can also be triggered using the [workflow's dispatch](https://github.com/hansbinderup/meltdown-chess-engine/actions/workflows/nightly.yml).
+Meltdown is regularly tested by the CCRL team. Thanks a lot!
