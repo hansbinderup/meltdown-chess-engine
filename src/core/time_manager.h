@@ -57,7 +57,7 @@ public:
     {
         const Duration timeSpent = std::chrono::steady_clock::now() - s_startTime;
         if (timeSpent >= s_hardTimeLimit) {
-            s_timedOut = true;
+            s_timedOut.store(true, std::memory_order_relaxed);
         }
     }
 

@@ -37,6 +37,11 @@ public:
 
         m_searchers.resize(size);
         m_threadPool.resize(size + 2);
+
+        bool primarySearcher = true;
+        for (auto& searcher : m_searchers) {
+            searcher->setIsPrimary(std::exchange(primarySearcher, false));
+        }
     }
 
     constexpr uint64_t getNodes() const

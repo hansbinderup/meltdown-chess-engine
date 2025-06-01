@@ -47,6 +47,11 @@ public:
         m_stack.front().hash = hash;
     }
 
+    void setIsPrimary(bool isPrimary)
+    {
+        m_isPrimary = isPrimary;
+    }
+
     constexpr uint64_t getNodes() const
     {
         return m_nodes;
@@ -586,7 +591,7 @@ private:
         if (s_searchStopped.load(std::memory_order_relaxed))
             return true;
 
-        if (m_nodes % 2048 == 0) {
+        if (m_isPrimary && m_nodes % 2048 == 0) {
             TimeManager::updateTimeout();
         }
 
@@ -602,6 +607,7 @@ private:
     Repetition m_repetition;
     MovePicker m_movePicker {};
     uint8_t m_selDepth {};
+    bool m_isPrimary { true };
 
     syzygy::WdlResult m_wdl { syzygy::WdlResultTableNotActive };
     uint8_t m_dtz {};
