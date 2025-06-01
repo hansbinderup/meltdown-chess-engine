@@ -136,5 +136,34 @@ constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint
     backtrackPawnEnPessantMoves(validMoves, moveRight, -7, false);
 }
 
+/* helper to compute a mask with provided pawns pushed forward */
+template<Player player>
+static inline uint64_t getPawnPushForward(uint64_t pawns)
+{
+    if constexpr (player == PlayerWhite) {
+        return (pawns & ~(s_row7Mask | s_row8Mask)) << 8;
+    } else {
+        return (pawns & ~(s_row2Mask | s_row1Mask)) >> 8;
+    }
+}
+
+/* helper to compute a mask with pawn attacks from given position
+ * NOTE: does not take enpessant into account! */
+template<Player player>
+static inline uint64_t getPawnAttacks(BoardPosition pos)
+{
+    if constexpr (player == PlayerWhite) {
+        const uint64_t attackLeft = (pos & ~(s_aFileMask | s_row8Mask)) << 7;
+        const uint64_t attackRight = (pos & ~(s_hFileMask | s_row8Mask)) << 9;
+
+        return attackLeft | attackRight;
+    } else {
+        const uint64_t attackLeft = (pos & ~(s_aFileMask | s_row1Mask)) >> 9;
+        const uint64_t attackRight = (pos & ~(s_hFileMask | s_row1Mask)) >> 7;
+
+        return attackLeft | attackRight;
+    }
+}
+
 }
 

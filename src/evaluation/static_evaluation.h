@@ -29,6 +29,7 @@ static inline TermContext prepareContext(const BitBoard& board)
         .kingZone { attackgen::getKingAttacks<PlayerWhite>(board), attackgen::getKingAttacks<PlayerBlack>(board) },
         .attacksToKingZone { 0, 0 },
         .pieceAttacks {},
+        .threats { 0, 0 },
     };
 }
 
@@ -45,11 +46,12 @@ static inline Score staticEvaluation(const BitBoard& board)
     APPLY_SCORE(getBishopScore, board, ctx, phaseScore);
     APPLY_SCORE(getRookScore, board, ctx, phaseScore);
     APPLY_SCORE(getQueenScore, board, ctx, phaseScore);
-    APPLY_SCORE(getKingScore, board);
+    APPLY_SCORE(getKingScore, board, ctx);
 
     /* terms that consume ctx */
     APPLY_SCORE(getKingZoneScore, ctx);
     APPLY_SCORE(getPieceAttacksScore, board, ctx);
+    APPLY_SCORE(getChecksScore, board, ctx);
 
     const Score evaluation = score.phaseScore(phaseScore);
     return board.player == PlayerWhite ? evaluation : -evaluation;
