@@ -513,8 +513,11 @@ constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board, con
         const uint8_t safeMajorsCount = std::min<uint8_t>(majorsOn7thSize, std::popcount(majorsOn7th & ~threats));
         const uint8_t unsafeMajorsCount = std::min<uint8_t>(majorsOn7thSize, std::popcount(majorsOn7th & threats));
 
-        ADD_SCORE_INDEXED(safeMajorsOn7thScore, safeMajorsCount);
-        ADD_SCORE_INDEXED(unsafeMajorsOn7thScore, unsafeMajorsCount);
+        if (safeMajorsCount)
+            ADD_SCORE_INDEXED(safeMajorsOn7thScore, safeMajorsCount - 1);
+
+        if (unsafeMajorsCount)
+            ADD_SCORE_INDEXED(unsafeMajorsOn7thScore, unsafeMajorsCount - 1);
     }
 
     return score;

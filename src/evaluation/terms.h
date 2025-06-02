@@ -33,8 +33,8 @@ using WeightTable = std::array<TermScore, T>;
     TERM(queenAttacks, 5)              \
     TERM(safeChecks, 5)                \
     TERM(unsafeChecks, 5)              \
-    TERM(safeMajorsOn7thScore, 4)      \
-    TERM(unsafeMajorsOn7thScore, 4)    \
+    TERM(safeMajorsOn7thScore, 3)      \
+    TERM(unsafeMajorsOn7thScore, 3)    \
     TERM(psqtPawns, 64)                \
     TERM(psqtKnights, 64)              \
     TERM(psqtBishops, 64)              \
