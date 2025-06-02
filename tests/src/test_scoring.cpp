@@ -56,10 +56,11 @@ TEST_CASE("Scoring", "[scoring]")
             movegen::ValidMoves moves;
             core::getAllMoves<movegen::MoveCapture>(*board, moves);
 
-            auto phase = PickerPhase::TtMove;
             movegen::ValidMoves results {};
+            SearchTables searchTables {};
+            MovePicker picker {};
 
-            while (const auto moveOpt = s_evaluator.m_searchers.at(0)->m_movePicker.pickNextMove(phase, *board, moves, 0)) {
+            while (const auto moveOpt = picker.pickNextMove(*board, searchTables, moves, 0)) {
                 results.addMove(moveOpt.value());
             }
 
@@ -83,10 +84,11 @@ TEST_CASE("Scoring", "[scoring]")
             movegen::ValidMoves moves;
             core::getAllMoves<movegen::MovePseudoLegal>(*board, moves);
 
-            auto phase = PickerPhase::TtMove;
             movegen::ValidMoves results {};
+            SearchTables searchTables {};
+            MovePicker picker {};
 
-            while (const auto moveOpt = s_evaluator.m_searchers.at(0)->m_movePicker.pickNextMove(phase, *board, moves, 0)) {
+            while (const auto moveOpt = picker.pickNextMove(*board, searchTables, moves, 0)) {
                 results.addMove(moveOpt.value());
             }
 
