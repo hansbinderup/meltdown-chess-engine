@@ -227,13 +227,9 @@ public:
 
         m_movePicker.pvTable().updateLength(m_ply);
         if (m_ply) {
-            /* FIXME: make a little more sophisticated with material count etc */
-            const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(m_stackItr->hash, board, m_ply);
-            if (isDraw) {
-                /* draw score is 0 but to avoid blindness towards three fold lines
-                 * we add a slight variance to the draw score
-                 * it will still be approx 0~ cp: [-0.1:0.1] */
-                return 1 - (m_nodes & 2); /* draw score */
+            const auto drawScore = checkForDraw(board);
+            if (drawScore.has_value()) {
+                return drawScore.value();
             }
         }
 
@@ -442,6 +438,11 @@ private:
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
 
+        const auto drawScore = checkForDraw(board);
+        if (drawScore.has_value()) {
+            return drawScore.value();
+        }
+
         if (m_ply >= s_maxSearchDepth)
             return evaluation::staticEvaluation(board);
 
@@ -620,6 +621,19 @@ private:
         }
 
         return TimeManager::hasTimedOut();
+    }
+
+    inline std::optional<Score> checkForDraw(const BitBoard& board)
+    {
+        const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(m_stackItr->hash, board, m_ply);
+        if (isDraw) {
+            /* draw score is 0 but to avoid blindness towards three fold lines
+             * we add a slight variance to the draw score
+             * it will still be approx 0~ cp: [-0.1:0.1] */
+            return 1 - (m_nodes & 2); /* draw score */
+        }
+
+        return std::nullopt;
     }
 
     static inline uint8_t s_numSearchers {};
