@@ -123,15 +123,17 @@ struct BitBoard {
 
     inline bool hasInsufficientMaterial() const
     {
-        /* cheapest check first - always sufficient material if more than 4 pieces */
+        /* cheapest check first — always sufficient if more than 4 pieces */
         const int totalPieces = std::popcount(occupation[Both]);
         if (totalPieces > 4) {
             return false;
         }
 
-        /* if pawns are on the board, there is always sufficient material */
-        const uint64_t majorsOrPawns = pieces[WhitePawn] | pieces[BlackPawn] | pieces[WhiteRook] | pieces[BlackRook] | pieces[WhiteQueen] | pieces[BlackQueen];
-        if (std::popcount(majorsOrPawns) != 0) {
+        /* pawns or major pieces present means sufficient material */
+        const uint64_t majorsOrPawns = pieces[WhitePawn] | pieces[BlackPawn]
+            | pieces[WhiteRook] | pieces[BlackRook]
+            | pieces[WhiteQueen] | pieces[BlackQueen];
+        if (majorsOrPawns != 0) {
             return false;
         }
 
@@ -141,7 +143,8 @@ struct BitBoard {
         }
 
         if (totalPieces == 3) {
-            const uint64_t minors = pieces[WhiteBishop] | pieces[BlackBishop] | pieces[WhiteKnight] | pieces[BlackKnight];
+            const uint64_t minors = pieces[WhiteBishop] | pieces[BlackBishop]
+                | pieces[WhiteKnight] | pieces[BlackKnight];
 
             /* one minor piece + kings is still a draw */
             return std::popcount(minors) == 1;
@@ -150,17 +153,17 @@ struct BitBoard {
         if (totalPieces == 4) {
             const uint64_t bishops = pieces[WhiteBishop] | pieces[BlackBishop];
 
-            /* check for exactly one bishop per side */
+            /* exactly one white bishop */
             const bool oneWhiteBishop = std::popcount(pieces[WhiteBishop]) == 1;
 
-            /* check if bishops are on opposite color squares */
-            const bool bishopOnLight = std::popcount(s_lightSquares & bishops) == 1;
-            const bool bishopOnDark = std::popcount(s_darkSquares & bishops) == 1;
+            /* bishops on opposite colors — s_lightSquares and s_darkSquares are bitboards of light/dark squares */
+            const bool bishopOnLight = (bishops & s_lightSquares) != 0;
+            const bool bishopOnDark = (bishops & s_darkSquares) != 0;
 
             return oneWhiteBishop && bishopOnLight && bishopOnDark;
         }
 
-        /* all other cases have potential for sufficient material */
+        /* other cases have sufficient material */
         return false;
     }
 
