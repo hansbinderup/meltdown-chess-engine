@@ -7,8 +7,8 @@
 #include "evaluation/static_evaluation.h"
 #include "search/lmr_table.h"
 #include "search/move_picker.h"
-#include "search/pv_table.h"
 #include "search/repetition.h"
+#include "search/search_tables.h"
 #include "spsa/parameters.h"
 
 #include "core/zobrist_hashing.h"
@@ -74,7 +74,7 @@ public:
 
     constexpr uint64_t getHistoryNodes(movegen::Move move)
     {
-        return m_movePicker.historyMoves().getNodes(move);
+        return m_searchTables.getHistoryNodes(move);
     }
 
     constexpr uint8_t getSelDepth() const
@@ -91,7 +91,7 @@ public:
     {
         assert(m_stackItr == m_stack.begin());
 
-        m_movePicker.pvTable().setIsFollowing(true);
+        m_searchTables.setPvIsFollowing(true);
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
 
@@ -105,15 +105,15 @@ public:
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
 
-        m_movePicker.pvTable().setIsFollowing(true);
+        m_searchTables.setPvIsFollowing(true);
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
 
         const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
                 .score = negamax(depth, board, alpha, beta),
-                .pvMove = m_movePicker.pvTable().bestMove(),
-                .searchedDepth = m_movePicker.pvTable().size(),
+                .pvMove = m_searchTables.getBestPvMove(),
+                .searchedDepth = m_searchTables.getPvSize(),
                 .searcher = weak_from_this()
             };
 
@@ -133,12 +133,12 @@ public:
 
     constexpr movegen::Move getPvMove() const
     {
-        return m_movePicker.pvTable().bestMove();
+        return m_searchTables.getBestPvMove();
     }
 
     constexpr std::optional<movegen::Move> getPonderMove() const
     {
-        const auto ponderMove = m_movePicker.pvTable().ponderMove();
+        const auto ponderMove = m_searchTables.getPonderMove();
         return ponderMove.isNull() ? std::nullopt : std::make_optional(ponderMove);
     }
 
@@ -148,12 +148,12 @@ public:
         m_nodes = 0;
         m_tbHits = 0;
         m_selDepth = 0;
-        m_movePicker.historyMoves().resetNodes();
+        m_searchTables.resetHistoryNodes();
     }
 
     void reset()
     {
-        m_movePicker.reset();
+        m_searchTables.reset();
         m_repetition.reset();
         resetNodes();
 
@@ -173,11 +173,13 @@ public:
 
     constexpr auto& getPvTable() const
     {
-        return m_movePicker.pvTable();
+        return m_searchTables.getPvTable();
     }
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
+        MovePicker picker {};
+
         resetNodes(); /* to reset nodes etc but not tables */
 
         uint8_t depth = depthInput.value_or(5);
@@ -189,8 +191,7 @@ public:
         if (captures.count()) {
             fmt::print("Captures[{}]: ", captures.count());
 
-            auto phase = PickerPhase::TtMove;
-            while (const auto& moveOpt = m_movePicker.pickNextMove(phase, board, captures, m_ply)) {
+            while (const auto& moveOpt = picker.pickNextMove(board, m_searchTables, captures, m_ply)) {
                 const auto move = moveOpt.value();
                 fmt::print("{}   ", move);
             }
@@ -206,8 +207,9 @@ public:
         TimeManager::stop();
 
         fmt::println("Move evaluations [{}]:", depth);
-        auto phase = PickerPhase::TtMove;
-        while (const auto& moveOpt = m_movePicker.pickNextMove(phase, board, moves, m_ply)) {
+
+        picker.setPhase(PickerPhase::TtMove);
+        while (const auto& moveOpt = picker.pickNextMove(board, m_searchTables, moves, m_ply)) {
             const auto move = moveOpt.value();
 
             fmt::println("  {}", move);
@@ -217,7 +219,7 @@ public:
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
                      "Static eval:     {}\n",
-            m_nodes, score, fmt::join(m_movePicker.pvTable(), " "), evaluation::staticEvaluation(board));
+            m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), evaluation::staticEvaluation(board));
     }
 
     template<SearchType searchType = SearchType::Default>
@@ -225,7 +227,7 @@ public:
     {
         const bool isRoot = m_ply == 0;
 
-        m_movePicker.pvTable().updateLength(m_ply);
+        m_searchTables.updatePvLength(m_ply);
         if (m_ply) {
             /* FIXME: make a little more sophisticated with material count etc */
             const bool isDraw = m_repetition.isRepetition(m_stackItr->hash) || board.halfMoves >= 100;
@@ -335,16 +337,18 @@ public:
         if (!tbMoves) {
             core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
 
-            if (m_movePicker.pvTable().isFollowing()) {
-                m_movePicker.pvTable().updatePvScoring(moves, m_ply);
+            if (m_searchTables.isPvFollowing()) {
+                m_searchTables.updatePvScoring(moves, m_ply);
             }
         }
 
         const auto ttMove = tryFetchTtMove(hashProbe);
 
-        PickerPhase phase = tbMoves ? PickerPhase::Syzygy : PickerPhase ::TtMove;
+        const auto phase = tbMoves ? PickerPhase::Syzygy : PickerPhase::TtMove;
 
-        while (const auto moveOpt = m_movePicker.pickNextMove(phase, board, moves, m_ply, ttMove)) {
+        MovePicker picker(phase);
+
+        while (const auto moveOpt = picker.pickNextMove(board, m_searchTables, moves, m_ply, ttMove)) {
             const auto move = moveOpt.value();
 
             if (!makeMove(board, move)) {
@@ -401,13 +405,13 @@ public:
 
             if (score >= beta) {
                 core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
-                m_movePicker.killerMoves().update(move, m_ply);
+                m_searchTables.updateKillerMoves(move, m_ply);
                 return beta;
             }
 
             movesSearched++;
             if (isRoot) {
-                m_movePicker.historyMoves().addNodes(move, m_nodes - prevNodes);
+                m_searchTables.addHistoryNodes(move, m_nodes - prevNodes);
             }
 
             if (score > alpha) {
@@ -416,8 +420,8 @@ public:
                 hashFlag = core::TtExact;
                 alphaMove = move;
 
-                m_movePicker.historyMoves().update(board, move, m_ply);
-                m_movePicker.pvTable().updateTable(move, m_ply);
+                m_searchTables.updateHistoryMoves(board, move, m_ply);
+                m_searchTables.updatePvTable(move, m_ply);
             }
         }
 
@@ -476,10 +480,11 @@ private:
 
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(board, moves);
-        auto phase = PickerPhase::TtMove;
+
+        MovePicker picker {};
 
         const auto ttMove = tryFetchTtMove(hashProbe);
-        while (const auto& moveOpt = m_movePicker.pickNextMove(phase, board, moves, m_ply, ttMove)) {
+        while (const auto& moveOpt = picker.pickNextMove(board, m_searchTables, moves, m_ply, ttMove)) {
             const auto move = moveOpt.value();
 
             if (!makeMove(board, move)) {
@@ -629,7 +634,7 @@ private:
     uint64_t m_tbHits {};
     uint8_t m_ply {};
     Repetition m_repetition;
-    MovePicker m_movePicker {};
+    SearchTables m_searchTables {};
     uint8_t m_selDepth {};
     bool m_isPrimary { true };
 
