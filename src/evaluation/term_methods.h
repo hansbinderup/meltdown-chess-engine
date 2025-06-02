@@ -90,7 +90,7 @@ template<Player player>
 
 constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
 constexpr uint8_t kingZoneSize = s_terms.kingZone.size();
-constexpr uint8_t majorsOn7thSize = s_terms.majorsOn7thScore.size();
+constexpr uint8_t majorsOn7thSize = s_terms.safeMajorsOn7thScore.size();
 
 template<Player player>
 static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
@@ -482,10 +482,11 @@ static inline TermScore getChecksScore(const BitBoard& board, TermContext& ctx)
 }
 
 template<Player player>
-constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board)
+constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board, const TermContext& ctx)
 {
     TermScore score(0, 0);
 
+    constexpr Player opponent = nextPlayer(player);
     constexpr auto ownQueen = player == PlayerWhite ? WhiteQueen : BlackQueen;
     constexpr auto ownRook = player == PlayerWhite ? WhiteRook : BlackRook;
     constexpr auto theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
@@ -495,18 +496,25 @@ constexpr static inline TermScore getMajorsOn7thScore(const BitBoard& board)
 
     const uint64_t pawnsOn7th = board.pieces[theirPawn] & row7Mask;
     const uint64_t kingOn8th = board.pieces[theirKing] & row8Mask;
-    const uint64_t majorsOn7th = (board.pieces[ownQueen] | board.pieces[ownRook]) & row7Mask;
-    const uint8_t majorsOn7thCount = std::min<uint8_t>(std::popcount(majorsOn7th), majorsOn7thSize);
 
     /* apply a bonus if one or more major pieces (rook/queen) occupy the 7th rank (relative to player)
      * and are supported by the presence of enemy pawns on the 7th or the enemy king on the 8th
+     *
+     * differentiate if it's safe to be on the rank or not
      *
      * NOTE: score is applied as indexed instead of multiplied as my tests have shown:
      *  - single major is pretty strong
      *  - double major is very strong (more than 2x single)
      *  - three majors is not any better than 2 (way worse than 3x single) */
-    if (majorsOn7thCount > 0 && (pawnsOn7th || kingOn8th)) {
-        ADD_SCORE_INDEXED(majorsOn7thScore, majorsOn7thCount - 1);
+    if (pawnsOn7th || kingOn8th) {
+        const uint64_t threats = ctx.threats[opponent];
+        const uint64_t majorsOn7th = (board.pieces[ownQueen] | board.pieces[ownRook]) & row7Mask;
+
+        const uint8_t safeMajorsCount = std::min<uint8_t>(majorsOn7thSize, std::popcount(majorsOn7th & ~threats));
+        const uint8_t unsafeMajorsCount = std::min<uint8_t>(majorsOn7thSize, std::popcount(majorsOn7th & threats));
+
+        ADD_SCORE_INDEXED(safeMajorsOn7thScore, safeMajorsCount);
+        ADD_SCORE_INDEXED(unsafeMajorsOn7thScore, unsafeMajorsCount);
     }
 
     return score;

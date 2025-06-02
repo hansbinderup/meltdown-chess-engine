@@ -15,7 +15,6 @@ using WeightTable = std::array<TermScore, T>;
     TERM(pawnShieldBonus, 3)           \
     TERM(rookOpenFileBonus, 1)         \
     TERM(rookSemiOpenFileBonus, 1)     \
-    TERM(majorsOn7thScore, 3)          \
     TERM(queenOpenFileBonus, 1)        \
     TERM(queenSemiOpenFileBonus, 1)    \
     TERM(knightMobilityScore, 9)       \
@@ -34,6 +33,8 @@ using WeightTable = std::array<TermScore, T>;
     TERM(queenAttacks, 5)              \
     TERM(safeChecks, 5)                \
     TERM(unsafeChecks, 5)              \
+    TERM(safeMajorsOn7thScore, 4)      \
+    TERM(unsafeMajorsOn7thScore, 4)    \
     TERM(psqtPawns, 64)                \
     TERM(psqtKnights, 64)              \
     TERM(psqtBishops, 64)              \
