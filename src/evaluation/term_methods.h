@@ -463,7 +463,7 @@ static inline TermScore getChecksScore(const BitBoard& board, TermContext& ctx)
 
     /* fetch king's position and compute each piece attack from there */
     const BoardPosition theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
-    const uint64_t kingPawnMoves = movegen::getPawnAttacks<opponent>(theirKingPos);
+    const uint64_t kingPawnMoves = movegen::getPawnAttacksFromPos<opponent>(theirKingPos);
     const uint64_t kingKnightMoves = movegen::getKnightMoves(theirKingPos);
     const uint64_t kingBishopMoves = movegen::getBishopMoves(theirKingPos, occupation);
     const uint64_t kingRookMoves = movegen::getRookMoves(theirKingPos, occupation);
@@ -492,6 +492,42 @@ static inline TermScore getChecksScore(const BitBoard& board, TermContext& ctx)
     ADD_SCORE_MULTI_INDEXED(unsafeChecks, std::popcount(bishopChecks & unsafeMask), Bishop);
     ADD_SCORE_MULTI_INDEXED(unsafeChecks, std::popcount(rookChecks & unsafeMask), Rook);
     ADD_SCORE_MULTI_INDEXED(unsafeChecks, std::popcount(queenChecks & unsafeMask), Queen);
+
+    return score;
+}
+
+template<Player player>
+static inline TermScore getPawnPushThreatScore(const BitBoard& board, TermContext& ctx)
+{
+    TermScore score(0, 0);
+
+    constexpr Player opponent = nextPlayer(player);
+    constexpr Piece ourPawns = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawns = player == PlayerWhite ? BlackPawn : WhitePawn;
+    constexpr uint64_t thirdRow = player == PlayerWhite ? s_row3Mask : s_row6Mask;
+
+    /* all opponent's pieces with pawns excluded */
+    const uint64_t targets = board.occupation[opponent] & ~board.pieces[theirPawns];
+
+    /* squares are safe if not attacked by our opponent or if defended while it's not an opponent pawn attacking */
+    const uint64_t safeMask = ~ctx.threats[opponent] | (~ctx.pieceAttacks[opponent][Pawn] & ctx.threats[player]);
+
+    /* compute legal pushes */
+    const uint64_t pushes = movegen::getPawnPushForward<player>(board.pieces[ourPawns]) & ~board.occupation[Both];
+    const uint64_t doublePushes = movegen::getPawnPushForward<player>(pushes & thirdRow) & ~board.occupation[Both];
+    const uint64_t safePushes = (pushes | doublePushes) & safeMask;
+
+    /* compute potential attacks from our safed pushed positions */
+    const uint64_t attacks = movegen::getPawnAttacks<player>(safePushes) & targets;
+
+    /* iterate each attack and assign a bonus based on what type of piece we're attacking if pushed
+     * ie pawn push threats -> pawns that can be pushed and cause a "safe" attack towards a non-pawn piece */
+    utils::bitIterate(attacks, [&](BoardPosition pos) {
+        const uint64_t square = utils::positionToSquare(pos);
+        const auto target = board.getTargetAtSquare<player>(square);
+        const auto colorlessPiece = pieceToColorlessPiece<opponent>(*target);
+        ADD_SCORE_INDEXED(pawnPushThreats, colorlessPiece);
+    });
 
     return score;
 }
