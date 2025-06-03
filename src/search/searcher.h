@@ -450,6 +450,7 @@ private:
             return evaluation::staticEvaluation(board);
 
         const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const bool isChecked = core::isKingAttacked(board);
 
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
@@ -457,6 +458,11 @@ private:
         /* hard cutoff */
         if (m_stackItr->eval >= beta) {
             return beta;
+        }
+
+        /* delta pruning: if no capture can improve our position, return early */
+        if (!isChecked && m_stackItr->eval < (alpha - spsa::seeQueenValue)) {
+            return alpha;
         }
 
         if (m_stackItr->eval > alpha) {
