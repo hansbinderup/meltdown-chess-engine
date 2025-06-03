@@ -499,6 +499,11 @@ private:
             return m_stackItr->eval;
         }
 
+        /* delta pruning: if no capture can improve our position, return early */
+        if (!isChecked && m_stackItr->eval < (alpha - spsa::seeQueenValue)) {
+            return alpha;
+        }
+
         if (m_stackItr->eval > alpha) {
             alpha = m_stackItr->eval;
         }
