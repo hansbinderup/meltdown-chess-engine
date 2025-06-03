@@ -24,6 +24,8 @@ namespace utils {
     return static_cast<BoardPosition>(std::countr_zero(piece));
 }
 
+/* iterates over each set bit in the bitboard `data` and calls `fnc` with the corresponding BoardPosition
+ * `fnc` is invoked once per set bit, with the position of the least significant bit */
 template<typename Func>
 constexpr void bitIterate(uint64_t data, Func&& fnc) noexcept
     requires std::is_invocable_v<Func, BoardPosition>

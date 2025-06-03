@@ -147,22 +147,32 @@ static inline uint64_t getPawnPushForward(uint64_t pawns)
     }
 }
 
-/* helper to compute a mask with pawn attacks from given position
- * NOTE: does not take enpessant into account! */
+/* returns a bitmask representing all squares attacked by pawns of the given player
+ * from the specified bitboard `pawns`. Each bit set in `pawns` is treated as a pawn's position
+ *
+ * note: This function does not account for en passant captures */
 template<Player player>
-static inline uint64_t getPawnAttacks(BoardPosition pos)
+static inline uint64_t getPawnAttacks(uint64_t pawns)
 {
     if constexpr (player == PlayerWhite) {
-        const uint64_t attackLeft = (pos & ~(s_aFileMask | s_row8Mask)) << 7;
-        const uint64_t attackRight = (pos & ~(s_hFileMask | s_row8Mask)) << 9;
+        const uint64_t attackLeft = (pawns & ~(s_aFileMask | s_row8Mask)) << 7;
+        const uint64_t attackRight = (pawns & ~(s_hFileMask | s_row8Mask)) << 9;
 
         return attackLeft | attackRight;
     } else {
-        const uint64_t attackLeft = (pos & ~(s_aFileMask | s_row1Mask)) >> 9;
-        const uint64_t attackRight = (pos & ~(s_hFileMask | s_row1Mask)) >> 7;
+        const uint64_t attackLeft = (pawns & ~(s_aFileMask | s_row1Mask)) >> 9;
+        const uint64_t attackRight = (pawns & ~(s_hFileMask | s_row1Mask)) >> 7;
 
         return attackLeft | attackRight;
     }
+}
+
+/* helper to compuate bitmask of squares attacked by a pawn of the given player from a single `BoardPosition` */
+template<Player player>
+static inline uint64_t getPawnAttacksFromPos(BoardPosition pos)
+{
+    const uint64_t square = utils::positionToSquare(pos);
+    return getPawnAttacks<player>(square);
 }
 
 }
