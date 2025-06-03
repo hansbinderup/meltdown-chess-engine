@@ -178,8 +178,6 @@ public:
 
     constexpr void printEvaluation(const BitBoard& board, std::optional<uint8_t> depthInput = std::nullopt)
     {
-        MovePicker picker {};
-
         resetNodes(); /* to reset nodes etc but not tables */
 
         uint8_t depth = depthInput.value_or(5);
@@ -188,10 +186,13 @@ public:
 
         movegen::ValidMoves captures;
         core::getAllMoves<movegen::MoveCapture>(board, captures);
+
+        MovePicker picker { m_searchTables, m_ply };
+
         if (captures.count()) {
             fmt::print("Captures[{}]: ", captures.count());
 
-            while (const auto& moveOpt = picker.pickNextMove(board, m_searchTables, captures, m_ply)) {
+            while (const auto& moveOpt = picker.pickNextMove(board, captures)) {
                 const auto move = moveOpt.value();
                 fmt::print("{}   ", move);
             }
@@ -202,6 +203,7 @@ public:
 
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
+
         const Score score = negamax(depth, board);
 
         TimeManager::stop();
@@ -209,7 +211,8 @@ public:
         fmt::println("Move evaluations [{}]:", depth);
 
         picker.setPhase(PickerPhase::TtMove);
-        while (const auto& moveOpt = picker.pickNextMove(board, m_searchTables, moves, m_ply)) {
+
+        while (const auto& moveOpt = picker.pickNextMove(board, moves)) {
             const auto move = moveOpt.value();
 
             fmt::println("  {}", move);
@@ -343,12 +346,13 @@ public:
         }
 
         const auto ttMove = tryFetchTtMove(hashProbe);
+        const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
 
         const auto phase = tbMoves ? PickerPhase::Syzygy : PickerPhase::TtMove;
 
-        MovePicker picker(phase);
+        MovePicker picker(m_searchTables, m_ply, ttMove, prevMove, phase);
 
-        while (const auto moveOpt = picker.pickNextMove(board, m_searchTables, moves, m_ply, ttMove)) {
+        while (const auto moveOpt = picker.pickNextMove(board, moves)) {
             const auto move = moveOpt.value();
 
             if (!makeMove(board, move)) {
@@ -402,7 +406,14 @@ public:
 
             if (score >= beta) {
                 core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
+
                 m_searchTables.updateKillerMoves(move, m_ply);
+
+                if (!isRoot) {
+                    auto prevMove = (m_stackItr - 1)->move;
+                    m_searchTables.updateCounterMoves(prevMove, move);
+                }
+
                 return beta;
             }
 
@@ -484,10 +495,10 @@ private:
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(board, moves);
 
-        MovePicker picker {};
-
         const auto ttMove = tryFetchTtMove(hashProbe);
-        while (const auto& moveOpt = picker.pickNextMove(board, m_searchTables, moves, m_ply, ttMove)) {
+        MovePicker picker { m_searchTables, m_ply, ttMove };
+
+        while (const auto& moveOpt = picker.pickNextMove(board, moves)) {
             const auto move = moveOpt.value();
 
             if (!makeMove(board, move)) {
@@ -581,6 +592,7 @@ private:
         m_stackItr++;
         m_stackItr->hash = hash;
         m_stackItr->board = newBoard;
+        m_stackItr->move = move;
 
         m_ply++;
 
@@ -646,6 +658,7 @@ private:
 
     struct StackInfo {
         BitBoard board;
+        movegen::Move move;
         uint64_t hash;
         Score eval;
     };

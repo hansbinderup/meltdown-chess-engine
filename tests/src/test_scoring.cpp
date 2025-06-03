@@ -58,9 +58,9 @@ TEST_CASE("Scoring", "[scoring]")
 
             movegen::ValidMoves results {};
             SearchTables searchTables {};
-            MovePicker picker {};
+            MovePicker picker { searchTables, 0 };
 
-            while (const auto moveOpt = picker.pickNextMove(*board, searchTables, moves, 0)) {
+            while (const auto moveOpt = picker.pickNextMove(*board, moves)) {
                 results.addMove(moveOpt.value());
             }
 
@@ -86,9 +86,9 @@ TEST_CASE("Scoring", "[scoring]")
 
             movegen::ValidMoves results {};
             SearchTables searchTables {};
-            MovePicker picker {};
+            MovePicker picker { searchTables, 0 };
 
-            while (const auto moveOpt = picker.pickNextMove(*board, searchTables, moves, 0)) {
+            while (const auto moveOpt = picker.pickNextMove(*board, moves)) {
                 results.addMove(moveOpt.value());
             }
 

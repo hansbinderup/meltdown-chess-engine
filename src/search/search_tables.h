@@ -1,5 +1,6 @@
 #pragma once
 
+#include "search/counter_moves.h"
 #include "search/history_moves.h"
 #include "search/killer_moves.h"
 #include "search/pv_table.h"
@@ -12,6 +13,7 @@ public:
     {
         m_killerMoves.reset();
         m_historyMoves.reset();
+        m_counterMoves.reset();
         m_pvTable.reset();
     }
 
@@ -109,10 +111,21 @@ public:
         m_historyMoves.update(board, move, ply);
     }
 
+    inline movegen::Move getCounterMove(movegen::Move prevMove) const
+    {
+        return m_counterMoves.get(prevMove);
+    }
+
+    inline void updateCounterMoves(movegen::Move prevMove, movegen::Move counterMove)
+    {
+        m_counterMoves.update(prevMove, counterMove);
+    }
+
 private:
     PVTable m_pvTable {};
 
     KillerMoves m_killerMoves {};
     HistoryMoves m_historyMoves {};
+    CounterMoves m_counterMoves {};
 };
 };
