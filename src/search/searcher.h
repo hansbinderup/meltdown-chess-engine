@@ -223,7 +223,7 @@ public:
     }
 
     template<SearchType searchType = SearchType::Default>
-    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore)
+    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false)
     {
         const bool isRoot = m_ply == 0;
 
@@ -293,7 +293,7 @@ public:
             if constexpr (searchType != SearchType::NullSearch) {
                 const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
                 if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
-                    if (const auto nullMoveScore = nullMovePruning(board, depth, beta)) {
+                    if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
                         return nullMoveScore.value();
                     }
                 }
@@ -361,7 +361,7 @@ public:
 
             if (movesSearched == 0) {
                 /* no moves searched yet -> perform a full depth PV move search */
-                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
+                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
             } else {
                 /* other moves we can attempt searched with a reduced zero window search
                  * if the zero window search increases alpha we increase the window size */
@@ -376,22 +376,24 @@ public:
                     reduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
                     reduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
+                    reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
+
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
 
                 /* first try zero window search with reduced depth (best case scenario) */
-                score = -zeroWindow(depth - 1 - reduction, m_stackItr->board, -alpha);
+                score = -zeroWindow(depth - 1 - reduction, m_stackItr->board, -alpha, true);
 
                 /* above failed high, so attempt a zero window search but with no reductions */
                 if (score > alpha && reduction > 0) {
-                    score = -zeroWindow(depth - 1, m_stackItr->board, -alpha);
+                    score = -zeroWindow(depth - 1, m_stackItr->board, -alpha, !cutNode);
                 }
 
                 /* if both reduced and non-reduced zero search failed high then we're forced
                  * to do a full depth full window search
                  * this search has PV potential, so the cost is worth it! */
                 if (score > alpha && score < beta) {
-                    score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
+                    score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
                 }
             }
 
@@ -439,9 +441,9 @@ public:
 
 private:
     template<SearchType searchType = Default>
-    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window)
+    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window, bool cutNode)
     {
-        return negamax<searchType>(depth, board, window - 1, window);
+        return negamax<searchType>(depth, board, window - 1, window, cutNode);
     }
 
     constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta)
@@ -524,7 +526,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta)
+    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode)
     {
         auto nullMoveBoard = board;
         uint64_t hash = m_stackItr->hash;
@@ -551,7 +553,7 @@ private:
 
         /* perform search with reduced depth (based on reduction limit) */
         const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
-        Score score = -zeroWindow<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta + 1);
+        Score score = -zeroWindow<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta + 1, !cutNode);
 
         m_ply -= 2;
         m_stackItr -= 2;
