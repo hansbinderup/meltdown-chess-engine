@@ -359,42 +359,39 @@ public:
             const uint64_t prevNodes = m_nodes;
             legalMoves++;
 
-            /* Late Move Reduction (LMR)
-             * https://wiki.sharewiz.net/doku.php?id=chess:programming:late_move_reduction */
             if (movesSearched == 0) {
+                /* no moves searched yet -> perform a full depth PV move search */
                 score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
             } else {
+                /* other moves we can attempt searched with a reduced zero window search
+                 * if the zero window search increases alpha we increase the window size */
+                int8_t reduction = 0;
                 if (movesSearched >= spsa::fullDepthMove
                     && !move.isCapture()
                     && !move.isPromotionMove()) {
 
                     const bool isGivingCheck = core::isKingAttacked(m_stackItr->board);
-                    int8_t lmrReduction = spsa::lmrBaseReduction + getLmrReduction(depth, movesSearched);
+                    reduction = getLmrReduction(depth, movesSearched);
 
-                    lmrReduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
-                    lmrReduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
-                    lmrReduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
-                    lmrReduction = std::clamp<uint8_t>(lmrReduction, 1, depth);
-
-                    /* search current move with reduced depth */
-                    score = -negamax(depth - lmrReduction, m_stackItr->board, -alpha - 1, -alpha);
-                } else {
-                    /* TODO: hack to ensure full depth is reached */
-                    score = alpha + 1;
+                    reduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
+                    reduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
+                    reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
+                    reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
 
-                /*
-                 * PVS
-                 * https://en.wikipedia.org/wiki/Principal_variation_search
-                 * search with a null window
-                 */
-                if (score > alpha) {
-                    score = -negamax(depth - 1, m_stackItr->board, -alpha - 1, -alpha);
+                /* first try zero window search with reduced depth (best case scenario) */
+                score = -zeroWindow(depth - 1 - reduction, m_stackItr->board, -alpha);
 
-                    /* if it failed high, do a full re-search */
-                    if ((score > alpha) && (score < beta)) {
-                        score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
-                    }
+                /* above failed high, so attempt a zero window search but with no reductions */
+                if (score > alpha && reduction > 0) {
+                    score = -zeroWindow(depth - 1, m_stackItr->board, -alpha);
+                }
+
+                /* if both reduced and non-reduced zero search failed high then we're forced
+                 * to do a full depth full window search
+                 * this search has PV potential, so the cost is worth it! */
+                if (score > alpha && score < beta) {
+                    score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha);
                 }
             }
 
@@ -441,6 +438,12 @@ public:
     }
 
 private:
+    template<SearchType searchType = Default>
+    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window)
+    {
+        return negamax<searchType>(depth, board, window - 1, window);
+    }
+
     constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta)
     {
         m_nodes++;
@@ -548,7 +551,7 @@ private:
 
         /* perform search with reduced depth (based on reduction limit) */
         const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
-        Score score = -negamax<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta, -beta + 1);
+        Score score = -zeroWindow<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta + 1);
 
         m_ply -= 2;
         m_stackItr -= 2;
