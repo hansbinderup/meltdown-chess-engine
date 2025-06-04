@@ -366,9 +366,7 @@ public:
                 /* other moves we can attempt searched with a reduced zero window search
                  * if the zero window search increases alpha we increase the window size */
                 int8_t reduction = 0;
-                if (movesSearched >= spsa::fullDepthMove
-                    && !move.isCapture()
-                    && !move.isPromotionMove()) {
+                if (depth >= spsa::lmrDepthLimit && movesSearched >= spsa::lmrMovesSearchedLimit) {
 
                     const bool isGivingCheck = core::isKingAttacked(m_stackItr->board);
                     reduction = getLmrReduction(depth, movesSearched);
