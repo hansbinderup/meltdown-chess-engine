@@ -23,6 +23,11 @@ if [[ "$OPTIMIZATION" == "dev" ]]; then
     ARGS+=("-Ddeveloper-build=true")
 fi
 
+# only allow cached builds for dev builds
+if [[ "$OPTIMIZATION" == "release" ]]; then
+    rm -rf "$BUILD_DIR" || true
+fi
+
 # custom build for SPSA to ensure proper meson setup
 if $SPSA; then
     ARGS+=("-Dspsa=true")
