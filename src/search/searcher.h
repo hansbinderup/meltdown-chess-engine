@@ -318,6 +318,16 @@ public:
             }
         }
 
+        const auto ttMove = tryFetchTtMove(hashProbe);
+
+        /* internal iterative reduction (IIR)
+         * the assumtion is that if no tt move was found for a given node
+         * then it most not be very important - instead reduce it for now and let
+         * future deeper searches explore that node (if important) */
+        if (depth >= spsa::iirDepthLimit && (isPv || cutNode) && !ttMove.has_value()) {
+            depth--;
+        }
+
         bool tbMoves = false;
         movegen::ValidMoves moves {};
         if (syzygy::isTableActive(board)) {
@@ -341,8 +351,6 @@ public:
                 m_searchTables.updatePvScoring(moves, m_ply);
             }
         }
-
-        const auto ttMove = tryFetchTtMove(hashProbe);
 
         const auto phase = tbMoves ? PickerPhase::Syzygy : PickerPhase::TtMove;
 
