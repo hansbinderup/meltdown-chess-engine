@@ -21,6 +21,7 @@ namespace search {
 
 enum SearchType {
     Default,
+    PvSearch,
     NullSearch,
 };
 
@@ -95,7 +96,7 @@ public:
         m_wdl = syzygy::WdlResultTableNotActive;
         m_dtz = 0;
 
-        return negamax(depth, board, alpha, beta);
+        return negamax<PvSearch>(depth, board, alpha, beta);
     }
 
     void inline startSearchAsync(ThreadPool& threadPool, uint8_t depth, const BitBoard& board, Score alpha, Score beta)
@@ -111,7 +112,7 @@ public:
 
         const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
-                .score = negamax(depth, board, alpha, beta),
+                .score = negamax<PvSearch>(depth, board, alpha, beta),
                 .pvMove = m_searchTables.getBestPvMove(),
                 .searchedDepth = m_searchTables.getPvSize(),
                 .searcher = weak_from_this()
@@ -202,7 +203,7 @@ public:
 
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
-        const Score score = negamax(depth, board);
+        const Score score = negamax<PvSearch>(depth, board);
 
         TimeManager::stop();
 
@@ -222,9 +223,10 @@ public:
             m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), evaluation::staticEvaluation(board));
     }
 
-    template<SearchType searchType = SearchType::Default>
+    template<SearchType searchType>
     constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false)
     {
+        constexpr bool isPv = searchType == PvSearch;
         const bool isRoot = m_ply == 0;
 
         m_searchTables.updatePvLength(m_ply);
@@ -239,7 +241,6 @@ public:
             }
         }
 
-        const bool isPv = beta - alpha > 1;
         const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
         if (hashProbe.has_value() && m_ply && !isPv) {
             const auto testResult = core::testEntry(*hashProbe, m_ply, depth, alpha, beta);
@@ -361,7 +362,7 @@ public:
 
             if (movesSearched == 0) {
                 /* no moves searched yet -> perform a full depth PV move search */
-                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
+                score = -negamax<searchType>(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
             } else {
                 /* other moves we can attempt searched with a reduced zero window search
                  * if the zero window search increases alpha we increase the window size */
@@ -393,7 +394,7 @@ public:
                  * to do a full depth full window search
                  * this search has PV potential, so the cost is worth it! */
                 if (score > alpha && score < beta) {
-                    score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
+                    score = -negamax<searchType>(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
                 }
             }
 
@@ -443,6 +444,9 @@ private:
     template<SearchType searchType = Default>
     inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window, bool cutNode)
     {
+        /* zero window should never be searched as PV node! */
+        static_assert(searchType != PvSearch);
+
         return negamax<searchType>(depth, board, window - 1, window, cutNode);
     }
 
@@ -553,7 +557,7 @@ private:
 
         /* perform search with reduced depth (based on reduction limit) */
         const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
-        Score score = -zeroWindow<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta + 1, !cutNode);
+        Score score = -zeroWindow<NullSearch>(depth - reduction, nullMoveBoard, -beta + 1, !cutNode);
 
         m_ply -= 2;
         m_stackItr -= 2;
