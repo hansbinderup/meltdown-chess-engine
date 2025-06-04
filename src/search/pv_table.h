@@ -49,8 +49,9 @@ public:
         auto& currentRow = m_pvTable.at(ply);
         currentRow.at(ply) = move;
 
-        std::ranges::copy(m_pvTable.at(ply + 1) | std::views::drop(ply + 1),
-            currentRow.begin() + ply + 1);
+        const auto& source = m_pvTable[ply + 1];
+        for (size_t i = ply + 1; i < source.size(); ++i)
+            currentRow[i] = source[i];
 
         m_pvLength.at(ply) = m_pvLength.at(ply + 1);
     }
