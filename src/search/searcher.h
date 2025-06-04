@@ -321,6 +321,16 @@ public:
             }
         }
 
+        const auto ttMove = tryFetchTtMove(hashProbe);
+
+        /* internal iterative reduction (IIR)
+         * the assumtion is that if no tt move was found for a given node
+         * then it most not be very important - instead reduce it for now and let
+         * future deeper searches explore that node (if important) */
+        if (depth >= spsa::iirDepthLimit && (isPv || cutNode) && !ttMove.has_value()) {
+            depth--;
+        }
+
         bool tbMoves = false;
         movegen::ValidMoves moves {};
         if (syzygy::isTableActive(board)) {
@@ -345,9 +355,7 @@ public:
             }
         }
 
-        const auto ttMove = tryFetchTtMove(hashProbe);
         const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
-
         const auto phase = tbMoves ? PickerPhase::Syzygy : PickerPhase::TtMove;
 
         MovePicker picker(m_searchTables, m_ply, ttMove, prevMove, phase);
