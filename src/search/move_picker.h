@@ -35,11 +35,16 @@ public:
     MovePicker() = default;
 
     MovePicker(PickerPhase phase)
-        : m_phase(phase) {};
+        : m_phase(phase) { };
 
     void setPhase(PickerPhase phase)
     {
         m_phase = phase;
+    }
+
+    PickerPhase getPhase() const
+    {
+        return m_phase;
     }
 
     template<Player player> constexpr std::optional<movegen::Move> pickNextMove(const BitBoard& board, SearchTables& searchTables, movegen::ValidMoves& moves, uint8_t ply, std::optional<movegen::Move> ttMove = std::nullopt)
