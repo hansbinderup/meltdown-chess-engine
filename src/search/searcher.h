@@ -187,12 +187,12 @@ public:
         movegen::ValidMoves captures;
         core::getAllMoves<movegen::MoveCapture>(board, captures);
 
-        MovePicker picker { m_searchTables, m_ply };
+        MovePicker picker { m_searchTables, m_ply, PickerPhase::TtMove, movegen::MoveCapture };
 
         if (captures.count()) {
             fmt::print("Captures[{}]: ", captures.count());
 
-            while (const auto& moveOpt = picker.pickNextMove(board, captures)) {
+            while (const auto& moveOpt = picker.pickNextMove(board)) {
                 const auto move = moveOpt.value();
                 fmt::print("{}   ", move);
             }
@@ -210,9 +210,9 @@ public:
 
         fmt::println("Move evaluations [{}]:", depth);
 
-        picker.setPhase(PickerPhase::TtMove);
+        picker.resetPicking(PickerPhase::TtMove, movegen::MovePseudoLegal);
 
-        while (const auto& moveOpt = picker.pickNextMove(board, moves)) {
+        while (const auto& moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
 
             fmt::println("  {}", move);
@@ -322,11 +322,11 @@ public:
         }
 
         bool tbMoves = false;
-        movegen::ValidMoves moves {};
+        movegen::ValidMoves syzygyMoves {};
         if (syzygy::isTableActive(board)) {
             /* generateSyzygyMoves is not thread safe - allow primary searcher only to take this path! */
             if (isRoot && m_isPrimary) {
-                tbMoves = syzygy::generateSyzygyMoves(board, moves, m_wdl, m_dtz);
+                tbMoves = syzygy::generateSyzygyMoves(board, syzygyMoves, m_wdl, m_dtz);
             } else if (!isRoot && board.isQuietPosition()) {
                 Score score = 0;
                 syzygy::probeWdl(board, score);
@@ -337,22 +337,15 @@ public:
             }
         }
 
-        if (!tbMoves) {
-            core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
-
-            if (m_searchTables.isPvFollowing()) {
-                m_searchTables.updatePvScoring(moves, m_ply);
-            }
-        }
+        auto syzygyOpt = tbMoves ? std::make_optional(syzygyMoves) : std::nullopt;
 
         const auto ttMove = tryFetchTtMove(hashProbe);
         const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
-
         const auto phase = tbMoves ? PickerPhase::Syzygy : PickerPhase::TtMove;
 
-        MovePicker picker(m_searchTables, m_ply, ttMove, prevMove, phase);
+        MovePicker picker(m_searchTables, m_ply, phase, movegen::MovePseudoLegal, ttMove, prevMove, syzygyOpt);
 
-        while (const auto moveOpt = picker.pickNextMove(board, moves)) {
+        while (const auto moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
 
             if (!makeMove(board, move)) {
@@ -492,13 +485,10 @@ private:
         movegen::Move alphaMove = movegen::nullMove();
         Score bestScore = m_stackItr->eval;
 
-        movegen::ValidMoves moves;
-        core::getAllMoves<movegen::MoveCapture>(board, moves);
-
         const auto ttMove = tryFetchTtMove(hashProbe);
-        MovePicker picker { m_searchTables, m_ply, ttMove };
+        MovePicker picker { m_searchTables, m_ply, PickerPhase::TtMove, movegen::MoveCapture, ttMove };
 
-        while (const auto& moveOpt = picker.pickNextMove(board, moves)) {
+        while (const auto& moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
 
             if (!makeMove(board, move)) {
@@ -669,5 +659,4 @@ private:
     std::promise<SearcherResult> m_searchPromise;
     std::future<SearcherResult> m_futureResult;
 };
-
 }
