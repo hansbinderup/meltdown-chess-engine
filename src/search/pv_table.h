@@ -75,9 +75,14 @@ public:
         return m_isScoring;
     }
 
-    bool isPvMove(movegen::Move move, uint8_t ply) const
+    inline bool isPvMove(movegen::Move move, uint8_t ply) const
     {
         return m_pvTable.at(0).at(ply) == move;
+    }
+
+    inline movegen::Move getPvMove(uint8_t ply) const
+    {
+        return m_pvTable.at(0).at(ply);
     }
 
     void updatePvScoring(const movegen::ValidMoves& moves, uint8_t ply)

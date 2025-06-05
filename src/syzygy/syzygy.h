@@ -20,6 +20,15 @@ enum WdlResult {
 
 namespace {
 
+static inline uint8_t s_dtz {};
+static inline WdlResult s_wdl { WdlResultTableNotActive };
+
+inline void reset()
+{
+    s_dtz = 0;
+    s_wdl = WdlResultTableNotActive;
+}
+
 std::span<uint32_t> sortDtzResults(std::span<uint32_t> results, uint32_t wdl)
 {
     const bool lowDtz = wdl == TB_WIN || wdl == TB_CURSED_WIN;
@@ -195,7 +204,7 @@ inline void printDtzDebug(const BitBoard& board)
 
 /* NOTE: this method is not thread safe (tb_probe_root is declared as non-thread safe)
  * NOTE: this method should only be called once from root */
-inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& moves, WdlResult& wdl, uint8_t& dtz)
+inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& moves)
 {
     std::array<uint32_t, TB_MAX_MOVES> results;
 
@@ -242,17 +251,17 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
     }
 
     if (!sortedResults.empty()) {
-        dtz = TB_GET_DTZ(sortedResults.front());
+        s_dtz = TB_GET_DTZ(sortedResults.front());
     }
 
-    wdl = wdlFromInt(TB_GET_WDL(res));
+    s_wdl = wdlFromInt(TB_GET_WDL(res));
 
     return true;
 }
 
-inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz, WdlResult wdl)
+inline Score approximateDtzScore(const BitBoard& board, Score score)
 {
-    switch (wdl) {
+    switch (s_wdl) {
     case WdlResultLoss:
         break;
     case WdlResultBlessedLoss:
@@ -267,17 +276,17 @@ inline Score approximateDtzScore(const BitBoard& board, Score score, uint8_t dtz
     }
 
     /* If we're already at DTZ 0, it implies a forced draw or mate, so no further approximation needed */
-    if (dtz == 0) {
+    if (s_dtz == 0) {
         score = s_mateValue; // Forced mate or draw
     } else if (const int piecesLeft = std::popcount(board.occupation[Both]); piecesLeft == 3) {
         /* last piece to be taken so dtm must be dtz */
-        score = s_mateValue - dtz;
+        score = s_mateValue - s_dtz;
     } else {
         /* mate but we don't know when - return high score */
         score = s_mateValue / 2;
     }
 
-    return wdl == WdlResultWin ? score : -score;
+    return s_wdl == WdlResultWin ? score : -score;
 }
 
 }
