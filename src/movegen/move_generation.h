@@ -18,17 +18,20 @@ template<MoveType type>
 constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_t knights, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     utils::bitIterate(knights, [&](BoardPosition from) {
-        uint64_t moves = getKnightMoves(from) & ~ownOccupation;
-
-        utils::bitIterate(moves, [&](BoardPosition pos) {
-            const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
-            if constexpr (type == MovePseudoLegal) {
+        if constexpr (type == MovePseudoLegal) {
+            const uint64_t moves = getKnightMoves(from) & ~ownOccupation;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
                 validMoves.addMove(Move::create(from, pos, isCapture));
-            } else if constexpr (type == MoveCapture) {
-                if (isCapture)
-                    validMoves.addMove(Move::create(from, pos, isCapture));
-            }
-        });
+            });
+        } else if constexpr (type == MoveCapture) {
+            const uint64_t moves = getKnightMoves(from) & theirOccupation;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                validMoves.addMove(Move::create(from, pos, true));
+            });
+        } else {
+            static_assert(false, "Missing move type implementation");
+        }
     });
 }
 
@@ -36,18 +39,20 @@ template<MoveType type>
 constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t rooks, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     utils::bitIterate(rooks, [&](BoardPosition from) {
-        uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
-
-        utils::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = utils::positionToSquare(to) & theirOccupation;
-
-            if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, to, isCapture));
-            } else if constexpr (type == MoveCapture) {
-                if (isCapture)
-                    validMoves.addMove(Move::create(from, to, isCapture));
-            }
-        });
+        if constexpr (type == MovePseudoLegal) {
+            const uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
+                validMoves.addMove(Move::create(from, pos, isCapture));
+            });
+        } else if constexpr (type == MoveCapture) {
+            const uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & theirOccupation;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                validMoves.addMove(Move::create(from, pos, true));
+            });
+        } else {
+            static_assert(false, "Missing move type implementation");
+        }
     });
 }
 
@@ -55,18 +60,20 @@ template<MoveType type>
 constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_t bishops, uint64_t ownOccupation, uint64_t theirOccupation)
 {
     utils::bitIterate(bishops, [&](BoardPosition from) {
-        uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
-
-        utils::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = utils::positionToSquare(to) & theirOccupation;
-
-            if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, to, isCapture));
-            } else if constexpr (type == MoveCapture) {
-                if (isCapture)
-                    validMoves.addMove(Move::create(from, to, isCapture));
-            }
-        });
+        if constexpr (type == MovePseudoLegal) {
+            const uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & ~ownOccupation;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
+                validMoves.addMove(Move::create(from, pos, isCapture));
+            });
+        } else if constexpr (type == MoveCapture) {
+            const uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & theirOccupation;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                validMoves.addMove(Move::create(from, pos, true));
+            });
+        } else {
+            static_assert(false, "Missing move type implementation");
+        }
     });
 }
 
@@ -81,18 +88,20 @@ template<MoveType type>
 constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t king, uint64_t ownOccupation, uint64_t theirOccupation, uint64_t attacks)
 {
     utils::bitIterate(king, [&](BoardPosition from) {
-        uint64_t moves = s_kingsTable.at(from) & ~ownOccupation & ~attacks;
-
-        utils::bitIterate(moves, [&](BoardPosition to) {
-            const bool isCapture = utils::positionToSquare(to) & theirOccupation;
-
-            if constexpr (type == MovePseudoLegal) {
-                validMoves.addMove(Move::create(from, to, isCapture));
-            } else if constexpr (type == MoveCapture) {
-                if (isCapture)
-                    validMoves.addMove(Move::create(from, to, isCapture));
-            }
-        });
+        if constexpr (type == MovePseudoLegal) {
+            const uint64_t moves = s_kingsTable.at(from) & ~ownOccupation & ~attacks;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
+                validMoves.addMove(Move::create(from, pos, isCapture));
+            });
+        } else if constexpr (type == MoveCapture) {
+            const uint64_t moves = s_kingsTable.at(from) & theirOccupation & ~attacks;
+            utils::bitIterate(moves, [&](BoardPosition pos) {
+                validMoves.addMove(Move::create(from, pos, true));
+            });
+        } else {
+            static_assert(false, "Missing move type implementation");
+        }
     });
 }
 
