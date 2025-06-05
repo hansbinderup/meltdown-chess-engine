@@ -16,15 +16,10 @@ namespace attackgen {
 template<Player player>
 constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
 {
-    uint64_t knights {};
+    constexpr Piece ourKnights = player == PlayerWhite ? WhiteKnight : BlackKnight;
+    const uint64_t knights = board.pieces[ourKnights];
+
     uint64_t attacks = {};
-
-    if constexpr (player == PlayerWhite) {
-        knights = board.pieces[WhiteKnight];
-    } else {
-        knights = board.pieces[BlackKnight];
-    }
-
     utils::bitIterate(knights, [&](BoardPosition from) {
         attacks |= movegen::getKnightMoves(from);
     });
@@ -35,16 +30,11 @@ constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
 {
-    uint64_t rooks {};
-    uint64_t attacks {};
+    constexpr Piece ourRooks = player == PlayerWhite ? WhiteRook : BlackRook;
+    const uint64_t rooks = board.pieces[ourRooks];
     const uint64_t occupancy = board.occupation[Both];
 
-    if constexpr (player == PlayerWhite) {
-        rooks = board.pieces[WhiteRook];
-    } else {
-        rooks = board.pieces[BlackRook];
-    }
-
+    uint64_t attacks = {};
     utils::bitIterate(rooks, [&](BoardPosition from) {
         attacks |= movegen::getRookMoves(from, occupancy);
     });
@@ -55,16 +45,11 @@ constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
 {
-    uint64_t bishops {};
-    uint64_t attacks = {};
+    constexpr Piece ourBishops = player == PlayerWhite ? WhiteBishop : BlackBishop;
+    const uint64_t bishops = board.pieces[ourBishops];
     const uint64_t occupancy = board.occupation[Both];
 
-    if constexpr (player == PlayerWhite) {
-        bishops = board.pieces[WhiteBishop];
-    } else {
-        bishops = board.pieces[BlackBishop];
-    }
-
+    uint64_t attacks = {};
     utils::bitIterate(bishops, [&](BoardPosition from) {
         attacks |= movegen::getBishopMoves(from, occupancy);
     });
@@ -75,16 +60,11 @@ constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
 {
-    uint64_t queens {};
-    uint64_t attacks = {};
+    constexpr Piece ourQueens = player == PlayerWhite ? WhiteQueen : BlackQueen;
+    const uint64_t queens = board.pieces[ourQueens];
     const uint64_t occupancy = board.occupation[Both];
 
-    if constexpr (player == PlayerWhite) {
-        queens = board.pieces[WhiteQueen];
-    } else {
-        queens = board.pieces[BlackQueen];
-    }
-
+    uint64_t attacks = {};
     utils::bitIterate(queens, [&](BoardPosition from) {
         attacks |= movegen::getRookMoves(from, occupancy);
         attacks |= movegen::getBishopMoves(from, occupancy);
@@ -96,13 +76,8 @@ constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
 {
-    uint64_t king {};
-
-    if constexpr (player == PlayerWhite) {
-        king = board.pieces[WhiteKing];
-    } else {
-        king = board.pieces[BlackKing];
-    }
+    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
+    const uint64_t king = board.pieces[ourKing];
 
     if (king == 0) {
         return 0;
@@ -111,35 +86,28 @@ constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
     return movegen::getKingMoves(utils::lsbToPosition(king));
 }
 
-constexpr static inline uint64_t getWhitePawnAttacks(const BitBoard& board)
+template<Player player>
+constexpr static inline uint64_t getPawnAttacks(const BitBoard& board)
 {
-    const uint64_t pawns = board.pieces[WhitePawn];
-    uint64_t attacks = ((pawns & ~s_aFileMask) << 7);
-    attacks |= ((pawns & ~s_hFileMask) << 9);
+    if constexpr (player == PlayerWhite) {
+        const uint64_t pawns = board.pieces[WhitePawn];
+        uint64_t attacks = ((pawns & ~s_aFileMask) << 7);
+        attacks |= ((pawns & ~s_hFileMask) << 9);
 
-    return attacks;
-}
+        return attacks;
+    } else {
+        const uint64_t pawns = board.pieces[BlackPawn];
+        uint64_t attacks = ((pawns & ~s_aFileMask) >> 9);
+        attacks |= ((pawns & ~s_hFileMask) >> 7);
 
-constexpr static inline uint64_t getBlackPawnAttacks(const BitBoard& board)
-{
-    const uint64_t pawns = board.pieces[BlackPawn];
-    uint64_t attacks = ((pawns & ~s_aFileMask) >> 9);
-    attacks |= ((pawns & ~s_hFileMask) >> 7);
-
-    return attacks;
+        return attacks;
+    }
 }
 
 template<Player player>
 constexpr uint64_t getAllAttacks(const BitBoard& board)
 {
-    uint64_t attacks {};
-
-    if constexpr (player == PlayerWhite) {
-        attacks |= getWhitePawnAttacks(board);
-    } else {
-        attacks |= getBlackPawnAttacks(board);
-    }
-
+    uint64_t attacks = getPawnAttacks<player>(board);
     attacks |= getKnightAttacks<player>(board);
     attacks |= getRookAttacks<player>(board);
     attacks |= getBishopAttacks<player>(board);

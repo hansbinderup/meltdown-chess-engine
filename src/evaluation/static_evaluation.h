@@ -25,7 +25,7 @@ namespace evaluation {
 static inline TermContext prepareContext(const BitBoard& board)
 {
     return TermContext {
-        .pawnAttacks { attackgen::getWhitePawnAttacks(board), attackgen::getBlackPawnAttacks(board) },
+        .pawnAttacks { attackgen::getPawnAttacks<PlayerWhite>(board), attackgen::getPawnAttacks<PlayerBlack>(board) },
         .kingZone { attackgen::getKingAttacks<PlayerWhite>(board), attackgen::getKingAttacks<PlayerBlack>(board) },
         .attacksToKingZone { 0, 0 },
         .pieceAttacks {},
