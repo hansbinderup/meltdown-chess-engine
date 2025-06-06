@@ -21,7 +21,7 @@ constexpr uint64_t knightsMove(int square)
         { -1, -2 }, { -1, 2 }, { 1, -2 }, { 1, 2 }
     };
 
-    for (auto [dr, dc] : knightsOffset) {
+    for (const auto& [dr, dc] : knightsOffset) {
         int newRow = row + dr;
         int newCol = col + dc;
         if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
