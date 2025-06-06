@@ -474,13 +474,20 @@ private:
             return evaluation::staticEvaluation(board);
 
         const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const bool isChecked = core::isKingAttacked(board);
 
-        /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        if (isChecked) {
+            /* ensure no cut-offs (unless already mating score) when checked
+             * so we don't miss any mates */
+            m_stackItr->eval = -s_mateValue + m_ply;
+        } else {
+            /* update current stack with the static evaluation */
+            m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        }
 
         /* hard cutoff */
         if (m_stackItr->eval >= beta) {
-            return beta;
+            return m_stackItr->eval;
         }
 
         if (m_stackItr->eval > alpha) {
@@ -507,6 +514,7 @@ private:
 
         const auto ttMove = tryFetchTtMove(hashProbe);
         MovePicker picker { m_searchTables, m_ply, ttMove };
+        uint16_t movesSearched = 0;
 
         while (const auto& moveOpt = picker.pickNextMove(board, moves)) {
             const auto move = moveOpt.value();
@@ -535,6 +543,14 @@ private:
                 hashFlag = core::TtExact;
                 alpha = score;
             }
+
+            movesSearched++;
+        }
+
+        /* if we're checked, we didn't search any legal moves and we had moves to search
+         * then the position must be a checkmate! */
+        if (isChecked && movesSearched == 0 && moves.count() != 0) {
+            return -s_mateValue + m_ply;
         }
 
         core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, alphaMove, 0, m_ply, hashFlag);
