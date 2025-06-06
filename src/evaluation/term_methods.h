@@ -69,6 +69,9 @@ struct TermContext {
 
     /* all accumulated attacks -> threats from a given player */
     std::array<uint64_t, magic_enum::enum_count<Player>()> threats;
+
+    /* squares of all passed pawns -> used to compute free and protected pawns */
+    std::array<uint64_t, magic_enum::enum_count<Player>()> passedPawns;
 };
 
 [[nodiscard]] constexpr uint64_t flipPosition(BoardPosition pos) noexcept
@@ -97,6 +100,7 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
     TermScore score(0, 0);
 
     constexpr Piece ourPawns = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawns = player == PlayerWhite ? BlackPawn : WhitePawn;
     const uint64_t pawns = board.pieces[ourPawns];
 
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
@@ -125,21 +129,15 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
             ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
         }
 
+        if ((board.pieces[theirPawns] & s_passedPawnMaskTable[player][pos]) == 0) {
+            /* scores will be added in "getPassedPawnsScore" */
+            ctx.passedPawns[player] |= square;
+        }
+
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtPawns, pos);
-
-            if ((board.pieces[BlackPawn] & s_passedPawnMaskTable[player][pos]) == 0) {
-                const uint8_t row = (pos / 8);
-                ADD_SCORE_INDEXED(passedPawnBonus, row);
-            }
-
         } else {
             ADD_SCORE_INDEXED(psqtPawns, flipPosition(pos));
-
-            if ((board.pieces[WhitePawn] & s_passedPawnMaskTable[player][pos]) == 0) {
-                const uint8_t row = 7 - (pos / 8);
-                ADD_SCORE_INDEXED(passedPawnBonus, row);
-            }
         }
     });
 
@@ -527,6 +525,37 @@ static inline TermScore getPawnPushThreatScore(const BitBoard& board, TermContex
         const auto target = board.getTargetAtSquare<player>(square);
         const auto colorlessPiece = pieceToColorlessPiece<opponent>(*target);
         ADD_SCORE_INDEXED(pawnPushThreats, colorlessPiece);
+    });
+
+    return score;
+}
+
+template<Player player>
+static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& ctx)
+{
+    TermScore score(0, 0);
+
+    constexpr Player opponent = nextPlayer(player);
+    const uint64_t passedPawns = ctx.passedPawns[player];
+
+    utils::bitIterate(passedPawns, [&](BoardPosition pos) {
+        const uint8_t row = utils::relativeRow<player>(pos);
+        const uint64_t pushedSquare = movegen::getPawnPushForwardFromPos<player>(pos);
+
+        /* always apply bonus to passeds pawn */
+        ADD_SCORE_INDEXED(passedPawnBonus, row);
+
+        /* if we can push the pawn without it being attacked -> apply free push bonus */
+        const bool freePush = (board.occupation[Both] & pushedSquare) == 0 && (ctx.threats[opponent] & pushedSquare) == 0;
+        if (freePush) {
+            ADD_SCORE_INDEXED(freePassedPawnBonus, row);
+        }
+
+        /* if we can push the pawn into being defended -> apply protected pawn bonus */
+        const bool protectedPush = (ctx.threats[player] & pushedSquare) != 0;
+        if (protectedPush) {
+            ADD_SCORE_INDEXED(protectedPassedPawnBonus, row);
+        }
     });
 
     return score;

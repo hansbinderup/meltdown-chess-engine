@@ -141,10 +141,17 @@ template<Player player>
 static inline uint64_t getPawnPushForward(uint64_t pawns)
 {
     if constexpr (player == PlayerWhite) {
-        return (pawns & ~(s_row7Mask | s_row8Mask)) << 8;
+        return pawns << 8;
     } else {
-        return (pawns & ~(s_row2Mask | s_row1Mask)) >> 8;
+        return pawns >> 8;
     }
+}
+
+template<Player player>
+static inline uint64_t getPawnPushForwardFromPos(BoardPosition pos)
+{
+    const uint64_t square = utils::positionToSquare(pos);
+    return getPawnPushForward<player>(square);
 }
 
 /* returns a bitmask representing all squares attacked by pawns of the given player
