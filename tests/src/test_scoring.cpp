@@ -55,7 +55,7 @@ TEST_CASE("Scoring", "[scoring]")
 
             movegen::ValidMoves results {};
             SearchTables searchTables {};
-            MovePicker picker { searchTables, 0, PickerPhase::TtMove, movegen::MoveCapture };
+            MovePicker<movegen::MoveCapture> picker { searchTables, 0, PickerPhase::GenerateMoves };
 
             while (const auto moveOpt = picker.pickNextMove(*board)) {
                 results.addMove(moveOpt.value());
@@ -77,7 +77,7 @@ TEST_CASE("Scoring", "[scoring]")
 
             movegen::ValidMoves results {};
             SearchTables searchTables {};
-            MovePicker picker { searchTables, 0, PickerPhase::TtMove, movegen::MovePseudoLegal };
+            MovePicker<movegen::MovePseudoLegal> picker { searchTables, 0, PickerPhase::GenerateMoves };
 
             while (const auto moveOpt = picker.pickNextMove(*board)) {
                 results.addMove(moveOpt.value());

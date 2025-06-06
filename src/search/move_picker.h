@@ -7,6 +7,7 @@
 #include "movegen/move_types.h"
 
 #include "search/search_tables.h"
+#include "syzygy/syzygy.h"
 
 #include <cstdint>
 
@@ -19,6 +20,7 @@ enum KillerMoveType {
 
 enum PickerPhase {
     Syzygy,
+    GenerateMoves,
     TtMove,
     PvMove,
     CaptureGood,
@@ -32,26 +34,32 @@ enum PickerPhase {
     Done,
 };
 
+template<movegen::MoveType moveType>
 class MovePicker {
 public:
-    MovePicker(SearchTables& searchTables, uint8_t ply, PickerPhase phase, movegen::MoveType moveType, std::optional<movegen::Move> ttMove = std::nullopt, std::optional<movegen::Move> prevMove = std::nullopt, std::optional<movegen::ValidMoves> syzygyMoves = std::nullopt)
+    MovePicker(SearchTables& searchTables, uint8_t ply, PickerPhase phase, std::optional<movegen::Move> ttMove = std::nullopt, std::optional<movegen::Move> prevMove = std::nullopt)
         : m_searchTables(searchTables)
         , m_ply(ply)
         , m_phase(phase)
-        , m_moveType(moveType)
         , m_ttMove(ttMove)
         , m_prevMove(prevMove)
     {
-        if (syzygyMoves.has_value())
-            m_moves = syzygyMoves.value();
     }
 
-    constexpr void resetPicking(PickerPhase phase, movegen::MoveType moveType)
+    constexpr void resetPicking(PickerPhase phase)
     {
         m_phase = phase;
-        m_moveType = moveType;
         m_moves = movegen::ValidMoves();
-        m_hasGeneratedMoves = false;
+    }
+
+    constexpr void setPhase(PickerPhase phase)
+    {
+        m_phase = phase;
+    }
+
+    constexpr bool generateSyzygyMoves(const BitBoard& board, syzygy::WdlResult& wdl, uint8_t& dtz)
+    {
+        return syzygy::generateSyzygyMoves(board, m_moves, wdl, dtz);
     }
 
     template<Player player> constexpr std::optional<movegen::Move> pickNextMove(const BitBoard& board)
@@ -67,10 +75,15 @@ public:
             return pickNextMove<player>(board);
         }
 
-        case TtMove: {
-            if (!m_hasGeneratedMoves)
-                generateAllMoves(board);
+        case GenerateMoves: {
+            generateAllMoves(board);
 
+            m_phase = PickerPhase::TtMove;
+
+            return pickNextMove<player>(board);
+        }
+
+        case TtMove: {
             if (const auto pickedMove = pickTtMove())
                 return pickedMove;
 
@@ -179,7 +192,7 @@ public:
 private:
     constexpr void generateAllMoves(const BitBoard& board)
     {
-        if (m_moveType == movegen::MovePseudoLegal) {
+        if constexpr (moveType == movegen::MovePseudoLegal) {
             core::getAllMoves<movegen::MovePseudoLegal>(board, m_moves);
 
             // Hack: pseudo-legal for negamax, capture for qsearch
@@ -189,9 +202,6 @@ private:
         } else {
             core::getAllMoves<movegen::MoveCapture>(board, m_moves);
         }
-
-        // TODO nullify TT, PV
-        m_hasGeneratedMoves = true;
     }
 
     // Syzygy moves are already sorted: return first, then second, third etc
@@ -378,11 +388,9 @@ private:
 
     uint8_t m_ply {};
     PickerPhase m_phase { PickerPhase::TtMove };
-    movegen::MoveType m_moveType { movegen::MovePseudoLegal };
     std::optional<movegen::Move> m_ttMove { std::nullopt };
     std::optional<movegen::Move> m_prevMove { std::nullopt };
 
     movegen::ValidMoves m_moves {};
-    bool m_hasGeneratedMoves { false };
 };
 }
