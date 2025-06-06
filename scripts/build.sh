@@ -25,6 +25,9 @@ fi
 
 # only allow cached builds for dev builds
 if [[ "$OPTIMIZATION" == "release" ]]; then
+    # ensure releases are configured in their own folders as we might otherwise
+    # try to build a dev build which doesn't clean -> not reconfigured as dev
+    BUILD_DIR=".build-release"
     rm -rf "$BUILD_DIR" || true
 fi
 
