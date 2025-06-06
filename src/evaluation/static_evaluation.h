@@ -30,6 +30,7 @@ static inline TermContext prepareContext(const BitBoard& board)
         .attacksToKingZone { 0, 0 },
         .pieceAttacks {},
         .threats { 0, 0 },
+        .passedPawns { 0, 0 },
     };
 }
 
@@ -53,6 +54,7 @@ static inline Score staticEvaluation(const BitBoard& board)
     APPLY_SCORE(getPieceAttacksScore, board, ctx);
     APPLY_SCORE(getChecksScore, board, ctx);
     APPLY_SCORE(getPawnPushThreatScore, board, ctx);
+    APPLY_SCORE(getPassedPawnsScore, board, ctx);
 
     const Score evaluation = score.phaseScore(phaseScore);
     return board.player == PlayerWhite ? evaluation : -evaluation;
