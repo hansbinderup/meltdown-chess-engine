@@ -536,7 +536,13 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
     TermScore score(0, 0);
 
     constexpr Player opponent = nextPlayer(player);
+    constexpr Piece theirPawns = player == PlayerWhite ? BlackPawn : WhitePawn;
+    constexpr Piece theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
+
     const uint64_t passedPawns = ctx.passedPawns[player];
+    const auto theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
+    const bool kingPawnsOnly = board.occupation[opponent] == (board.pieces[theirKing] | board.pieces[theirPawns]);
+    const bool tempo = board.player == opponent;
 
     utils::bitIterate(passedPawns, [&](BoardPosition pos) {
         const uint8_t row = utils::relativeRow<player>(pos);
@@ -555,6 +561,17 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
         const bool protectedPush = (ctx.threats[player] & pushedSquare) != 0;
         if (protectedPush) {
             ADD_SCORE_INDEXED(protectedPassedPawnBonus, row);
+        }
+
+        /* pawn square rule https://www.chess.com/terms/square-rule-chess */
+        const uint8_t promotionDistance = 7 - row;
+        const uint8_t distanceToTheirKing = utils::absoluteDistance(pos, theirKingPos);
+        const bool pawnSquareRule = kingPawnsOnly
+            && promotionDistance <= 4 /* only apply square rule when relevant */
+            && promotionDistance < (distanceToTheirKing - static_cast<uint8_t>(tempo));
+
+        if (pawnSquareRule) {
+            ADD_SCORE(pawnSquareRuleBonus);
         }
     });
 
