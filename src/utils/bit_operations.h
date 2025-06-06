@@ -19,6 +19,20 @@ namespace utils {
     return std::abs(fromRow - toRow);
 }
 
+[[nodiscard]] constexpr uint8_t horizontalDistance(BoardPosition from, BoardPosition to) noexcept
+{
+    const auto fromRow = from % 8;
+    const auto toRow = to % 8;
+
+    return std::abs(fromRow - toRow);
+}
+
+/* Chebyshev Distance https://www.chessprogramming.org/Distance */
+[[nodiscard]] constexpr uint8_t absoluteDistance(BoardPosition from, BoardPosition to) noexcept
+{
+    return std::max(verticalDistance(from, to), horizontalDistance(from, to));
+}
+
 template<Player player>
 constexpr uint8_t relativeRow(BoardPosition pos)
 {
