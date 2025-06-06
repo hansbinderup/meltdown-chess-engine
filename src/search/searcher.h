@@ -480,7 +480,7 @@ private:
 
         /* hard cutoff */
         if (m_stackItr->eval >= beta) {
-            return beta;
+            return m_stackItr->eval;
         }
 
         if (m_stackItr->eval > alpha) {
