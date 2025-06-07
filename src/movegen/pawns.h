@@ -136,24 +136,6 @@ constexpr static inline void getBlackEnPessantMoves(ValidMoves& validMoves, uint
     backtrackPawnEnPessantMoves(validMoves, moveRight, -7, false);
 }
 
-/* helper to compute a mask with provided pawns pushed forward */
-template<Player player>
-static inline uint64_t getPawnPushForward(uint64_t pawns)
-{
-    if constexpr (player == PlayerWhite) {
-        return pawns << 8;
-    } else {
-        return pawns >> 8;
-    }
-}
-
-template<Player player>
-static inline uint64_t getPawnPushForwardFromPos(BoardPosition pos)
-{
-    const uint64_t square = utils::positionToSquare(pos);
-    return getPawnPushForward<player>(square);
-}
-
 /* returns a bitmask representing all squares attacked by pawns of the given player
  * from the specified bitboard `pawns`. Each bit set in `pawns` is treated as a pawn's position
  *

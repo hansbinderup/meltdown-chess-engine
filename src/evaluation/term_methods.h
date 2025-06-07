@@ -149,15 +149,22 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
 {
     TermScore score(0, 0);
 
-    constexpr Piece ourKnights = player == PlayerWhite ? WhiteKnight : BlackKnight;
-    const uint64_t knights = board.pieces[ourKnights];
+    constexpr Piece ourKnight = player == PlayerWhite ? WhiteKnight : BlackKnight;
+    constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
+
+    const uint64_t knights = board.pieces[ourKnight];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
 
-    const uint64_t whitePawns = board.pieces[WhitePawn];
-    const uint64_t blackPawns = board.pieces[BlackPawn];
+    const uint64_t ourPawns = board.pieces[ourPawn];
+    const uint64_t theirPawns = board.pieces[theirPawn];
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
+
+    /* apply bonus when sheltered behind one of our pawns */
+    const uint64_t pawnShelters = utils::pushForward<player>(knights) & ourPawns;
+    ADD_SCORE_MULTI(knightShelterBonus, std::popcount(pawnShelters));
 
     utils::bitIterate(knights, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getKnightMoves(pos) & ~board.occupation[player];
@@ -178,7 +185,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtKnights, pos);
 
-            if (!(s_outpostSquareMaskTable[player][pos] & blackPawns) && square & s_whiteOutpostRankMask) {
+            if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_whiteOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
 
@@ -188,7 +195,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
         } else {
             ADD_SCORE_INDEXED(psqtKnights, flipPosition(pos));
 
-            if (!(s_outpostSquareMaskTable[player][pos] & whitePawns) && square & s_blackOutpostRankMask) {
+            if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_blackOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
 
@@ -206,14 +213,21 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
     TermScore score(0, 0);
 
     constexpr Piece ourBishops = player == PlayerWhite ? WhiteBishop : BlackBishop;
+    constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
+
     const uint64_t bishops = board.pieces[ourBishops];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
 
-    const uint64_t whitePawns = board.pieces[WhitePawn];
-    const uint64_t blackPawns = board.pieces[BlackPawn];
+    const uint64_t ourPawns = board.pieces[ourPawn];
+    const uint64_t theirPawns = board.pieces[theirPawn];
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
+
+    /* apply bonus when sheltered behind one of our pawns */
+    const uint64_t pawnShelters = utils::pushForward<player>(bishops) & ourPawns;
+    ADD_SCORE_MULTI(bishopShelterBonus, std::popcount(pawnShelters));
 
     const int amntBishops = std::popcount(bishops);
     if (amntBishops >= 2)
@@ -238,7 +252,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         if constexpr (player == PlayerWhite) {
             ADD_SCORE_INDEXED(psqtBishops, pos);
 
-            if (!(s_outpostSquareMaskTable[player][pos] & blackPawns) && square & s_whiteOutpostRankMask) {
+            if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_whiteOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
 
@@ -247,7 +261,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         } else {
             ADD_SCORE_INDEXED(psqtBishops, flipPosition(pos));
 
-            if (!(s_outpostSquareMaskTable[player][pos] & whitePawns) && square & s_blackOutpostRankMask) {
+            if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_blackOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
 
@@ -457,7 +471,7 @@ static inline TermScore getChecksScore(const BitBoard& board, TermContext& ctx)
     const uint64_t safeMask = ~unsafeMask;
 
     /* pawns are little more complicated - attack mask doesn't include pushed pawns */
-    const uint64_t ourPawnsPushed = movegen::getPawnPushForward<player>(board.pieces[ourPawns]);
+    const uint64_t ourPawnsPushed = utils::pushForward<player>(board.pieces[ourPawns]);
 
     /* fetch king's position and compute each piece attack from there */
     const BoardPosition theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
@@ -511,8 +525,8 @@ static inline TermScore getPawnPushThreatScore(const BitBoard& board, TermContex
     const uint64_t safeMask = ~ctx.threats[opponent] | (~ctx.pieceAttacks[opponent][Pawn] & ctx.threats[player]);
 
     /* compute legal pushes */
-    const uint64_t pushes = movegen::getPawnPushForward<player>(board.pieces[ourPawns]) & ~board.occupation[Both];
-    const uint64_t doublePushes = movegen::getPawnPushForward<player>(pushes & thirdRow) & ~board.occupation[Both];
+    const uint64_t pushes = utils::pushForward<player>(board.pieces[ourPawns]) & ~board.occupation[Both];
+    const uint64_t doublePushes = utils::pushForward<player>(pushes & thirdRow) & ~board.occupation[Both];
     const uint64_t safePushes = (pushes | doublePushes) & safeMask;
 
     /* compute potential attacks from our safed pushed positions */
@@ -546,7 +560,7 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
 
     utils::bitIterate(passedPawns, [&](BoardPosition pos) {
         const uint8_t row = utils::relativeRow<player>(pos);
-        const uint64_t pushedSquare = movegen::getPawnPushForwardFromPos<player>(pos);
+        const uint64_t pushedSquare = utils::pushForwardFromPos<player>(pos);
 
         /* always apply bonus to passeds pawn */
         ADD_SCORE_INDEXED(passedPawnBonus, row);
