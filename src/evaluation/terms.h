@@ -23,8 +23,10 @@ using WeightTable = std::array<TermScore, T>;
     TERM(queenSemiOpenFileBonus, 1)    \
     TERM(knightMobilityScore, 9)       \
     TERM(knightOutpostScore, 4)        \
+    TERM(knightShelterBonus, 1)        \
     TERM(bishopMobilityScore, 14)      \
     TERM(bishopOutpostScore, 4)        \
+    TERM(bishopShelterBonus, 1)        \
     TERM(rookMobilityScore, 15)        \
     TERM(queenMobilityScore, 28)       \
     TERM(kingVirtualMobilityScore, 28) \
