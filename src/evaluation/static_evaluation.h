@@ -57,6 +57,7 @@ static inline Score staticEvaluation(const BitBoard& board)
     APPLY_SCORE(getPassedPawnsScore, board, ctx);
 
     const Score evaluation = score.phaseScore(phaseScore);
+    assert(evaluation < s_mateValue);
     return board.player == PlayerWhite ? evaluation : -evaluation;
 }
 

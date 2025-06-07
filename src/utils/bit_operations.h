@@ -60,5 +60,23 @@ constexpr void bitIterate(uint64_t data, Func&& fnc) noexcept
     }
 }
 
+/* helper to compute a mask with provided pieces pushed forward */
+template<Player player>
+static inline uint64_t pushForward(uint64_t pieces)
+{
+    if constexpr (player == PlayerWhite) {
+        return pieces << 8;
+    } else {
+        return pieces >> 8;
+    }
+}
+
+template<Player player>
+static inline uint64_t pushForwardFromPos(BoardPosition pos)
+{
+    const uint64_t square = utils::positionToSquare(pos);
+    return pushForward<player>(square);
+}
+
 }
 
