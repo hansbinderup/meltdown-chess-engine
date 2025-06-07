@@ -3,6 +3,7 @@
 #include "core/bit_board.h"
 #include "core/time_manager.h"
 #include "search/searcher.h"
+#include "version.h"
 
 #include <fmt/color.h>
 
@@ -113,9 +114,90 @@ inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, co
         styled(join(searcher->getPvTable(), " "), fg(color::dim_gray)));
 }
 
+void printHeader()
+{
+    if (s_stdoutIsTty) {
+        constexpr int width = 28;
+
+        auto printLine = [&]() {
+            fmt::print("╔{0:═^{1}}╗\n", "", width);
+        };
+
+        auto printFooter = [&]() {
+            fmt::print("╚{0:═^{1}}╝\n", "", width);
+        };
+
+        auto printCentered = [&](std::string_view text) {
+            int padding = (width - static_cast<int>(text.size())) / 2;
+            int padRight = width - padding - static_cast<int>(text.size());
+            fmt::print("║{}{}{}║\n",
+                std::string(padding, ' '),
+                fmt::format(fmt::emphasis::bold, "{}", text),
+                std::string(padRight, ' '));
+        };
+
+        printLine();
+        printCentered("MELTDOWN");
+        printCentered("Chess Engine");
+        printFooter();
+        fmt::print("\n");
+
+    } else {
+        fmt::print(
+            "============================\n"
+            "          MELTDOWN          \n"
+            "        Chess Engine        \n"
+            "============================\n\n");
+    }
+}
+
 }
 
 namespace interface {
+
+inline void printEngineInfo()
+{
+    printHeader();
+
+    if (s_stdoutIsTty) {
+        const auto printTitleInfoFnc = [](std::string_view title, std::string_view info) {
+            fmt::print(fg(fmt::color::yellow), "{:<12}", title);
+            fmt::print(" {}\n", info);
+        };
+
+        printTitleInfoFnc("Engine:", "Meltdown");
+        printTitleInfoFnc("Authors:", "Run 'authors'");
+        printTitleInfoFnc("Github:", "hansbinderup/meltdown-chess-engine");
+        printTitleInfoFnc("Version:", s_meltdownVersion);
+        printTitleInfoFnc("Build Hash:", s_meltdownBuildHash);
+        printTitleInfoFnc("Build Type:", s_meltdownBuildType);
+        printTitleInfoFnc("Builtin:", s_meltdownBuiltinFeature);
+        fmt::print("\n");
+
+#if defined(TUNING) || defined(SPSA)
+        fmt::print(fg(fmt::color::red), "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
+                                        "WARNING: THIS IS A TUNING BUILD!\n"
+                                        "THIS BUILD IS ONLY MEANT FOR TUNING THE ENGINE\n\n"
+                                        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n");
+#endif
+    } else {
+        fmt::print("Engine:      Meltdown\n"
+                   "Authors:     Run 'authors'\n"
+                   "Github:      hansbinderup/meltdown-chess-engine\n"
+                   "Version:     {}\n"
+                   "Build hash:  {}\n"
+                   "Build type:  {}\n"
+                   "Builtin:     {}\n\n",
+            s_meltdownVersion, s_meltdownBuildHash, s_meltdownBuildType, s_meltdownBuiltinFeature);
+
+#if defined(TUNING) || defined(SPSA)
+        fmt::println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"
+                     "WARNING: THIS IS A TUNING BUILD!\n"
+                     "THIS BUILD IS ONLY MEANT FOR TUNING THE ENGINE\n\n"
+                     "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+#endif
+    }
+}
 
 inline void printSearchInfo(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
