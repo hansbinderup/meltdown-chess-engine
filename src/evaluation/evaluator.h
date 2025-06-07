@@ -5,6 +5,7 @@
 #include "core/transposition.h"
 #include "core/zobrist_hashing.h"
 #include "evaluation/move_vote_map.h"
+#include "interface/outputs.h"
 #include "movegen/move_types.h"
 #include "search/searcher.h"
 
@@ -181,30 +182,6 @@ public:
         }
     }
 
-    constexpr void printScoreInfo(std::shared_ptr<Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth)
-    {
-        const auto timeDiff = TimeManager::timeElapsedMs().count();
-
-        const auto adjustedScore = searcher->approxDtzScore(board, score);
-        const uint64_t nodes = getNodes();
-        const uint64_t tbHits = getTbHits();
-        const uint16_t hashFull = core::TranspositionTable::getHashFull();
-
-        fmt::print("info score {} time {} depth {} seldepth {} nodes {} hashfull {}{}{} pv ",
-            ScorePrint(adjustedScore),
-            timeDiff,
-            currentDepth,
-            searcher->getSelDepth(),
-            nodes,
-            hashFull,
-            NpsPrint(nodes, timeDiff),
-            TbHitPrint(tbHits));
-
-        fmt::println("{}", fmt::join(searcher->getPvTable(), " "));
-
-        fflush(stdout);
-    }
-
 private:
     constexpr double pvMoveNodeFraction(movegen::Move pvMove)
     {
@@ -257,7 +234,7 @@ private:
                 alpha = score - spsa::aspirationWindow;
                 beta = score + spsa::aspirationWindow;
 
-                printScoreInfo(singleSearcher, board, score, d);
+                interface::printSearchInfo(singleSearcher, board, score, d, getNodes(), getTbHits());
 
                 bestMove = singleSearcher->getPvMove();
                 m_ponderMove = singleSearcher->getPonderMove();
@@ -344,7 +321,7 @@ private:
                     break;
                 }
 
-                printScoreInfo(searcher, board, bestWinningResult.score, d);
+                interface::printSearchInfo(searcher, board, bestWinningResult.score, d, getNodes(), getTbHits());
                 m_ponderMove = searcher->getPonderMove();
 
                 TimeManager::updateMoveStability(bestMove, bestWinningResult.score, pvMoveNodeFraction(bestMove));

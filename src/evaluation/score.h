@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <optional>
 
 using Score = int16_t;
 
@@ -38,5 +39,16 @@ constexpr inline int16_t scoreAbsolute(int16_t score, uint8_t ply)
     }
 
     return score;
+}
+
+constexpr inline std::optional<int8_t> scoreMateDistance(int16_t score)
+{
+    if (score > -s_mateValue && score < -s_mateScore) {
+        return -(score + s_mateValue) / 2 - 1;
+    } else if (score > s_mateScore && score < s_mateValue) {
+        return (s_mateValue - score) / 2 + 1;
+    }
+
+    return std::nullopt;
 }
 
