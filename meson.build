@@ -31,7 +31,7 @@ fathom = subproject('fathom')
 fathom_dep = fathom.get_variable('fathom_dep')
 
 meltdown_dep = declare_dependency(
-  include_directories: 'src',
+  include_directories: ['src', version_inc],
   dependencies: [magic_enum_dep, fmt_dep, fathom_dep]
 )
 
