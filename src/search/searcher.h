@@ -272,7 +272,8 @@ public:
 
         /* entries for the TT hash */
         core::TtFlag hashFlag = core::TtAlpha;
-        movegen::Move alphaMove {};
+        movegen::Move bestMove {};
+        Score bestScore = s_minScore;
 
         uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
@@ -414,32 +415,36 @@ public:
             if (isSearchStopped())
                 return s_minScore;
 
-            if (score >= beta) {
-                core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, move, depth, m_ply, core::TtBeta);
-
-                m_searchTables.updateKillerMoves(move, m_ply);
-
-                if (!isRoot) {
-                    auto prevMove = (m_stackItr - 1)->move;
-                    m_searchTables.updateCounterMoves(prevMove, move);
-                }
-
-                return beta;
-            }
-
             movesSearched++;
             if (isRoot) {
                 m_searchTables.addHistoryNodes(move, m_nodes - prevNodes);
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
             }
 
             if (score > alpha) {
                 alpha = score;
 
                 hashFlag = core::TtExact;
-                alphaMove = move;
+                bestMove = move;
 
                 m_searchTables.updateHistoryMoves(board, move, m_ply);
                 m_searchTables.updatePvTable(move, m_ply);
+            }
+
+            if (score >= beta) {
+                bestMove = move;
+                hashFlag = core::TtBeta;
+
+                m_searchTables.updateKillerMoves(move, m_ply);
+                if (!isRoot) {
+                    auto prevMove = (m_stackItr - 1)->move;
+                    m_searchTables.updateCounterMoves(prevMove, move);
+                }
+
+                break;
             }
         }
 
@@ -454,8 +459,8 @@ public:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, alpha, m_stackItr->eval, alphaMove, depth, m_ply, hashFlag);
-        return alpha;
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, depth, m_ply, hashFlag);
+        return bestScore;
     }
 
 private:
@@ -470,17 +475,31 @@ private:
         m_nodes++;
         m_selDepth = std::max(m_selDepth, m_ply);
 
+        const bool isDraw = m_repetition.isRepetition(m_stackItr->hash) || board.halfMoves >= 100;
+        if (isDraw) {
+            /* draw score is 0 but to avoid blindness towards three fold lines
+             * we add a slight variance to the draw score
+             * it will still be approx 0~ cp: [-0.1:0.1] */
+            return 1 - (m_nodes & 2); /* draw score */
+        }
+
         if (m_ply >= s_maxSearchDepth)
             return evaluation::staticEvaluation(board);
 
         const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const bool isChecked = core::isKingAttacked(board);
 
-        /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        if (isChecked) {
+            /* be careful to cause cutoffs when checked */
+            m_stackItr->eval = -s_mateValue + m_ply;
+        } else {
+            /* update current stack with the static evaluation */
+            m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        }
 
-        /* hard cutoff */
+        /* stand pat */
         if (m_stackItr->eval >= beta) {
-            return beta;
+            return m_stackItr->eval;
         }
 
         if (m_stackItr->eval > alpha) {
@@ -497,13 +516,19 @@ private:
             }
         }
 
-        /* entries for the TT hash */
-        core::TtFlag hashFlag = core::TtAlpha;
-        movegen::Move alphaMove = movegen::nullMove();
-        Score bestScore = m_stackItr->eval;
-
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(board, moves);
+
+        /* no captures - simply return static eval */
+        if (moves.count() == 0) {
+            return m_stackItr->eval;
+        }
+
+        /* entries for the TT hash */
+        core::TtFlag hashFlag = core::TtAlpha;
+        movegen::Move bestMove = movegen::nullMove();
+        Score bestScore = m_stackItr->eval;
+        uint16_t legalMoves = 0;
 
         const auto ttMove = tryFetchTtMove(hashProbe);
         MovePicker picker { m_searchTables, m_ply, ttMove };
@@ -514,6 +539,8 @@ private:
             if (!makeMove(board, move)) {
                 continue;
             }
+
+            legalMoves++;
 
             const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
             undoMove();
@@ -526,18 +553,24 @@ private:
             }
 
             if (score >= beta) {
-                core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, move, 0, m_ply, core::TtBeta);
-                return bestScore;
+                bestMove = move;
+                hashFlag = core::TtBeta;
+                break;
             }
 
             if (score > alpha) {
-                alphaMove = move;
+                bestMove = move;
                 hashFlag = core::TtExact;
                 alpha = score;
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, alphaMove, 0, m_ply, hashFlag);
+        /* no legal moves while being in check -> this must be a checkmate! */
+        if (isChecked && legalMoves == 0) {
+            return -s_mateValue + m_ply;
+        }
+
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, 0, m_ply, hashFlag);
         return bestScore;
     }
 
