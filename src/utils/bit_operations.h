@@ -78,5 +78,20 @@ static inline uint64_t pushForwardFromPos(BoardPosition pos)
     return pushForward<player>(square);
 }
 
+[[nodiscard]] constexpr inline BoardPosition flipPosition(BoardPosition pos) noexcept
+{
+    return static_cast<BoardPosition>(pos ^ 56);
+}
+
+template<Player player>
+constexpr inline BoardPosition relativePosition(BoardPosition pos) noexcept
+{
+    if constexpr (player == PlayerWhite) {
+        return pos;
+    } else {
+        return flipPosition(pos);
+    }
+}
+
 }
 
