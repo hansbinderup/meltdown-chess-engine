@@ -20,6 +20,7 @@
 namespace {
 
 static const bool s_stdoutIsTty = isatty(fileno(stdout)) != 0;
+static inline bool s_isPrettyPrintEnabled = s_stdoutIsTty;
 
 inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
@@ -116,7 +117,7 @@ inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, co
 
 void printHeader()
 {
-    if (s_stdoutIsTty) {
+    if (s_isPrettyPrintEnabled) {
         constexpr int width = 28;
 
         auto printLine = [&]() {
@@ -155,11 +156,24 @@ void printHeader()
 
 namespace interface {
 
+inline void setPrettyPrintEnabled(bool enabled)
+{
+    /* only allow pretty printing if stdout is tty */
+    if (s_stdoutIsTty) {
+        s_isPrettyPrintEnabled = enabled;
+    }
+}
+
+inline bool getPrettyPrintEnabled()
+{
+    return s_isPrettyPrintEnabled;
+}
+
 inline void printEngineInfo()
 {
     printHeader();
 
-    if (s_stdoutIsTty) {
+    if (s_isPrettyPrintEnabled) {
         const auto printTitleInfoFnc = [](std::string_view title, std::string_view info) {
             fmt::print(fg(fmt::color::yellow), "{:<12}", title);
             fmt::print(" {}\n", info);
@@ -201,7 +215,7 @@ inline void printEngineInfo()
 
 inline void printSearchInfo(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
-    if (s_stdoutIsTty) {
+    if (s_isPrettyPrintEnabled) {
         printSearchInfoPretty(searcher, board, score, currentDepth, nodes, tbHits);
     } else {
         printSearchInfoUci(searcher, board, score, currentDepth, nodes, tbHits);
