@@ -277,6 +277,9 @@ public:
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
 
+        /* improving heuristics -> have the position improved since our last position? */
+        const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
         if (!isPv && !isChecked) {
@@ -385,6 +388,7 @@ public:
                     reduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
                     reduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
+                    reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
 
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
