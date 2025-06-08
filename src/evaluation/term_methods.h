@@ -250,6 +250,10 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
         ADD_SCORE_INDEXED(bishopMobilityScore, mobilityCount);
 
+        const uint64_t coloredSquares = square & s_lightSquares ? s_lightSquares : s_darkSquares;
+        const uint8_t blockingPawnsCount = std::popcount(coloredSquares & ourPawns);
+        ADD_SCORE_INDEXED(badBishopScore, blockingPawnsCount);
+
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Bishop] = moves;
