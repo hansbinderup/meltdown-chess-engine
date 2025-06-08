@@ -74,11 +74,6 @@ struct TermContext {
     std::array<uint64_t, magic_enum::enum_count<Player>()> passedPawns;
 };
 
-[[nodiscard]] constexpr uint64_t flipPosition(BoardPosition pos) noexcept
-{
-    return pos ^ 56;
-}
-
 template<Player player>
 [[nodiscard]] constexpr inline ColorlessPiece pieceToColorlessPiece(Piece piece) noexcept
 {
@@ -116,6 +111,7 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
         const auto row = utils::relativeRow<player>(pos);
 
         ADD_SCORE_INDEXED(pieceValues, Pawn);
+        ADD_SCORE_INDEXED(psqtPawns, utils::relativePosition<player>(pos));
 
         const auto doubledPawns = std::popcount(pawns & s_fileMaskTable[pos]);
         if (doubledPawns > 1)
@@ -138,12 +134,6 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
         /* apply score if pawn is protected by one of our own pawns */
         if (square & ctx.pawnAttacks[player]) {
             ADD_SCORE_INDEXED(protectedPawnScore, row);
-        }
-
-        if constexpr (player == PlayerWhite) {
-            ADD_SCORE_INDEXED(psqtPawns, pos);
-        } else {
-            ADD_SCORE_INDEXED(psqtPawns, flipPosition(pos));
         }
     });
 
@@ -178,6 +168,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
 
         phaseScore += s_piecePhaseValues[Knight];
         ADD_SCORE_INDEXED(pieceValues, Knight);
+        ADD_SCORE_INDEXED(psqtKnights, utils::relativePosition<player>(pos));
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
         const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
@@ -189,8 +180,6 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
         ctx.threats[player] |= moves;
 
         if constexpr (player == PlayerWhite) {
-            ADD_SCORE_INDEXED(psqtKnights, pos);
-
             if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_whiteOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
@@ -199,8 +188,6 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
             }
 
         } else {
-            ADD_SCORE_INDEXED(psqtKnights, flipPosition(pos));
-
             if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_blackOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
@@ -245,6 +232,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
 
         phaseScore += s_piecePhaseValues[Bishop];
         ADD_SCORE_INDEXED(pieceValues, Bishop);
+        ADD_SCORE_INDEXED(psqtBishops, utils::relativePosition<player>(pos));
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
         const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
@@ -260,8 +248,6 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         ctx.threats[player] |= moves;
 
         if constexpr (player == PlayerWhite) {
-            ADD_SCORE_INDEXED(psqtBishops, pos);
-
             if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_whiteOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
@@ -269,8 +255,6 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
                 ADD_SCORE_INDEXED(bishopOutpostScore, isOutside + (isDefended << 1));
             }
         } else {
-            ADD_SCORE_INDEXED(psqtBishops, flipPosition(pos));
-
             if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_blackOutpostRankMask) {
                 const bool isOutside = square & (s_aFileMask | s_hFileMask);
                 const bool isDefended = square & pawnDefends;
@@ -305,6 +289,7 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
 
         phaseScore += s_piecePhaseValues[Rook];
         ADD_SCORE_INDEXED(pieceValues, Rook);
+        ADD_SCORE_INDEXED(psqtRooks, utils::relativePosition<player>(pos));
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
         const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
@@ -319,7 +304,6 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
             ADD_SCORE(rookOpenFileBonus);
 
         if constexpr (player == PlayerWhite) {
-            ADD_SCORE_INDEXED(psqtRooks, pos);
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
 
@@ -330,7 +314,6 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
             }
 
         } else {
-            ADD_SCORE_INDEXED(psqtRooks, flipPosition(pos));
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(rookSemiOpenFileBonus);
 
@@ -366,6 +349,7 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
 
         phaseScore += s_piecePhaseValues[Queen];
         ADD_SCORE_INDEXED(pieceValues, Queen);
+        ADD_SCORE_INDEXED(psqtQueens, utils::relativePosition<player>(pos));
 
         if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
             ADD_SCORE(queenOpenFileBonus);
@@ -380,11 +364,9 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
         ctx.threats[player] |= moves;
 
         if constexpr (player == PlayerWhite) {
-            ADD_SCORE_INDEXED(psqtQueens, pos);
             if ((whitePawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(queenSemiOpenFileBonus);
         } else {
-            ADD_SCORE_INDEXED(psqtQueens, flipPosition(pos));
             if ((blackPawns & s_fileMaskTable[pos]) == 0)
                 ADD_SCORE(queenSemiOpenFileBonus);
         }
@@ -403,6 +385,9 @@ static inline TermScore getKingScore(const BitBoard& board, TermContext& ctx)
 
     utils::bitIterate(king, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getKingMoves(pos) & ~board.occupation[player];
+
+        ADD_SCORE_INDEXED(psqtKings, utils::relativePosition<player>(pos));
+
         ctx.threats[player] |= moves;
 
         /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
@@ -411,12 +396,6 @@ static inline TermScore getKingScore(const BitBoard& board, TermContext& ctx)
             & ~board.occupation[player];
         const int virtualMovesCount = std::popcount(virtualMoves);
         ADD_SCORE_INDEXED(kingVirtualMobilityScore, virtualMovesCount);
-
-        if constexpr (player == PlayerWhite) {
-            ADD_SCORE_INDEXED(psqtKings, pos);
-        } else {
-            ADD_SCORE_INDEXED(psqtKings, flipPosition(pos));
-        }
     });
 
     return score;
