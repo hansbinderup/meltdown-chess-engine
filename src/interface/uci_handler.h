@@ -80,6 +80,8 @@ private:
             return handleAuthors();
         } else if (command == "bench") {
             return handleBench(args);
+        } else if (command == "pprint") {
+            return handlePrettyPrint(args);
         } else if (command == "spsa") {
             return handleSpsa();
         } else if (command == "version") {
@@ -343,6 +345,18 @@ private:
         return true;
     }
 
+    static bool handlePrettyPrint(std::string_view args)
+    {
+        const auto enabled = parsing::sv_next_split(args).value_or(args);
+        if (enabled == "on") {
+            interface::setPrettyPrintEnabled(true);
+        } else if (enabled == "off") {
+            interface::setPrettyPrintEnabled(false);
+        }
+
+        return true;
+    }
+
     static bool handleSpsa()
     {
 #ifdef SPSA
@@ -378,6 +392,7 @@ private:
                    "debug options       :  print all options\n"
                    "debug syzygy        :  run syzygy evaluation on current position\n"
                    "bench <depth>       :  run a bench test - depth is optional\n"
+                   "pprint <on/off>     :  enable/disable pretty printing\n"
                    "spsa                :  print spsa inputs\n"
                    "authors             :  print author information\n"
                    "version             :  print version information\n"
