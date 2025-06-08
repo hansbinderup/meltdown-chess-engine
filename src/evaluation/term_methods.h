@@ -259,16 +259,19 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
     TermScore score(0, 0);
 
     constexpr Piece ourRooks = player == PlayerWhite ? WhiteRook : BlackRook;
+    constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
+    constexpr Piece theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
+    constexpr uint64_t row7Mask = player == PlayerWhite ? s_row7Mask : s_row2Mask;
+    constexpr uint64_t row8Mask = player == PlayerWhite ? s_row8Mask : s_row1Mask;
+
     const uint64_t rooks = board.pieces[ourRooks];
+    const uint64_t ourPawns = board.pieces[ourPawn];
+    const uint64_t theirPawns = board.pieces[theirPawn];
+    const uint64_t theirKings = board.pieces[theirKing];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
-
-    const uint64_t whitePawns = board.pieces[WhitePawn];
-    const uint64_t blackPawns = board.pieces[BlackPawn];
-
-    const uint64_t whiteKing = board.pieces[WhiteKing];
-    const uint64_t blackKing = board.pieces[BlackKing];
 
     utils::bitIterate(rooks, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]) & ~board.occupation[player];
@@ -286,27 +289,15 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
         ctx.pieceAttacks[player][Rook] = moves;
         ctx.threats[player] |= moves;
 
-        if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
+        if (((ourPawns | theirPawns) & s_fileMaskTable[pos]) == 0)
             ADD_SCORE(rookOpenFileBonus);
 
-        if constexpr (player == PlayerWhite) {
-            if ((whitePawns & s_fileMaskTable[pos]) == 0)
-                ADD_SCORE(rookSemiOpenFileBonus);
+        if ((ourPawns & s_fileMaskTable[pos]) == 0)
+            ADD_SCORE(rookSemiOpenFileBonus);
 
-            if (rooks & s_row7Mask) {
-                if ((blackPawns & s_row7Mask) || (blackKing & s_row8Mask)) {
-                    ADD_SCORE(rook7thRankBonus);
-                }
-            }
-
-        } else {
-            if ((blackPawns & s_fileMaskTable[pos]) == 0)
-                ADD_SCORE(rookSemiOpenFileBonus);
-
-            if (rooks & s_row2Mask) {
-                if ((whitePawns & s_row2Mask) || (whiteKing & s_row1Mask)) {
-                    ADD_SCORE(rook7thRankBonus);
-                }
+        if (rooks & row7Mask) {
+            if ((theirPawns & row7Mask) || (theirKings & row8Mask)) {
+                ADD_SCORE(rook7thRankBonus);
             }
         }
     });
@@ -320,13 +311,15 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
     TermScore score(0, 0);
 
     constexpr Piece ourQueens = player == PlayerWhite ? WhiteQueen : BlackQueen;
+    constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
+
     const uint64_t queens = board.pieces[ourQueens];
+    const uint64_t ourPawns = board.pieces[ourPawn];
+    const uint64_t theirPawns = board.pieces[theirPawn];
 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
-
-    const uint64_t whitePawns = board.pieces[WhitePawn];
-    const uint64_t blackPawns = board.pieces[BlackPawn];
 
     utils::bitIterate(queens, [&](BoardPosition pos) {
         const uint64_t moves
@@ -337,8 +330,11 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
         ADD_SCORE_INDEXED(pieceValues, Queen);
         ADD_SCORE_INDEXED(psqtQueens, utils::relativePosition<player>(pos));
 
-        if (((whitePawns | blackPawns) & s_fileMaskTable[pos]) == 0)
+        if (((ourPawns | theirPawns) & s_fileMaskTable[pos]) == 0)
             ADD_SCORE(queenOpenFileBonus);
+
+        if ((ourPawns & s_fileMaskTable[pos]) == 0)
+            ADD_SCORE(queenSemiOpenFileBonus);
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
         const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
@@ -348,14 +344,6 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Queen] = moves;
         ctx.threats[player] |= moves;
-
-        if constexpr (player == PlayerWhite) {
-            if ((whitePawns & s_fileMaskTable[pos]) == 0)
-                ADD_SCORE(queenSemiOpenFileBonus);
-        } else {
-            if ((blackPawns & s_fileMaskTable[pos]) == 0)
-                ADD_SCORE(queenSemiOpenFileBonus);
-        }
     });
 
     return score;
