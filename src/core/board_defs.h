@@ -127,8 +127,8 @@ constexpr static inline uint8_t s_sixthRow { 40 };
 constexpr static inline uint8_t s_seventhRow { 48 };
 constexpr static inline uint8_t s_eightRow { 56 };
 
-constexpr static inline uint64_t s_lightSquares = { 0x5599559955995599 };
-constexpr static inline uint64_t s_darkSquares = { 0xaa66aa66aa66aa66 };
+constexpr static inline uint64_t s_lightSquares = 0x55aa55aa55aa55aa;
+constexpr static inline uint64_t s_darkSquares = 0xaa55aa55aa55aa55;
 
 constexpr static inline uint32_t s_maxMoves { 256 };
 constexpr static inline uint64_t s_aFileMask { 0x0101010101010101 };
