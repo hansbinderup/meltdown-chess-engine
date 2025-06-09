@@ -11,6 +11,7 @@ using WeightTable = std::array<TermScore, T>;
     TERM(pieceValues, 6)               \
     TERM(doublePawnPenalty, 1)         \
     TERM(isolatedPawnPenalty, 1)       \
+    TERM(protectedPawnScore, 8)        \
     TERM(passedPawnBonus, 8)           \
     TERM(freePassedPawnBonus, 8)       \
     TERM(protectedPassedPawnBonus, 8)  \
