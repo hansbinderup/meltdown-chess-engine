@@ -266,12 +266,6 @@ public:
 
         m_nodes++;
 
-        /* entries for the TT */
-        core::TtFlag ttFlag = core::TtAlpha;
-        movegen::Move bestMove {};
-        Score bestScore = s_minScore;
-        uint64_t movesSearched = 0;
-
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, ttProbe);
 
@@ -352,6 +346,12 @@ public:
                 m_searchTables.updatePvScoring(moves, m_ply);
             }
         }
+
+        /* entries for the TT */
+        core::TtFlag ttFlag = core::TtAlpha;
+        movegen::Move bestMove {};
+        Score bestScore = s_minScore;
+        uint64_t movesSearched = 0;
 
         const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
         const auto phase = tbMoves ? PickerPhase::Syzygy : PickerPhase::TtMove;
