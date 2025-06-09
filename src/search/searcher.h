@@ -272,7 +272,7 @@ public:
         m_stackItr->eval = fetchOrStoreEval(board, ttProbe);
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
@@ -288,9 +288,9 @@ public:
 
             /* dangerous to repeat null search on a null search - skip it here */
             if constexpr (searchType != SearchType::NullSearch) {
-                const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
+                const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth + spsa::nmpImprovingMargin * isImproving;
                 if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
-                    if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
+                    if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode, isImproving)) {
                         return nullMoveScore.value();
                     }
                 }
@@ -563,7 +563,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode)
+    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode, bool isImproving)
     {
         auto nullMoveBoard = board;
         uint64_t hash = m_stackItr->hash;
@@ -589,7 +589,8 @@ private:
         m_ply += 2;
 
         /* perform search with reduced depth (based on reduction limit) */
-        const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
+        const uint8_t reduction = std::min<uint8_t>(depth,
+            spsa::nmpReductionBase + depth / spsa::nmpReductionFactor + 2 * isImproving);
         Score score = -zeroWindow<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta + 1, !cutNode);
 
         m_ply -= 2;
