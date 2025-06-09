@@ -270,8 +270,6 @@ public:
         core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove {};
         Score bestScore = s_minScore;
-
-        uint32_t legalMoves = 0;
         uint64_t movesSearched = 0;
 
         /* update current stack with the static evaluation */
@@ -369,7 +367,6 @@ public:
 
             Score score = 0;
             const uint64_t prevNodes = m_nodes;
-            legalMoves++;
 
             if (movesSearched == 0) {
                 /* no moves searched yet -> perform a full depth PV move search */
@@ -416,6 +413,7 @@ public:
                 return s_minScore;
 
             movesSearched++;
+
             if (isRoot) {
                 m_searchTables.addHistoryNodes(move, m_nodes - prevNodes);
             }
@@ -448,7 +446,7 @@ public:
             }
         }
 
-        if (legalMoves == 0) {
+        if (movesSearched == 0) {
             if (isChecked) {
                 // We want absolute negative score - but with amount of moves to the given checkmate
                 // we add the ply to make checkmate in less moves a better move
@@ -525,7 +523,7 @@ private:
         core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove = movegen::nullMove();
         Score bestScore = m_stackItr->eval;
-        uint16_t legalMoves = 0;
+        uint16_t movesSearched = 0;
 
         const auto ttMove = tryFetchTtMove(ttProbe);
         MovePicker picker { m_searchTables, m_ply, ttMove };
@@ -537,14 +535,13 @@ private:
                 continue;
             }
 
-            legalMoves++;
-
             const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
             undoMove();
 
             if (isSearchStopped())
                 return s_minScore;
 
+            movesSearched++;
             if (score > bestScore) {
                 bestScore = score;
             }
@@ -563,7 +560,7 @@ private:
         }
 
         /* no legal moves while being in check -> this must be a checkmate! */
-        if (isChecked && legalMoves == 0) {
+        if (isChecked && movesSearched == 0) {
             return -s_mateValue + m_ply;
         }
 
