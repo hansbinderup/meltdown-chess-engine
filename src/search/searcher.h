@@ -378,10 +378,7 @@ public:
                 /* other moves we can attempt searched with a reduced zero window search
                  * if the zero window search increases alpha we increase the window size */
                 int8_t reduction = 0;
-                if (movesSearched >= spsa::fullDepthMove
-                    && !move.isCapture()
-                    && !move.isPromotionMove()) {
-
+                if (movesSearched >= spsa::fullDepthMove && depth > 1) {
                     const bool isGivingCheck = core::isKingAttacked(m_stackItr->board);
                     reduction = getLmrReduction(depth, movesSearched);
 
@@ -389,6 +386,7 @@ public:
                     reduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
+                    reduction -= static_cast<int8_t>(move.isNoisyMove()); /* reduce less when noisy */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
 
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
