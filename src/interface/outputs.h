@@ -10,17 +10,16 @@
 #include <memory>
 
 #ifdef _WIN32
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
+/* FIXME: for now disable pretty print for windows builds */
+static const bool s_prettyPrintSupported = false;
 #else
 #include <unistd.h>
+static const bool s_prettyPrintSupported = isatty(fileno(stdout)) != 0;
 #endif
 
 namespace {
 
-static const bool s_stdoutIsTty = isatty(fileno(stdout)) != 0;
-static inline bool s_isPrettyPrintEnabled = s_stdoutIsTty;
+static inline bool s_isPrettyPrintEnabled = s_prettyPrintSupported;
 
 inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
@@ -158,8 +157,8 @@ namespace interface {
 
 inline void setPrettyPrintEnabled(bool enabled)
 {
-    /* only allow pretty printing if stdout is tty */
-    if (s_stdoutIsTty) {
+    /* only allow pretty printing if actually supported */
+    if (s_prettyPrintSupported) {
         s_isPrettyPrintEnabled = enabled;
     }
 }
