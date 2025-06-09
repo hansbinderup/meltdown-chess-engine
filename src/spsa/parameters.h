@@ -27,6 +27,7 @@
     TUNABLE(rfpReductionLimit, uint8_t, 3, 0, 12, 1)             \
     TUNABLE(rfpMargin, Score, 100, 0, 150, 10)                   \
     TUNABLE(rfpEvaluationMargin, Score, 120, 0, 150, 10)         \
+    TUNABLE(rfpImprovingMargin, Score, 100, 0, 150, 10)          \
     TUNABLE(razorReductionLimit, uint8_t, 3, 0, 12, 1)           \
     TUNABLE(razorMarginShallow, Score, 125, 0, 250, 10)          \
     TUNABLE(razorMarginDeep, Score, 175, 0, 250, 10)             \

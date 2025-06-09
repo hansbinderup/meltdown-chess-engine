@@ -286,7 +286,7 @@ public:
             /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
             if (depth < spsa::rfpReductionLimit) {
                 const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + spsa::rfpMargin);
-                const Score evalMargin = spsa::rfpEvaluationMargin * depth;
+                const Score evalMargin = spsa::rfpEvaluationMargin * depth + spsa::rfpImprovingMargin * !isImproving;
 
                 if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
                     return m_stackItr->eval - evalMargin;
