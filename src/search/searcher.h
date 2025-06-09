@@ -239,9 +239,9 @@ public:
         }
 
         const bool isPv = beta - alpha > 1;
-        const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
-        if (hashProbe.has_value() && m_ply && !isPv) {
-            const auto testResult = core::testEntry(*hashProbe, m_ply, depth, alpha, beta);
+        const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        if (ttProbe.has_value() && m_ply && !isPv) {
+            const auto testResult = core::testEntry(*ttProbe, m_ply, depth, alpha, beta);
             if (testResult.has_value()) {
                 return testResult.value();
             }
@@ -266,8 +266,8 @@ public:
 
         m_nodes++;
 
-        /* entries for the TT hash */
-        core::TtFlag hashFlag = core::TtAlpha;
+        /* entries for the TT */
+        core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove {};
         Score bestScore = s_minScore;
 
@@ -275,7 +275,7 @@ public:
         uint64_t movesSearched = 0;
 
         /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+        m_stackItr->eval = fetchOrStoreEval(board, ttProbe);
 
         /* improving heuristics -> have the position improved since our last position? */
         const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
@@ -321,7 +321,7 @@ public:
             }
         }
 
-        const auto ttMove = tryFetchTtMove(hashProbe);
+        const auto ttMove = tryFetchTtMove(ttProbe);
 
         /* internal iterative reduction (IIR)
          * the assumtion is that if no tt move was found for a given node
@@ -427,7 +427,7 @@ public:
             if (score > alpha) {
                 alpha = score;
 
-                hashFlag = core::TtExact;
+                ttFlag = core::TtExact;
                 bestMove = move;
 
                 m_searchTables.updateHistoryMoves(board, move, m_ply);
@@ -436,7 +436,7 @@ public:
 
             if (score >= beta) {
                 bestMove = move;
-                hashFlag = core::TtBeta;
+                ttFlag = core::TtBeta;
 
                 m_searchTables.updateKillerMoves(move, m_ply);
                 if (!isRoot) {
@@ -459,7 +459,7 @@ public:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, depth, m_ply, hashFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, depth, m_ply, ttFlag);
         return bestScore;
     }
 
@@ -483,7 +483,7 @@ private:
         if (m_ply >= s_maxSearchDepth)
             return evaluation::staticEvaluation(board);
 
-        const auto hashProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
         const bool isChecked = core::isKingAttacked(board);
 
         if (isChecked) {
@@ -491,7 +491,7 @@ private:
             m_stackItr->eval = -s_mateValue + m_ply;
         } else {
             /* update current stack with the static evaluation */
-            m_stackItr->eval = fetchOrStoreEval(board, hashProbe);
+            m_stackItr->eval = fetchOrStoreEval(board, ttProbe);
         }
 
         /* stand pat */
@@ -503,11 +503,11 @@ private:
             alpha = m_stackItr->eval;
         }
 
-        if (hashProbe.has_value()) {
+        if (ttProbe.has_value()) {
             /* try to return early if we already "know the result" of the current qsearch
              * most of the time our score is based on the final qsearch, so this should give the
              * same result as searching the full line */
-            const auto testResult = core::testEntry(*hashProbe, m_ply, 0, alpha, beta);
+            const auto testResult = core::testEntry(*ttProbe, m_ply, 0, alpha, beta);
             if (testResult.has_value()) {
                 return testResult.value();
             }
@@ -521,13 +521,13 @@ private:
             return m_stackItr->eval;
         }
 
-        /* entries for the TT hash */
-        core::TtFlag hashFlag = core::TtAlpha;
+        /* entries for the TT */
+        core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove = movegen::nullMove();
         Score bestScore = m_stackItr->eval;
         uint16_t legalMoves = 0;
 
-        const auto ttMove = tryFetchTtMove(hashProbe);
+        const auto ttMove = tryFetchTtMove(ttProbe);
         MovePicker picker { m_searchTables, m_ply, ttMove };
 
         while (const auto& moveOpt = picker.pickNextMove(board, moves)) {
@@ -551,13 +551,13 @@ private:
 
             if (score >= beta) {
                 bestMove = move;
-                hashFlag = core::TtBeta;
+                ttFlag = core::TtBeta;
                 break;
             }
 
             if (score > alpha) {
                 bestMove = move;
-                hashFlag = core::TtExact;
+                ttFlag = core::TtExact;
                 alpha = score;
             }
         }
@@ -567,7 +567,7 @@ private:
             return -s_mateValue + m_ply;
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, 0, m_ply, hashFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, 0, m_ply, ttFlag);
         return bestScore;
     }
 
