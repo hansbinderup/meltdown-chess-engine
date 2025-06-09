@@ -113,6 +113,7 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
 
     utils::bitIterate(pawns, [&](BoardPosition pos) {
         const uint64_t square = utils::positionToSquare(pos);
+        const auto row = utils::relativeRow<player>(pos);
 
         ADD_SCORE_INDEXED(pieceValues, Pawn);
 
@@ -132,6 +133,11 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
         if ((board.pieces[theirPawns] & s_passedPawnMaskTable[player][pos]) == 0) {
             /* scores will be added in "getPassedPawnsScore" */
             ctx.passedPawns[player] |= square;
+        }
+
+        /* apply score if pawn is protected by one of our own pawns */
+        if (square & ctx.pawnAttacks[player]) {
+            ADD_SCORE_INDEXED(protectedPawnScore, row);
         }
 
         if constexpr (player == PlayerWhite) {
