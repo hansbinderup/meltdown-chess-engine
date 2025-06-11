@@ -380,6 +380,7 @@ public:
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
+                    reduction += static_cast<int8_t>(ttMove.has_value() && ttMove->isNoisyMove()); /* reduce more when ttMove is noisy */
 
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
