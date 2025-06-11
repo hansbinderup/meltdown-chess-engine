@@ -341,6 +341,9 @@ public:
             }
         }
 
+        /* clear killer moves for children nodes */
+        m_searchTables.clearKillerMoves(m_ply + 1);
+
         /* entries for the TT */
         core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove {};

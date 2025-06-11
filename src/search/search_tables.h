@@ -91,6 +91,11 @@ public:
         m_killerMoves.update(move, ply);
     }
 
+    inline void clearKillerMoves(uint8_t ply)
+    {
+        m_killerMoves.clear(ply);
+    }
+
     inline int32_t getHistoryMove(Piece movePiece, uint8_t targetPosition) const
     {
         return m_historyMoves.get(movePiece, targetPosition);

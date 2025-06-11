@@ -26,13 +26,19 @@ public:
         return m_killerMoves.at(ply);
     }
 
+    inline void clear(uint8_t ply)
+    {
+        m_killerMoves.at(ply) = std::pair(movegen::nullMove(), movegen::nullMove());
+    }
+
     void reset()
     {
         std::ranges::fill(m_killerMoves, KillerMove {});
     }
 
 private:
-    std::array<KillerMove, s_maxSearchDepth> m_killerMoves;
+    /* note: +1 for clear to not cause overflow */
+    std::array<KillerMove, s_maxSearchDepth + 1> m_killerMoves;
 };
 
 }
