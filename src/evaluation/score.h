@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <optional>
 
@@ -50,5 +51,11 @@ constexpr inline std::optional<int8_t> scoreMateDistance(int16_t score)
     }
 
     return std::nullopt;
+}
+
+constexpr inline bool scoreIsMate(Score score)
+{
+    /* FIXME: 128 is magic */
+    return std::abs(score) >= s_mateValue - 128;
 }
 

@@ -24,6 +24,8 @@
 #define TUNABLE_LIST(TUNABLE)                                    \
     TUNABLE(fullDepthMove, uint8_t, 4, 0, 12, 1)                 \
     TUNABLE(lmrBaseReduction, uint8_t, 1, 1, 12, 1)              \
+    TUNABLE(lmpDepth, uint8_t, 8, 1, 12, 1)                      \
+    TUNABLE(lmpBase, uint8_t, 4, 1, 12, 1)                       \
     TUNABLE(rfpReductionLimit, uint8_t, 3, 0, 12, 1)             \
     TUNABLE(rfpMargin, Score, 100, 0, 150, 10)                   \
     TUNABLE(rfpEvaluationMargin, Score, 120, 0, 150, 10)         \

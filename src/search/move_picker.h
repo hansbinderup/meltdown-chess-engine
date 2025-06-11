@@ -52,6 +52,16 @@ public:
         return m_moves.count();
     }
 
+    inline void setSkipQuiets(bool skip)
+    {
+        m_skipQuiets = skip;
+    }
+
+    inline bool getSkipQuiets() const
+    {
+        return m_skipQuiets;
+    }
+
     template<Player player> constexpr std::optional<movegen::Move> pickNextMove(const BitBoard& board)
     {
         switch (m_phase) {
@@ -122,7 +132,8 @@ public:
         }
 
         case KillerMoveFirst: {
-            if (const auto pickedMove = pickKillerMove(KillerMoveType::First))
+            if (m_skipQuiets) { /* skip this phase */
+            } else if (const auto pickedMove = pickKillerMove(KillerMoveType::First))
                 return pickedMove;
 
             m_phase = PickerPhase::KillerMoveSecond;
@@ -131,7 +142,8 @@ public:
         }
 
         case KillerMoveSecond: {
-            if (const auto pickedMove = pickKillerMove(KillerMoveType::Second))
+            if (m_skipQuiets) { /* skip this phase */
+            } else if (const auto pickedMove = pickKillerMove(KillerMoveType::Second))
                 return pickedMove;
 
             m_phase = PickerPhase::CounterMove;
@@ -140,7 +152,8 @@ public:
         }
 
         case CounterMove: {
-            if (const auto pickedMove = pickCounterMove())
+            if (m_skipQuiets) { /* skip this phase */
+            } else if (const auto pickedMove = pickCounterMove())
                 return pickedMove;
 
             m_phase = PickerPhase::HistoryMove;
@@ -149,7 +162,8 @@ public:
         }
 
         case HistoryMove: {
-            if (const auto pickedMove = pickHistoryMove<player>(board))
+            if (m_skipQuiets) { /* skip this phase */
+            } else if (const auto pickedMove = pickHistoryMove<player>(board))
                 return pickedMove;
 
             m_phase = PickerPhase::PromotionBad;
@@ -158,7 +172,8 @@ public:
         }
 
         case PromotionBad: {
-            if (const auto pickedMove = pickPromotion<false>())
+            if (m_skipQuiets) { /* skip this phase */
+            } else if (const auto pickedMove = pickPromotion<false>())
                 return pickedMove;
 
             m_phase = PickerPhase::BadCapture;
@@ -390,5 +405,6 @@ private:
     std::optional<movegen::Move> m_prevMove { std::nullopt };
 
     movegen::ValidMoves m_moves {};
+    bool m_skipQuiets { false };
 };
 }

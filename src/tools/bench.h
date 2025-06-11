@@ -55,6 +55,7 @@ public:
 
         /* OpenBench expects this format */
         fmt::println("{} nodes {:.0f} nps", s_nodesCount, nps);
+        fflush(stdout);
 
         if (previousHashSize > 0) {
             core::TranspositionTable::setSizeMb(previousHashSize);

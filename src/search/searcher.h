@@ -347,13 +347,21 @@ public:
         Score bestScore = s_minScore;
         uint64_t movesSearched = 0;
 
-        const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
+        /* pre-compute as we're gonna reuse the value multiple times */
+        const uint8_t lmpCount = spsa::lmpBase + (depth * depth);
 
+        const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
         MovePicker<movegen::MovePseudoLegal> picker(m_searchTables, m_ply, phase, ttMove, prevMove);
 
         while (const auto moveOpt = picker.pickNextMove(board)) {
-            const auto move = moveOpt.value();
+            /* quiet move pruning */
+            if (!picker.getSkipQuiets() && !isPv && !isChecked && !scoreIsMate(bestScore)) {
+                if (depth <= spsa::lmpDepth && movesSearched >= lmpCount) {
+                    picker.setSkipQuiets(true);
+                }
+            }
 
+            const auto move = moveOpt.value();
             if (!makeMove(board, move)) {
                 continue;
             }
