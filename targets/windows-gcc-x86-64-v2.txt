@@ -11,6 +11,9 @@ cpu_family = 'x86_64'
 cpu = 'x86_64'
 endian = 'little'
 
+[properties]
+needs_exe_wrapper = true
+
 [built-in options]
 cpp_args = ['-march=x86-64-v2', '-static']
 c_args = ['-march=x86-64-v2', '-static']

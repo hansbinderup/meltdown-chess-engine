@@ -48,7 +48,7 @@ All binaries are statically compiled so it should be easy to run.
 
 This is the preferred way. It is very useful for quick development and ensures that you use setups verified by the developers.
 
-The build scripts currently support Linux and Windows. The OS is automatically detected on build.
+The build scripts currently support Linux and Windows. The OS is automatically detected on build. The scripts default to `clang++` as they've proven to be the fastest runtime. If you're compiling outside of docker then be aware of this.
 
 #### Building with Docker
 
