@@ -6,7 +6,7 @@ project('meltdown-chess-engine', 'cpp',
 subdir('version')
 
 if get_option('buildtype') != 'debug'
-  add_project_arguments('-flto=auto', '-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
+  add_project_arguments('-ffast-math', '-fno-finite-math-only', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 
   # allows developers to have a safer build - easier to debug with minimal runtime cost
   if get_option('developer-build') == false
@@ -36,11 +36,12 @@ meltdown_dep = declare_dependency(
 )
 
 # statically link the C++ standard library and libgcc to avoid runtime issues
+add_project_link_arguments('-static-libgcc', '-static-libstdc++', language: 'cpp')
+
 # use full static linking (-static) only on Windows to avoid DLL dependencies
+# NOTE: is not a good idea to do on linux
 if host_machine.system() == 'windows'
-  add_project_link_arguments('-static', '-static-libgcc', '-static-libstdc++', language: 'cpp')
-else
-  add_project_link_arguments('-static-libgcc', '-static-libstdc++', language: 'cpp')
+  add_project_link_arguments('-static', language: 'cpp')
 endif
 
 # build tuner instead of meltdown engine

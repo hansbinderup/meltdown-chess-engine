@@ -17,6 +17,6 @@ endian = 'little'
 needs_exe_wrapper = true
 
 [built-in options]
-cpp_args = ['-march=native']
-c_args = ['-march=native']
+cpp_args = ['-march=x86-64-v2']
+c_args = ['-march=x86-64-v2']
 default_library = 'static'

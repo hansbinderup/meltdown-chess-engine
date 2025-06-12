@@ -1,9 +1,11 @@
 [binaries]
-c = 'x86_64-w64-mingw32-gcc'
-cpp = 'x86_64-w64-mingw32-g++'
-ar = 'x86_64-w64-mingw32-gcc-ar'
-strip = 'x86_64-w64-mingw32-strip'
-ld = 'x86_64-w64-mingw32-ld'
+c = 'x86_64-w64-mingw32-clang'
+cpp = 'x86_64-w64-mingw32-clang++'
+ar = 'x86_64-w64-mingw32-ar'
+strip = 'llvm-strip'
+windres = 'x86_64-w64-mingw32-windres'
+c_ld = 'lld'
+cpp_ld = 'lld'
 
 [host_machine]
 system = 'windows'
