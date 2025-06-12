@@ -97,6 +97,16 @@ public:
         }
     }
 
+    void updatePvScoring(movegen::Move move, uint8_t ply)
+    {
+        m_isFollowing = false;
+
+        if (isPvMove(move, ply)) {
+            m_isScoring = true;
+            m_isFollowing = true;
+        }
+    }
+
     uint8_t size() const
     {
         return m_pvLength.at(0);

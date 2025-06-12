@@ -84,8 +84,15 @@ public:
         case TtMove: {
             m_phase = PickerPhase::GenerateMoves;
 
-            if (const auto pickedMove = pickTtMove())
+            if (const auto pickedMove = pickTtMove()) {
+                if constexpr (moveType == movegen::MovePseudoLegal) {
+                    if (m_searchTables.isPvFollowing()) {
+                        m_searchTables.updatePvScoring(*pickedMove, m_ply);
+                    }
+                }
+
                 return pickedMove;
+            }
 
             return pickNextMove<player>(board);
         }

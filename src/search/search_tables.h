@@ -76,6 +76,11 @@ public:
         m_pvTable.updatePvScoring(moves, ply);
     }
 
+    inline void updatePvScoring(movegen::Move move, uint8_t ply)
+    {
+        m_pvTable.updatePvScoring(move, ply);
+    }
+
     inline void resetHistoryNodes()
     {
         m_historyMoves.resetNodes();
