@@ -50,6 +50,8 @@ public:
                 m_ttMove.reset();
             }
         }
+
+        m_isFollowingPvLine = m_searchTables.isPvFollowing();
     }
 
     constexpr uint16_t numGeneratedMoves()
@@ -85,10 +87,8 @@ public:
             m_phase = PickerPhase::GenerateMoves;
 
             if (const auto pickedMove = pickTtMove()) {
-                if constexpr (moveType == movegen::MovePseudoLegal) {
-                    if (m_searchTables.isPvFollowing()) {
-                        m_searchTables.updatePvScoring(*pickedMove, m_ply);
-                    }
+                if (m_isFollowingPvLine) {
+                    m_searchTables.updatePvScoring(*pickedMove, m_ply);
                 }
 
                 return pickedMove;
@@ -207,10 +207,8 @@ private:
     {
         core::getAllMoves<moveType>(board, m_moves);
 
-        if constexpr (moveType == movegen::MovePseudoLegal) {
-            if (m_searchTables.isPvFollowing()) {
-                m_searchTables.updatePvScoring(m_moves, m_ply);
-            }
+        if (m_isFollowingPvLine) {
+            m_searchTables.updatePvScoring(m_moves, m_ply);
         }
 
         if (!m_ttMove.has_value())
@@ -401,5 +399,6 @@ private:
     std::optional<movegen::Move> m_prevMove { std::nullopt };
 
     movegen::ValidMoves m_moves {};
+    bool m_isFollowingPvLine { false };
 };
 }
