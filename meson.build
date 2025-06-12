@@ -6,7 +6,7 @@ project('meltdown-chess-engine', 'cpp',
 subdir('version')
 
 if get_option('buildtype') != 'debug'
-  add_project_arguments('-flto=auto', '-Ofast', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
+  add_project_arguments('-flto=auto', '-fno-exceptions', '-ffast-math', '-fno-rtti', '-funroll-loops', '-m64', '-finline-functions',  language : 'cpp')
 
   # allows developers to have a safer build - easier to debug with minimal runtime cost
   if get_option('developer-build') == false
