@@ -106,6 +106,8 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     constexpr Player opponent = nextPlayer(player);
 
+    const auto ourKingPos = utils::lsbToPosition(board.pieces[ourKing]);
+
     /* we have already generated all pawn attacks, so we can simply update ctx as single operations */
     ctx.attacksToKingZone[opponent] += std::popcount(ctx.kingZone[opponent] & ctx.pawnAttacks[player]);
     ctx.pieceAttacks[player][Pawn] = ctx.pawnAttacks[player];
@@ -114,7 +116,6 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
     utils::bitIterate(pawns, [&](BoardPosition pos) {
         const uint64_t square = utils::positionToSquare(pos);
         const auto row = utils::relativeRow<player>(pos);
-
         ADD_SCORE_INDEXED(pieceValues, Pawn);
         ADD_SCORE_INDEXED(psqtPawns, utils::relativePosition<player>(pos));
 
@@ -125,9 +126,8 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
         if ((pawns & s_isolationMaskTable[pos]) == 0)
             ADD_SCORE(isolatedPawnPenalty);
 
-        const auto kingPos = utils::lsbToPosition(board.pieces[ourKing]);
-        if (s_passedPawnMaskTable[player][kingPos] & square) {
-            const uint8_t shieldDistance = std::min(utils::verticalDistance(kingPos, pos), pawnShieldSize);
+        if (s_passedPawnMaskTable[player][ourKingPos] & square) {
+            const uint8_t shieldDistance = std::min(utils::verticalDistance(ourKingPos, pos), pawnShieldSize);
             ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
         }
 
@@ -514,9 +514,11 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
 
     constexpr Player opponent = nextPlayer(player);
     constexpr Piece theirPawns = player == PlayerWhite ? BlackPawn : WhitePawn;
+    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     constexpr Piece theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
 
     const uint64_t passedPawns = ctx.passedPawns[player];
+    const auto ourKingPos = utils::lsbToPosition(board.pieces[ourKing]);
     const auto theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
     const bool kingPawnsOnly = board.occupation[opponent] == (board.pieces[theirKing] | board.pieces[theirPawns]);
     const bool tempo = board.player == opponent;
@@ -550,6 +552,12 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
         if (pawnSquareRule) {
             ADD_SCORE(pawnSquareRuleBonus);
         }
+
+        /* king pawn distance score -> apply score based on distance to our/their king */
+        const uint8_t ourKingDistance = utils::absoluteDistance(pos, ourKingPos);
+        const uint8_t theirKingDistance = utils::absoluteDistance(pos, theirKingPos);
+        ADD_SCORE_INDEXED(passersOurKingDistance, ourKingDistance);
+        ADD_SCORE_INDEXED(passersTheirKingDistance, theirKingDistance);
     });
 
     return score;
