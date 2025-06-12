@@ -6,4 +6,4 @@ args="--privileged \
     -w /workspaces/$(basename "$(pwd)")"
 
 
-docker run -it $args hansbinderup/meson-gcc:1.2
+docker run -it $args hansbinderup/meson-gcc:1.3

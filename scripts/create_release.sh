@@ -11,10 +11,10 @@ RELEASE_DIR=".release"
 # List of elements that we cross compile.
 # They refer to the .txt files in our 'targets' folder
 ARCHS=(
-    "linux-gcc-x86-64-v2" 
-    "linux-gcc-x86-64-v3"
-    "windows-gcc-x86-64-v2"
-    "windows-gcc-x86-64-v3"
+    "linux-x86-64-v2"
+    "linux-x86-64-v3"
+    "windows-x86-64-v2"
+    "windows-x86-64-v3"
 )
 
 # Ensure that we always have an empty release folder
