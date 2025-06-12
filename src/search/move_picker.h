@@ -44,11 +44,16 @@ public:
         , m_ttMove(ttMove)
         , m_prevMove(prevMove)
     {
+        if constexpr (moveType == movegen::MoveCapture) {
+            if (m_ttMove.has_value() && !m_ttMove->isCapture()) {
+                m_ttMove.reset();
+            }
+        }
     }
 
     constexpr uint16_t numGeneratedMoves()
     {
-        return m_moves.count();
+        return m_ttMove ? 1 : m_moves.count();
     }
 
     template<Player player> constexpr std::optional<movegen::Move> pickNextMove(const BitBoard& board)
@@ -60,14 +65,13 @@ public:
             if (syzygyActive) {
                 m_phase = PickerPhase::Syzygy;
             } else {
-                m_phase = PickerPhase::GenerateMoves;
+                m_phase = PickerPhase::TtMove;
             }
 
             return pickNextMove<player>(board);
         }
 
         case Syzygy: {
-
             if (const auto pickedMove = pickSyzygyMove())
                 return pickedMove;
 
@@ -76,19 +80,19 @@ public:
             return pickNextMove<player>(board);
         }
 
-        case GenerateMoves: {
-            generateAllMoves(board);
+        case TtMove: {
+            m_phase = PickerPhase::GenerateMoves;
 
-            m_phase = PickerPhase::TtMove;
+            if (const auto pickedMove = pickTtMove())
+                return pickedMove;
 
             return pickNextMove<player>(board);
         }
 
-        case TtMove: {
-            m_phase = PickerPhase::PvMove;
+        case GenerateMoves: {
+            generateAllMoves(board);
 
-            if (const auto pickedMove = pickTtMove())
-                return pickedMove;
+            m_phase = PickerPhase::PvMove;
 
             m_phase = PickerPhase::CaptureGood;
 
@@ -188,14 +192,8 @@ private:
     {
         core::getAllMoves<moveType>(board, m_moves);
 
-        if constexpr (moveType == movegen::MovePseudoLegal) {
-            if (!(m_ttMove.has_value() && !m_ttMove.value().isNull()))
-                return;
-
-        } else {
-            if (!(m_ttMove.has_value() && !m_ttMove.value().isNull() && m_ttMove.value().isCapture()))
-                return;
-        }
+        if (!m_ttMove.has_value())
+            return;
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i] == m_ttMove.value()) {
@@ -222,11 +220,7 @@ private:
 
     constexpr std::optional<movegen::Move> pickTtMove()
     {
-        if constexpr (moveType == movegen::MovePseudoLegal) {
-            return m_ttMove.has_value() ? std::make_optional(m_ttMove.value()) : std::nullopt;
-        } else {
-            return m_ttMove.has_value() && m_ttMove.value().isCapture() ? std::make_optional(m_ttMove.value()) : std::nullopt;
-        }
+        return m_ttMove;
     }
 
     template<bool isGood>
