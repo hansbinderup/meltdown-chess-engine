@@ -85,6 +85,8 @@ public:
         }
 
         case TtMove: {
+            m_phase = PickerPhase::PvMove;
+
             if (const auto pickedMove = pickTtMove())
                 return pickedMove;
 
@@ -185,6 +187,22 @@ private:
     constexpr void generateAllMoves(const BitBoard& board)
     {
         core::getAllMoves<moveType>(board, m_moves);
+
+        if constexpr (moveType == movegen::MovePseudoLegal) {
+            if (!(m_ttMove.has_value() && !m_ttMove.value().isNull()))
+                return;
+
+        } else {
+            if (!(m_ttMove.has_value() && !m_ttMove.value().isNull() && m_ttMove.value().isCapture()))
+                return;
+        }
+
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (m_moves[i] == m_ttMove.value()) {
+                m_moves.nullifyMove(i);
+                continue;
+            }
+        }
     }
 
     // Syzygy moves are already sorted: return first, then second, third etc
@@ -204,19 +222,11 @@ private:
 
     constexpr std::optional<movegen::Move> pickTtMove()
     {
-        if (!m_ttMove.has_value())
-            return std::nullopt;
-
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_moves[i] == *m_ttMove) {
-                const auto ttMove = m_moves[i];
-
-                m_moves.nullifyMove(i);
-
-                return ttMove;
-            }
+        if constexpr (moveType == movegen::MovePseudoLegal) {
+            return m_ttMove.has_value() ? std::make_optional(m_ttMove.value()) : std::nullopt;
+        } else {
+            return m_ttMove.has_value() && m_ttMove.value().isCapture() ? std::make_optional(m_ttMove.value()) : std::nullopt;
         }
-        return std::nullopt;
     }
 
     template<bool isGood>
