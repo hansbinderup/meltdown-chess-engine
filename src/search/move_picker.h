@@ -21,8 +21,8 @@ enum KillerMoveType {
 enum PickerPhase {
     GenerateSyzygyMoves,
     Syzygy,
-    GenerateMoves,
     TtMove,
+    GenerateMoves,
     CaptureGood,
     PromotionGood,
     KillerMoveFirst,
@@ -91,9 +91,6 @@ public:
 
         case GenerateMoves: {
             generateAllMoves(board);
-
-            m_phase = PickerPhase::PvMove;
-
             m_phase = PickerPhase::CaptureGood;
 
             return pickNextMove<player>(board);
