@@ -198,7 +198,9 @@ private:
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i] == m_ttMove.value()) {
                 m_moves.nullifyMove(i);
-                continue;
+                m_ttMove.reset();
+
+                break;
             }
         }
     }
