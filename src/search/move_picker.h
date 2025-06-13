@@ -21,8 +21,8 @@ enum KillerMoveType {
 enum PickerPhase {
     GenerateSyzygyMoves,
     Syzygy,
-    GenerateMoves,
     TtMove,
+    GenerateMoves,
     PvMove,
     CaptureGood,
     PromotionGood,
