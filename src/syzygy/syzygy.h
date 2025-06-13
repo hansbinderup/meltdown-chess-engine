@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/bit_board.h"
+#include "core/transposition.h"
 #include "fmt/base.h"
 #include "movegen/move_types.h"
 
@@ -10,24 +11,13 @@ namespace syzygy {
 
 enum WdlResult {
     WdlResultLoss,
-    WdlResultBlessedLoss,
     WdlResultDraw,
-    WdlResultCursedWin,
     WdlResultWin,
     WdlResultFailed,
     WdlResultTableNotActive,
 };
 
 namespace {
-
-static inline uint8_t s_dtz {};
-static inline WdlResult s_wdl { WdlResultTableNotActive };
-
-inline void reset()
-{
-    s_dtz = 0;
-    s_wdl = WdlResultTableNotActive;
-}
 
 std::span<uint32_t> sortDtzResults(std::span<uint32_t> results, uint32_t wdl)
 {
@@ -81,12 +71,10 @@ constexpr WdlResult wdlFromInt(uint64_t res)
     switch (res) {
     case TB_LOSS:
         return WdlResultLoss;
+    case TB_CURSED_WIN:
     case TB_BLESSED_LOSS:
-        return WdlResultBlessedLoss;
     case TB_DRAW:
         return WdlResultDraw;
-    case TB_CURSED_WIN:
-        return WdlResultCursedWin;
     case TB_WIN:
         return WdlResultWin;
     default:
@@ -95,8 +83,6 @@ constexpr WdlResult wdlFromInt(uint64_t res)
 
     return WdlResultFailed;
 }
-
-std::array<Score, 5> s_wdlScores { -2000, -500, 0, 500, 2000 };
 
 }
 
@@ -123,7 +109,7 @@ inline uint8_t tableSize()
     return TB_LARGEST;
 }
 
-inline WdlResult probeWdl(const BitBoard& board, Score& score)
+inline WdlResult probeWdl(const BitBoard& board)
 {
     if (!isTableActive(board)) {
         return WdlResultTableNotActive;
@@ -138,16 +124,12 @@ inline WdlResult probeWdl(const BitBoard& board, Score& score)
         board.pieces[WhiteBishop] | board.pieces[BlackBishop],
         board.pieces[WhiteKnight] | board.pieces[BlackKnight],
         board.pieces[WhitePawn] | board.pieces[BlackPawn],
-        board.halfMoves,
+        board.halfMoves >= 100,
         board.castlingRights,
         board.enPessant.has_value() ? *board.enPessant : 0,
         board.player == PlayerWhite);
 
-    if (res != TB_RESULT_FAILED) {
-        score = s_wdlScores[TB_GET_WDL(res)];
-    }
-
-    return wdlFromInt(res);
+    return wdlFromInt(TB_GET_WDL(res));
 }
 
 inline uint32_t probeDtz(const BitBoard& board, std::span<uint32_t> results)
@@ -250,43 +232,41 @@ inline bool generateSyzygyMoves(const BitBoard& board, movegen::ValidMoves& move
         }
     }
 
-    if (!sortedResults.empty()) {
-        s_dtz = TB_GET_DTZ(sortedResults.front());
-    }
-
-    s_wdl = wdlFromInt(TB_GET_WDL(res));
-
     return true;
 }
 
-inline Score approximateDtzScore(const BitBoard& board, Score score)
+inline Score wdlToScore(WdlResult wdl, uint8_t ply)
 {
-    switch (s_wdl) {
+    switch (wdl) {
     case WdlResultLoss:
-        break;
-    case WdlResultBlessedLoss:
+        return -s_mateValue + ply;
     case WdlResultDraw:
-    case WdlResultCursedWin:
         return 0;
     case WdlResultWin:
-        break;
+        return s_mateValue - ply;
     case WdlResultFailed:
     case WdlResultTableNotActive:
-        return score;
+        break;
     }
 
-    /* If we're already at DTZ 0, it implies a forced draw or mate, so no further approximation needed */
-    if (s_dtz == 0) {
-        score = s_mateValue; // Forced mate or draw
-    } else if (const int piecesLeft = std::popcount(board.occupation[Both]); piecesLeft == 3) {
-        /* last piece to be taken so dtm must be dtz */
-        score = s_mateValue - s_dtz;
-    } else {
-        /* mate but we don't know when - return high score */
-        score = s_mateValue / 2;
+    return s_noScore;
+}
+
+inline core::TtFlag wdlToTtFlag(WdlResult wdl)
+{
+    switch (wdl) {
+    case WdlResultLoss:
+        return core::TtFlag::TtBeta;
+    case WdlResultDraw:
+        return core::TtFlag::TtExact;
+    case WdlResultWin:
+        return core::TtFlag::TtAlpha;
+    case WdlResultFailed:
+    case WdlResultTableNotActive:
+        break;
     }
 
-    return s_wdl == WdlResultWin ? score : -score;
+    return core::TtFlag::TtExact;
 }
 
 }
