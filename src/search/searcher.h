@@ -93,9 +93,6 @@ public:
 
         m_searchTables.setPvIsFollowing(true);
 
-        if (m_isPrimary)
-            syzygy::reset();
-
         return negamax(depth, board, alpha, beta);
     }
 
@@ -107,9 +104,6 @@ public:
         m_futureResult = m_searchPromise.get_future();
 
         m_searchTables.setPvIsFollowing(true);
-
-        if (m_isPrimary)
-            syzygy::reset();
 
         [[maybe_unused]] const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
@@ -158,19 +152,11 @@ public:
         m_searchTables.reset();
         m_repetition.reset();
         resetNodes();
-
-        if (m_isPrimary)
-            syzygy::reset();
     }
 
     void updateRepetition(uint64_t hash)
     {
         m_repetition.add(hash);
-    }
-
-    constexpr Score approxDtzScore(const BitBoard& board, Score score)
-    {
-        return syzygy::approximateDtzScore(board, score);
     }
 
     constexpr auto& getPvTable() const
@@ -331,13 +317,30 @@ public:
             /* generateSyzygyMoves is not thread safe - allow primary searcher only to take this path! */
             if (isRoot && m_isPrimary) {
                 phase = PickerPhase::GenerateSyzygyMoves;
-            } else if (!isRoot && board.isQuietPosition()) {
-                Score score = 0;
-                syzygy::probeWdl(board, score);
-                core::TranspositionTable::writeEntry(m_stackItr->hash, score, m_stackItr->eval, movegen::Move {}, s_maxSearchDepth, m_ply, core::TtExact);
+            } else if (!isRoot) {
+                const auto wdl = syzygy::probeWdl(board);
+                if (wdl != syzygy::WdlResultFailed) {
+                    m_tbHits++;
+                    const auto wdlScore = syzygy::wdlToScore(wdl, m_ply);
+                    const auto wdlTtFlag = syzygy::wdlToTtFlag(wdl);
 
-                m_tbHits++;
-                return score;
+                    /* similar to Transposition::testEntry - check if table will cause a cutoff and return early if so */
+                    if (wdlTtFlag == core::TtExact
+                        || (wdlTtFlag == core::TtAlpha && wdlScore <= alpha)
+                        || (wdlTtFlag == core::TtBeta && wdlScore >= beta)) {
+                        core::TranspositionTable::writeEntry(m_stackItr->hash, wdlScore, s_noScore, movegen::nullMove(), depth, m_ply, wdlTtFlag);
+                        return wdlScore;
+                    }
+
+                    /* syzygy already tells us the WDL outcome, but in PV nodes we continue
+                     * the search to build a meaningful PV line — we still tighten alpha/beta
+                     * to help guide pruning and avoid wasting effort */
+                    if (isPv && wdlTtFlag == core::TtBeta) {
+                        alpha = std::max(alpha, wdlScore);
+                    } else if (isPv && wdlTtFlag == core::TtAlpha) {
+                        beta = std::min(beta, wdlScore);
+                    }
+                }
             }
         }
 
@@ -649,7 +652,7 @@ private:
      * position - and then try to update the TT with that evaluation  */
     inline Score fetchOrStoreEval(const BitBoard& board, std::optional<core::TtEntryData> entry)
     {
-        if (entry.has_value()) {
+        if (entry.has_value() && entry->eval != s_noScore) {
             return entry->eval;
         } else {
             const Score eval = evaluation::staticEvaluation(board);
@@ -707,5 +710,4 @@ private:
     std::promise<SearcherResult> m_searchPromise;
     std::future<SearcherResult> m_futureResult;
 };
-
 }

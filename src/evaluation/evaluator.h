@@ -234,7 +234,7 @@ private:
                 alpha = score - spsa::aspirationWindow;
                 beta = score + spsa::aspirationWindow;
 
-                interface::printSearchInfo(singleSearcher, board, score, d, getNodes(), getTbHits());
+                interface::printSearchInfo(singleSearcher, score, d, getNodes(), getTbHits());
 
                 bestMove = singleSearcher->getPvMove();
                 m_ponderMove = singleSearcher->getPonderMove();
@@ -321,7 +321,7 @@ private:
                     break;
                 }
 
-                interface::printSearchInfo(searcher, board, bestWinningResult.score, d, getNodes(), getTbHits());
+                interface::printSearchInfo(searcher, bestWinningResult.score, d, getNodes(), getTbHits());
                 m_ponderMove = searcher->getPonderMove();
 
                 TimeManager::updateMoveStability(bestMove, bestWinningResult.score, pvMoveNodeFraction(bestMove));

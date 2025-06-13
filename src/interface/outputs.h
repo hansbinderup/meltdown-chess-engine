@@ -21,15 +21,13 @@ namespace {
 
 static inline bool s_isPrettyPrintEnabled = s_prettyPrintSupported;
 
-inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
+inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
     const auto timeDiff = TimeManager::timeElapsedMs().count();
-
-    const auto adjustedScore = searcher->approxDtzScore(board, score);
     const uint16_t hashFull = core::TranspositionTable::getHashFull();
 
     fmt::print("info score {} time {} depth {} seldepth {} nodes {} hashfull {}{}{} pv ",
-        ScorePrint(adjustedScore),
+        ScorePrint(score),
         timeDiff,
         currentDepth,
         searcher->getSelDepth(),
@@ -41,7 +39,7 @@ inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, const
     fmt::println("{}", fmt::join(searcher->getPvTable(), " "));
 }
 
-inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
+inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
     using namespace fmt;
     using namespace std::chrono_literals;
@@ -49,7 +47,7 @@ inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, co
     const auto timeDiff = TimeManager::timeElapsedMs();
     const auto knps = nodes / (timeDiff.count() + 1);
 
-    const auto adjustedScoreCp = searcher->approxDtzScore(board, score) / 100.f;
+    const auto scoreCp = score / 100.f;
     const auto mateScore = scoreMateDistance(score);
     const auto scoreColor = score < 0 ? fg(color::red) : fg(color::lawn_green);
 
@@ -63,7 +61,7 @@ inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, co
         else
             scoreBuffer = format("{}M", *mateScore);
     } else {
-        scoreBuffer = format("{:.2f}", adjustedScoreCp);
+        scoreBuffer = format("{:.2f}", scoreCp);
     }
 
     std::string timeBuffer;
@@ -97,8 +95,14 @@ inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, co
     }
 
     std::string tbHitsBuffer;
-    if (tbHits) {
-        tbHitsBuffer = format("{} tbhits ║", tbHits);
+    if (tbHits > 1'000'000'000) {
+        tbHitsBuffer = format("{:>6.2f}b tbhits ║ ", tbHits / 1'000'000'000.f);
+    } else if (tbHits > 1'000'000) {
+        tbHitsBuffer = format("{:>6.2f}m tbhits ║ ", tbHits / 1'000'000.f);
+    } else if (tbHits > 1'000) {
+        tbHitsBuffer = format("{:>6.2f}k tbhits ║ ", tbHits / 1'000.f);
+    } else if (tbHits > 1) {
+        tbHitsBuffer = format("{:>7} tbhits ║ ", tbHits);
     }
 
     println(
@@ -212,12 +216,12 @@ inline void printEngineInfo()
     }
 }
 
-inline void printSearchInfo(std::shared_ptr<search::Searcher> searcher, const BitBoard& board, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
+inline void printSearchInfo(std::shared_ptr<search::Searcher> searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
     if (s_isPrettyPrintEnabled) {
-        printSearchInfoPretty(searcher, board, score, currentDepth, nodes, tbHits);
+        printSearchInfoPretty(searcher, score, currentDepth, nodes, tbHits);
     } else {
-        printSearchInfoUci(searcher, board, score, currentDepth, nodes, tbHits);
+        printSearchInfoUci(searcher, score, currentDepth, nodes, tbHits);
     }
 
     fflush(stdout);
