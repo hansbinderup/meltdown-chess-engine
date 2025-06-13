@@ -6,6 +6,7 @@ generated_file = meson.project_source_root() / 'src/evaluation/generated/tuned_t
 add_project_arguments(
   '-DTRAINING_DATA_PATH="@0@"'.format(training_data_path),
   '-DGENERATED_FILE="@0@"'.format(generated_file),
+  '-fno-fast-math',
   language: 'cpp'
 )
 
