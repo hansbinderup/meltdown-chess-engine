@@ -29,10 +29,12 @@ enum PickerPhase {
     GenerateMoves,
     TtMove,
     PvMove,
+    ScoreTacticals,
     TacticalGood,
     KillerMoveFirst,
     KillerMoveSecond,
     CounterMove,
+    ScoreQuiets,
     QuietMove,
     TacticalBad,
     Done,
@@ -48,6 +50,8 @@ public:
         , m_ttMove(ttMove)
         , m_prevMove(prevMove)
     {
+        m_scores.fill(std::numeric_limits<int32_t>::min());
+
         if constexpr (moveType == movegen::MoveCapture) {
             if (m_ttMove.has_value() && !m_ttMove->isCapture()) {
                 m_ttMove.reset();
@@ -112,13 +116,21 @@ public:
             if (const auto pickedMove = pickPvMove())
                 return pickedMove;
 
+            m_phase = PickerPhase::ScoreTacticals;
+
+            return pickNextMove<player>(board);
+        }
+
+        case ScoreTacticals: {
+            generateTacticalScores(board);
+
             m_phase = PickerPhase::TacticalGood;
 
             return pickNextMove<player>(board);
         }
 
         case TacticalGood: {
-            if (const auto pickedMove = pickTacticalMove<true>(board))
+            if (const auto pickedMove = pickTacticalMove<true>())
                 return pickedMove;
 
             m_phase = PickerPhase::KillerMoveFirst;
@@ -148,13 +160,21 @@ public:
             if (const auto pickedMove = pickCounterMove())
                 return pickedMove;
 
+            m_phase = PickerPhase::ScoreQuiets;
+
+            return pickNextMove<player>(board);
+        }
+
+        case ScoreQuiets: {
+            generateQuietScores<player>(board);
+
             m_phase = PickerPhase::QuietMove;
 
             return pickNextMove<player>(board);
         }
 
         case QuietMove: {
-            if (const auto pickedMove = pickQuietMove<player>(board))
+            if (const auto pickedMove = pickQuietMove())
                 return pickedMove;
 
             m_phase = PickerPhase::TacticalBad;
@@ -163,7 +183,7 @@ public:
         }
 
         case TacticalBad: {
-            if (const auto pickedMove = pickTacticalMove<false>(board))
+            if (const auto pickedMove = pickTacticalMove<false>())
                 return pickedMove;
 
             m_phase = PickerPhase::Done;
@@ -249,43 +269,58 @@ private:
         return std::nullopt;
     }
 
+    constexpr void generateTacticalScores(const BitBoard& board)
+    {
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            // If it's a promotion, assign promotion score
+            if (m_moves[i].promotionType() == PromotionQueen)
+                m_scores[i] = PromotionOffsets::Good;
+            else if (m_moves[i].isPromotionMove())
+                m_scores[i] = PromotionOffsets::Bad;
+            else if (m_moves[i].isCapture())
+                m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
+        }
+    }
+
     template<bool isGood>
-    constexpr std::optional<movegen::Move> pickTacticalMove(const BitBoard& board)
+    constexpr std::optional<movegen::Move> pickTacticalMove()
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
-        int32_t bestScore = s_minScore;
+        int32_t bestScore = std::numeric_limits<int32_t>::min();
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            int32_t seeScore = s_minScore;
-
             if constexpr (isGood) {
-                if (m_moves[i].promotionType() == PromotionQueen) {
-                    seeScore = PromotionOffsets::Good;
-                } else if (m_moves[i].isCapture()) {
-                    seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
+                if (m_moves[i].promotionType() == PromotionQueen || m_moves[i].isCapture()) {
 
-                    if (seeScore < 0)
+                    if (m_scores[i] < 0)
                         continue;
+
+                    if (m_scores[i] > bestScore) {
+                        bestMove = m_moves[i];
+                        bestScore = m_scores[i];
+                        bestMoveIndex = i;
+                    }
                 }
+
             }
             // Already picked all good promotions and captures
             else {
-                if (m_moves[i].isPromotionMove()) {
-                    seeScore = PromotionOffsets::Bad;
-                } else if (m_moves[i].isCapture()) {
-                    seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
+                if (m_moves[i].isPromotionMove() || m_moves[i].isCapture()) {
+
+                    if (m_scores[i] > bestScore) {
+                        bestMove = m_moves[i];
+                        bestScore = m_scores[i];
+                        bestMoveIndex = i;
+                    }
                 }
-            }
-            if (seeScore > bestScore) {
-                bestMove = m_moves[i];
-                bestScore = seeScore;
-                bestMoveIndex = i;
             }
         }
 
-        if (bestMove.has_value())
+        if (bestMove.has_value()) {
             m_moves.nullifyMove(bestMoveIndex);
+            m_scores[bestMoveIndex] = std::numeric_limits<int32_t>::min();
+        }
 
         return bestMove;
     }
@@ -329,7 +364,19 @@ private:
     }
 
     template<Player player>
-    constexpr std::optional<movegen::Move> pickQuietMove(const BitBoard& board)
+    constexpr void generateQuietScores(const BitBoard& board)
+    {
+
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (!m_moves[i].isNull() && m_moves[i].isQuietMove()) {
+
+                const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare());
+                m_scores[i] = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
+            }
+        }
+    }
+
+    constexpr std::optional<movegen::Move> pickQuietMove()
     {
         int32_t bestScore = std::numeric_limits<int32_t>::min();
         std::optional<movegen::Move> bestMove = std::nullopt;
@@ -337,21 +384,16 @@ private:
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (!m_moves[i].isNull() && m_moves[i].isQuietMove()) {
-                if (const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare())) {
-                    const int32_t score = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
-
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = m_moves[i];
-                        bestMoveIndex = i;
-                    }
-                } else {
-                    assert(false);
+                if (m_scores[i] > bestScore) {
+                    bestScore = m_scores[i];
+                    bestMove = m_moves[i];
+                    bestMoveIndex = i;
                 }
             }
         }
         if (bestMove.has_value())
             m_moves.nullifyMove(bestMoveIndex);
+        m_scores[bestMoveIndex] = std::numeric_limits<int32_t>::min();
 
         return bestMove;
     }
@@ -364,6 +406,9 @@ private:
     std::optional<movegen::Move> m_prevMove { std::nullopt };
 
     movegen::ValidMoves m_moves {};
+    // Sorting scores for the moves
+    std::array<int32_t, s_maxMoves> m_scores {};
+
     bool m_isFollowingPvLine { false };
 };
 }
