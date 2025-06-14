@@ -305,9 +305,8 @@ private:
             s_evaluator.reset();
             core::TranspositionTable::clear();
         } else if (command == "syzygy") {
-            Score score = 0;
-            const auto wdl = syzygy::probeWdl(s_board, score);
-            fmt::println("wdl: {}, score: {}, table size: {}", wdl, score, syzygy::tableSize());
+            const auto wdl = syzygy::probeWdl(s_board);
+            fmt::println("wdl: {}, table size: {}", wdl, syzygy::tableSize());
             if (!(wdl == syzygy::WdlResultFailed || wdl == syzygy::WdlResultTableNotActive))
                 syzygy::printDtzDebug(s_board);
         }
