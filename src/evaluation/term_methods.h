@@ -95,6 +95,19 @@ constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
 constexpr uint8_t kingZoneSize = s_terms.kingZone.size();
 
 template<Player player>
+static inline TermScore getTempoScore(const BitBoard& board)
+{
+    TermScore score(0, 0);
+
+    /* apply score for the current player */
+    if (board.player == player) {
+        ADD_SCORE(tempoScore);
+    }
+
+    return score;
+}
+
+template<Player player>
 static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
 {
     TermScore score(0, 0);
