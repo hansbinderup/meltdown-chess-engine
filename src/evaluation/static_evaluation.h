@@ -41,6 +41,9 @@ static inline Score staticEvaluation(const BitBoard& board)
     uint8_t phaseScore = 0;
     auto ctx = prepareContext(board);
 
+    /* terms that are not using ctx */
+    APPLY_SCORE(getTempoScore, board);
+
     /* piece scores - should be computed first as they populate ctx */
     APPLY_SCORE(getPawnScore, board, ctx);
     APPLY_SCORE(getKnightScore, board, ctx, phaseScore);

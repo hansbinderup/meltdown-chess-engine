@@ -8,6 +8,7 @@ template<size_t T>
 using WeightTable = std::array<TermScore, T>;
 
 #define TERM_LIST(TERM)                \
+    TERM(tempoScore, 1)                \
     TERM(pieceValues, 6)               \
     TERM(doublePawnPenalty, 1)         \
     TERM(isolatedPawnPenalty, 1)       \
