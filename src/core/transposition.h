@@ -135,12 +135,18 @@ public:
         auto& entry = s_table[key % s_tableSize];
         const auto entryKey = entry.key.load(std::memory_order_relaxed);
         const auto entryData = entry.data.load(std::memory_order_relaxed);
+        const bool sameKey = key == entryKey;
 
         /* only update entry if a better one is found */
-        if (key != entryKey
+        if (!sameKey
             || entryData.move.isNull()
             || depth >= entryData.depth
             || (flag == TtExact && entryData.flag != TtExact)) {
+
+            /* don't overwrite move if we have one stored! */
+            if (sameKey && move.isNull()) {
+                move = entryData.move;
+            }
 
             TtEntryData newData {
                 .depth = depth,
