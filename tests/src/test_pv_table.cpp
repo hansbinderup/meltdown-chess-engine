@@ -66,30 +66,5 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
         pvTable.reset();
         REQUIRE(pvTable.bestMove() == Move {});
     }
-
-    SECTION("PVTable: Following and scoring flags", "[PVTable]")
-    {
-        pvTable.setIsFollowing(true);
-        REQUIRE(pvTable.isFollowing() == true);
-
-        pvTable.setIsScoring(true);
-        REQUIRE(pvTable.isScoring() == true);
-
-        pvTable.setIsFollowing(false);
-        REQUIRE(pvTable.isFollowing() == false);
-    }
-
-    SECTION("PVTable: Updating PV scoring", "[PVTable]")
-    {
-        Move move = Move::create(H2, H4, false);
-        ValidMoves validMoves;
-
-        validMoves.addMove(move);
-        pvTable.updateTable(move, 0);
-
-        REQUIRE(pvTable.isScoring() == false);
-        pvTable.updatePvScoring(validMoves, 0);
-        REQUIRE(pvTable.isScoring() == true);
-    }
 }
 

@@ -91,8 +91,6 @@ public:
     {
         assert(m_stackItr == m_stack.begin());
 
-        m_searchTables.setPvIsFollowing(true);
-
         return negamax(depth, board, alpha, beta);
     }
 
@@ -102,8 +100,6 @@ public:
 
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
-
-        m_searchTables.setPvIsFollowing(true);
 
         [[maybe_unused]] const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
