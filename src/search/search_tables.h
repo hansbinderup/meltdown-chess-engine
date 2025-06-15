@@ -17,16 +17,6 @@ public:
         m_pvTable.reset();
     }
 
-    inline bool isPvScoring() const
-    {
-        return m_pvTable.isScoring();
-    }
-
-    inline bool isPvFollowing() const
-    {
-        return m_pvTable.isFollowing();
-    }
-
     inline bool isPvMove(movegen::Move move, uint8_t ply) const
     {
         return m_pvTable.isPvMove(move, ply);
@@ -51,16 +41,6 @@ public:
         return m_pvTable.ponderMove();
     }
 
-    inline void setPvIsFollowing(bool val)
-    {
-        m_pvTable.setIsFollowing(val);
-    }
-
-    inline void setPvIsScoring(bool val)
-    {
-        m_pvTable.setIsScoring(val);
-    }
-
     inline void updatePvLength(uint8_t ply)
     {
         m_pvTable.updateLength(ply);
@@ -69,11 +49,6 @@ public:
     inline void updatePvTable(movegen::Move move, uint8_t ply)
     {
         m_pvTable.updateTable(move, ply);
-    }
-
-    inline void updatePvScoring(const movegen::ValidMoves& moves, uint8_t ply)
-    {
-        m_pvTable.updatePvScoring(moves, ply);
     }
 
     inline void resetHistoryNodes()
