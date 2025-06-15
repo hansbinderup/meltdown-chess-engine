@@ -91,8 +91,6 @@ public:
     {
         assert(m_stackItr == m_stack.begin());
 
-        m_searchTables.setPvIsFollowing(true);
-
         if (m_isPrimary)
             syzygy::reset();
 
@@ -105,8 +103,6 @@ public:
 
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
-
-        m_searchTables.setPvIsFollowing(true);
 
         if (m_isPrimary)
             syzygy::reset();

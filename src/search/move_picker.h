@@ -23,7 +23,6 @@ enum PickerPhase {
     Syzygy,
     GenerateMoves,
     TtMove,
-    PvMove,
     CaptureGood,
     PromotionGood,
     KillerMoveFirst,
@@ -87,15 +86,6 @@ public:
 
         case TtMove: {
             if (const auto pickedMove = pickTtMove())
-                return pickedMove;
-
-            m_phase = PickerPhase::PvMove;
-
-            return pickNextMove<player>(board);
-        }
-
-        case PvMove: {
-            if (const auto pickedMove = pickPvMove())
                 return pickedMove;
 
             m_phase = PickerPhase::CaptureGood;
@@ -195,12 +185,6 @@ private:
     constexpr void generateAllMoves(const BitBoard& board)
     {
         core::getAllMoves<moveType>(board, m_moves);
-
-        if constexpr (moveType == movegen::MovePseudoLegal) {
-            if (m_searchTables.isPvFollowing()) {
-                m_searchTables.updatePvScoring(m_moves, m_ply);
-            }
-        }
     }
 
     // Syzygy moves are already sorted: return first, then second, third etc
@@ -230,25 +214,6 @@ private:
                 m_moves.nullifyMove(i);
 
                 return ttMove;
-            }
-        }
-        return std::nullopt;
-    }
-
-    constexpr std::optional<movegen::Move> pickPvMove()
-    {
-        if (!m_searchTables.isPvScoring())
-            return std::nullopt;
-
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_searchTables.isPvMove(m_moves[i], m_ply)) {
-                const auto pickedMove = m_moves[i];
-
-                m_moves.nullifyMove(i);
-
-                m_searchTables.setPvIsScoring(false);
-
-                return pickedMove;
             }
         }
         return std::nullopt;
