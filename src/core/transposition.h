@@ -209,12 +209,13 @@ public:
 
     static inline void incrementAge()
     {
-        uint8_t expected = s_age.load();
-        uint8_t desired;
+        /* age is 5 bits so ensure to wrap when reaching the limit */
+        constexpr uint8_t wrapMask { (1 << 5) - 1 }; /* 0b11111 == 31 */
 
-        do {
-            desired = (expected + 1) % 32;
-        } while (!s_age.compare_exchange_weak(expected, desired));
+        const uint8_t prev = s_age.load(std::memory_order_relaxed);
+        const uint8_t next = (prev + 1) & wrapMask;
+
+        s_age.store(next, std::memory_order_relaxed);
     }
 
 private:
