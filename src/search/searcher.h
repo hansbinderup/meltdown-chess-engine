@@ -19,11 +19,6 @@
 
 namespace search {
 
-enum SearchType {
-    Default,
-    NullSearch,
-};
-
 struct MoveResult {
     uint64_t hash;
     BitBoard board;
@@ -96,7 +91,7 @@ public:
         if (m_isPrimary)
             syzygy::reset();
 
-        return negamax(depth, board, alpha, beta);
+        return negamax<true, true>(depth, board, alpha, beta);
     }
 
     void inline startSearchAsync(ThreadPool& threadPool, uint8_t depth, const BitBoard& board, Score alpha, Score beta)
@@ -113,7 +108,7 @@ public:
 
         [[maybe_unused]] const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
-                .score = negamax(depth, board, alpha, beta),
+                .score = negamax<true, true>(depth, board, alpha, beta),
                 .pvMove = m_searchTables.getBestPvMove(),
                 .searchedDepth = m_searchTables.getPvSize(),
                 .searcher = weak_from_this()
@@ -206,7 +201,7 @@ public:
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
 
-        const Score score = negamax(depth, board);
+        const Score score = negamax<true>(depth, board);
 
         TimeManager::stop();
 
@@ -227,25 +222,25 @@ public:
             m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), evaluation::staticEvaluation(board));
     }
 
-    template<SearchType searchType = SearchType::Default>
-    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false)
+    template<bool isPv, bool isRoot = false>
+    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false, bool nullSearch = false)
     {
-        const bool isRoot = m_ply == 0;
-
         m_searchTables.updatePvLength(m_ply);
-        if (m_ply) {
+
+        if constexpr (!isRoot) {
             const auto drawScore = checkForDraw(board);
             if (drawScore.has_value()) {
                 return drawScore.value();
             }
         }
 
-        const bool isPv = beta - alpha > 1;
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
-        if (ttProbe.has_value() && m_ply && !isPv) {
-            const auto testResult = core::testEntry(*ttProbe, m_ply, depth, alpha, beta);
-            if (testResult.has_value()) {
-                return testResult.value();
+        if constexpr (!isPv && !isRoot) {
+            if (ttProbe.has_value()) {
+                const auto testResult = core::testEntry(*ttProbe, m_ply, depth, alpha, beta);
+                if (testResult.has_value()) {
+                    return testResult.value();
+                }
             }
         }
 
@@ -263,7 +258,7 @@ public:
         }
 
         if (depth == 0) {
-            return quiesence(board, alpha, beta);
+            return quiesence<isPv>(board, alpha, beta);
         }
 
         m_nodes++;
@@ -276,40 +271,42 @@ public:
 
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
-        if (!isPv && !isChecked) {
-            /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
-            if (depth < spsa::rfpReductionLimit) {
-                const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + spsa::rfpMargin);
-                const Score evalMargin = spsa::rfpEvaluationMargin * depth;
+        if constexpr (!isPv) {
+            if (!isChecked) {
+                /* https://www.chessprogramming.org/Reverse_Futility_Pruning */
+                if (depth < spsa::rfpReductionLimit) {
+                    const bool withinFutilityMargin = abs(beta - 1) > (s_minScore + spsa::rfpMargin);
+                    const Score evalMargin = spsa::rfpEvaluationMargin * depth;
 
-                if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
-                    return m_stackItr->eval - evalMargin;
-            }
+                    if (withinFutilityMargin && (m_stackItr->eval - evalMargin) >= beta)
+                        return m_stackItr->eval - evalMargin;
+                }
 
-            /* dangerous to repeat null search on a null search - skip it here */
-            if constexpr (searchType != SearchType::NullSearch) {
-                const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
-                if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
-                    if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
-                        return nullMoveScore.value();
+                /* dangerous to repeat null search on a null search - skip it here */
+                if (!nullSearch) {
+                    const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
+                    if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
+                        if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
+                            return nullMoveScore.value();
+                        }
                     }
                 }
-            }
 
-            /* https://www.chessprogramming.org/Razoring (Strelka) */
-            if (depth <= spsa::razorReductionLimit) {
-                Score score = m_stackItr->eval + spsa::razorMarginShallow;
-                if (score < beta) {
-                    if (depth == 1) {
-                        Score newScore = quiesence(board, alpha, beta);
-                        return (newScore > score) ? newScore : score;
-                    }
-
-                    score += spsa::razorMarginDeep;
-                    if (score < beta && depth <= spsa::razorDeepReductionLimit) {
-                        const Score newScore = quiesence(board, alpha, beta);
-                        if (newScore < beta)
+                /* https://www.chessprogramming.org/Razoring (Strelka) */
+                if (depth <= spsa::razorReductionLimit) {
+                    Score score = m_stackItr->eval + spsa::razorMarginShallow;
+                    if (score < beta) {
+                        if (depth == 1) {
+                            Score newScore = quiesence<isPv>(board, alpha, beta);
                             return (newScore > score) ? newScore : score;
+                        }
+
+                        score += spsa::razorMarginDeep;
+                        if (score < beta && depth <= spsa::razorDeepReductionLimit) {
+                            const Score newScore = quiesence<isPv>(board, alpha, beta);
+                            if (newScore < beta)
+                                return (newScore > score) ? newScore : score;
+                        }
                     }
                 }
             }
@@ -363,7 +360,7 @@ public:
 
             if (movesSearched == 0) {
                 /* no moves searched yet -> perform a full depth PV move search */
-                score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
+                score = -negamax<isPv>(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
             } else {
                 /* other moves we can attempt searched with a reduced zero window search
                  * if the zero window search increases alpha we increase the window size */
@@ -396,7 +393,7 @@ public:
                  * to do a full depth full window search
                  * this search has PV potential, so the cost is worth it! */
                 if (score > alpha && score < beta) {
-                    score = -negamax(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
+                    score = -negamax<isPv>(depth - 1, m_stackItr->board, -beta, -alpha, !(isPv || cutNode));
                 }
             }
 
@@ -455,12 +452,12 @@ public:
     }
 
 private:
-    template<SearchType searchType = Default>
-    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window, bool cutNode)
+    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window, bool cutNode, bool nullSearch = false)
     {
-        return negamax<searchType>(depth, board, window - 1, window, cutNode);
+        return negamax<false>(depth, board, window - 1, window, cutNode, nullSearch);
     }
 
+    template<bool isPv>
     constexpr Score quiesence(const BitBoard& board, Score alpha, Score beta)
     {
         m_nodes++;
@@ -521,7 +518,7 @@ private:
                 continue;
             }
 
-            const Score score = -quiesence(m_stackItr->board, -beta, -alpha);
+            const Score score = -quiesence<isPv>(m_stackItr->board, -beta, -alpha);
             undoMove();
 
             if (isSearchStopped())
@@ -590,7 +587,7 @@ private:
 
         /* perform search with reduced depth (based on reduction limit) */
         const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
-        Score score = -zeroWindow<SearchType::NullSearch>(depth - reduction, nullMoveBoard, -beta + 1, !cutNode);
+        Score score = -zeroWindow(depth - reduction, nullMoveBoard, -beta + 1, !cutNode, true);
 
         m_ply -= 2;
         m_stackItr -= 2;
