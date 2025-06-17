@@ -112,12 +112,13 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
 {
     TermScore score(0, 0);
 
-    constexpr Piece ourPawns = player == PlayerWhite ? WhitePawn : BlackPawn;
-    constexpr Piece theirPawns = player == PlayerWhite ? BlackPawn : WhitePawn;
-    const uint64_t pawns = board.pieces[ourPawns];
-
+    constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     constexpr Player opponent = nextPlayer(player);
+
+    const uint64_t ourPawns = board.pieces[ourPawn];
+    const uint64_t theirPawns = board.pieces[theirPawn];
 
     const auto ourKingPos = utils::lsbToPosition(board.pieces[ourKing]);
 
@@ -126,17 +127,18 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
     ctx.pieceAttacks[player][Pawn] = ctx.pawnAttacks[player];
     ctx.threats[player] |= ctx.pawnAttacks[player];
 
-    utils::bitIterate(pawns, [&](BoardPosition pos) {
+    utils::bitIterate(ourPawns, [&](BoardPosition pos) {
         const uint64_t square = utils::positionToSquare(pos);
         const auto row = utils::relativeRow<player>(pos);
+
         ADD_SCORE_INDEXED(pieceValues, Pawn);
         ADD_SCORE_INDEXED(psqtPawns, utils::relativePosition<player>(pos));
 
-        const auto doubledPawns = std::popcount(pawns & s_fileMaskTable[pos]);
+        const auto doubledPawns = std::popcount(ourPawns & s_fileMaskTable[pos]);
         if (doubledPawns > 1)
             ADD_SCORE(doublePawnPenalty);
 
-        if ((pawns & s_isolationMaskTable[pos]) == 0)
+        if ((ourPawns & s_isolationMaskTable[pos]) == 0)
             ADD_SCORE(isolatedPawnPenalty);
 
         if (s_passedPawnMaskTable[player][ourKingPos] & square) {
@@ -144,14 +146,37 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
             ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
         }
 
-        if ((board.pieces[theirPawns] & s_passedPawnMaskTable[player][pos]) == 0) {
-            /* scores will be added in "getPassedPawnsScore" */
-            ctx.passedPawns[player] |= square;
-        }
-
         /* apply score if pawn is protected by one of our own pawns */
         if (square & ctx.pawnAttacks[player]) {
             ADD_SCORE_INDEXED(protectedPawnScore, row);
+        }
+
+        /* passed pawn terms
+         * no stoppers -> passed pawn
+         * stoppers    -> check if candidate to become passed pawn */
+        const uint64_t stoppers = s_passedPawnMaskTable[player][pos] & theirPawns;
+        if (stoppers == 0) {
+            /* scores will be added in "getPassedPawnsScore" */
+            ctx.passedPawns[player] |= square;
+        } else {
+            /* pawns that are not already considered passed pawns might be considered as candidates */
+            const uint64_t pushedPos = utils::pushForwardFromPos<player>(pos);
+            const uint64_t threats = movegen::getPawnAttacksFromPos<player>(pos) & theirPawns;
+            const uint64_t defenders = movegen::getPawnAttacksFromPos<opponent>(pos) & ourPawns;
+            const uint64_t pushedThreats = movegen::getPawnAttacks<player>(pushedPos) & theirPawns;
+            const uint64_t pushedDefenders = movegen::getPawnAttacks<opponent>(pushedPos) & ourPawns;
+            const uint64_t leftovers = stoppers ^ threats ^ pushedThreats;
+
+            /* if no enemy pawns can safely stop the advance and the push square is not outnumbered,
+             * consider the pawn a passer candidate—classified by whether it's currently defended */
+            if (!leftovers && std::popcount(pushedDefenders) >= std::popcount(pushedThreats)) {
+                const bool defended = std::popcount(defenders) >= std::popcount(threats);
+                if (defended) {
+                    ADD_SCORE_INDEXED(passerCandidateDefended, row);
+                } else {
+                    ADD_SCORE_INDEXED(passerCandidateUndefended, row);
+                }
+            }
         }
     });
 
