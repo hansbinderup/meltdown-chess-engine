@@ -249,10 +249,10 @@ public:
         const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
         /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
+        m_stackItr->eval = fetchOrStoreEval(board, ttProbe, isChecked, ttPv);
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
@@ -489,7 +489,7 @@ private:
             m_stackItr->eval = -s_mateValue + m_ply;
         } else {
             /* update current stack with the static evaluation */
-            m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
+            m_stackItr->eval = fetchOrStoreEval(board, ttProbe, isChecked, ttPv);
         }
 
         /* stand pat */
@@ -654,9 +654,11 @@ private:
     /* try to fetch the static evaluation from the TT entry, if any
      * otherwise compute the static evaluation based on the current board
      * position - and then try to update the TT with that evaluation  */
-    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<core::TtEntryData> entry, bool ttPv)
+    inline Score fetchOrStoreEval(const BitBoard& board, std::optional<core::TtEntryData> entry, bool isChecked, bool ttPv)
     {
-        if (entry.has_value() && entry->eval != s_noScore) {
+        if (isChecked) {
+            return s_minScore;
+        } else if (entry.has_value() && entry->eval != s_noScore) {
             return entry->eval;
         } else {
             const Score eval = evaluation::staticEvaluation(board);
