@@ -18,6 +18,8 @@ using WeightTable = std::array<TermScore, T>;
     TERM(protectedPassedPawnBonus, 8)  \
     TERM(passersOurKingDistance, 8)    \
     TERM(passersTheirKingDistance, 8)  \
+    TERM(passerCandidateDefended, 8)   \
+    TERM(passerCandidateUndefended, 8) \
     TERM(pawnSquareRuleBonus, 1)       \
     TERM(pawnShieldBonus, 3)           \
     TERM(rookOpenFileBonus, 1)         \
