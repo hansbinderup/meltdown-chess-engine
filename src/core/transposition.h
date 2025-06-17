@@ -17,12 +17,12 @@ enum TtFlag : uint8_t {
 
 /* Storage for smaller (< 8 bits) types stored in TT data
  * 0b00000011 -> flag (2 bits)
- * 0b00000100 -> ttPv (1 bit) */
+ * 0b00000100 ->   pv (1 bit) */
 struct TtInfo {
     TtInfo() = default;
     TtInfo(TtFlag flag, bool isPv)
         : data((flag & s_flagMask)
-              | (isPv << s_ttPvShift))
+              | (isPv << s_pvShift))
     {
     }
 
@@ -32,18 +32,18 @@ struct TtInfo {
         return static_cast<TtFlag>(data & s_flagMask);
     }
 
-    /* flag to indicate if this entry is following the PV line */
-    inline bool ttPv() const
+    /* flag to indicate if this entry is/was following the PV line */
+    inline bool pv() const
     {
-        return data & s_ttPvFlag;
+        return data & s_pvFlag;
     }
 
 private:
     uint8_t data;
 
     static constexpr inline uint8_t s_flagMask { 0b11 };
-    static constexpr inline uint8_t s_ttPvFlag { 0b100 };
-    static constexpr inline uint8_t s_ttPvShift { 2 };
+    static constexpr inline uint8_t s_pvFlag { 0b100 };
+    static constexpr inline uint8_t s_pvShift { 2 };
 };
 
 struct TtEntryData {

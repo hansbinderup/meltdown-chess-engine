@@ -251,7 +251,7 @@ public:
         m_nodes++;
 
         /* is the position part of the current or a previous PV line? */
-        const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.ttPv());
+        const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
         /* update current stack with the static evaluation */
         m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
@@ -478,7 +478,7 @@ private:
 
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
         const bool isChecked = core::isKingAttacked(board);
-        const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.ttPv());
+        const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
         if (isChecked) {
             /* be careful to cause cutoffs when checked */

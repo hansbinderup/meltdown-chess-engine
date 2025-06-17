@@ -28,7 +28,7 @@ TEST_CASE("Transposition Table - Basic Write & Read", "[TT]")
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
     REQUIRE(retrieved->info.flag() == TtExact);
-    REQUIRE(retrieved->info.ttPv() == false);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
@@ -49,7 +49,7 @@ TEST_CASE("Transposition Table - Edge Case for Positive Score", "[TT]")
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
     REQUIRE(retrieved->info.flag() == TtExact);
-    REQUIRE(retrieved->info.ttPv() == false);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
@@ -70,7 +70,7 @@ TEST_CASE("Transposition Table - Edge Case for Negative Score", "[TT]")
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
     REQUIRE(retrieved->info.flag() == TtExact);
-    REQUIRE(retrieved->info.ttPv() == false);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
@@ -95,7 +95,7 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule", "[TT]")
     REQUIRE(retrieved->eval == newEval);
     REQUIRE(retrieved->move == move2);
     REQUIRE(retrieved->info.flag() == TtExact);
-    REQUIRE(retrieved->info.ttPv() == false);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Depth Overwrite Rule with PV", "[TT]")
@@ -121,7 +121,7 @@ TEST_CASE("Transposition Table - Depth Overwrite Rule with PV", "[TT]")
     REQUIRE(retrieved->eval == newEval);
     REQUIRE(retrieved->move == move2);
     REQUIRE(retrieved->info.flag() == TtExact);
-    REQUIRE(retrieved->info.ttPv() == true);
+    REQUIRE(retrieved->info.pv() == true);
 }
 
 TEST_CASE("Transposition Table - Collision Handling", "[TT]")
@@ -146,7 +146,7 @@ TEST_CASE("Transposition Table - Collision Handling", "[TT]")
     REQUIRE(retrieved2->score == 99);
     REQUIRE(retrieved2->move == move2);
     REQUIRE(retrieved2->info.flag() == TtExact);
-    REQUIRE(retrieved2->info.ttPv() == false);
+    REQUIRE(retrieved2->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - absolute mating Scores", "[TT]")
@@ -166,7 +166,7 @@ TEST_CASE("Transposition Table - absolute mating Scores", "[TT]")
     REQUIRE(retrieved->score == scoreAbsolute(nearMate, ply)); /* score should be absolute */
     REQUIRE(retrieved->move == move);
     REQUIRE(retrieved->info.flag() == TtExact);
-    REQUIRE(retrieved->info.ttPv() == false);
+    REQUIRE(retrieved->info.pv() == false);
 }
 
 TEST_CASE("Transposition Table - Clear Functionality", "[TT]")
@@ -200,7 +200,7 @@ TEST_CASE("Transposition Table - Write eval only", "[TT]")
     REQUIRE(retrieved->eval == eval);
     REQUIRE(retrieved->move == move);
     REQUIRE(retrieved->info.flag() == TtAlpha);
-    REQUIRE(retrieved->info.ttPv() == false);
+    REQUIRE(retrieved->info.pv() == false);
 
     /* testing entry should never succeed! */
     REQUIRE_FALSE(testEntry(*retrieved, ply, 0, s_minScore, s_maxScore));
