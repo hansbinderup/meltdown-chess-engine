@@ -600,7 +600,7 @@ private:
         m_repetition.remove();
 
         if (score >= beta) {
-            return beta;
+            return scoreIsMate(score) ? beta : score;
         }
 
         return std::nullopt;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <optional>
 
@@ -52,3 +53,8 @@ constexpr inline std::optional<int8_t> scoreMateDistance(int16_t score)
     return std::nullopt;
 }
 
+constexpr inline std::optional<int8_t> scoreIsMate(Score score)
+{
+    /* FIXME: s_maxSearchDepth results in recursive header inclusion */
+    return std::abs(score) >= (s_mateValue - 128);
+}
