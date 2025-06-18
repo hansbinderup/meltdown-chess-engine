@@ -22,8 +22,7 @@
  *
  * For more details, see: src/spsa/README.md */
 #define TUNABLE_LIST(TUNABLE)                                    \
-    TUNABLE(fullDepthMove, uint8_t, 4, 0, 12, 1)                 \
-    TUNABLE(lmrBaseReduction, uint8_t, 1, 1, 12, 1)              \
+    TUNABLE(fullDepthMove, uint8_t, 4, 1, 12, 1)                 \
     TUNABLE(rfpReductionLimit, uint8_t, 3, 0, 12, 1)             \
     TUNABLE(rfpMargin, Score, 100, 0, 150, 10)                   \
     TUNABLE(rfpEvaluationMargin, Score, 120, 0, 150, 10)         \
@@ -33,9 +32,9 @@
     TUNABLE(razorDeepReductionLimit, uint8_t, 2, 0, 12, 1)       \
     TUNABLE(nmpBaseMargin, int8_t, -120, -200, 0, 10)            \
     TUNABLE(nmpMarginFactor, uint8_t, 20, 0, 100, 5)             \
-    TUNABLE(nmpReductionBase, uint8_t, 4, 0, 12, 1)              \
-    TUNABLE(nmpReductionFactor, uint8_t, 4, 0, 12, 1)            \
-    TUNABLE(iirDepthLimit, uint8_t, 4, 0, 12, 1)                 \
+    TUNABLE(nmpReductionBase, uint8_t, 4, 1, 12, 1)              \
+    TUNABLE(nmpReductionFactor, uint8_t, 4, 1, 12, 1)            \
+    TUNABLE(iirDepthLimit, uint8_t, 4, 2, 12, 1)                 \
     TUNABLE(aspirationWindow, uint8_t, 50, 10, 100, 5)           \
     TUNABLE(timeManIncFrac, uint16_t, 75, 1, 150, 5)             \
     TUNABLE(timeManBaseFrac, uint16_t, 50, 1, 150, 5)            \
@@ -45,11 +44,11 @@
     TUNABLE(timeManNodeFracBase, uint8_t, 150, 1, 200, 10)       \
     TUNABLE(timeManNodeFracMultiplier, uint8_t, 170, 1, 200, 10) \
     TUNABLE(timeManScoreMargin, uint8_t, 10, 1, 20, 1)           \
-    TUNABLE(seePawnValue, int32_t, 100, 50, 1000, 10)            \
-    TUNABLE(seeKnightValue, int32_t, 422, 50, 1000, 10)          \
-    TUNABLE(seeBishopValue, int32_t, 422, 50, 1000, 10)          \
-    TUNABLE(seeRookValue, int32_t, 642, 50, 1000, 10)            \
-    TUNABLE(seeQueenValue, int32_t, 1015, 50, 1500, 10)
+    TUNABLE(seePawnValue, int32_t, 100, 50, 200, 5)              \
+    TUNABLE(seeKnightValue, int32_t, 422, 200, 600, 10)          \
+    TUNABLE(seeBishopValue, int32_t, 422, 200, 600, 10)          \
+    TUNABLE(seeRookValue, int32_t, 642, 400, 1000, 10)           \
+    TUNABLE(seeQueenValue, int32_t, 1015, 800, 1500, 10)
 
 #ifdef SPSA
 
