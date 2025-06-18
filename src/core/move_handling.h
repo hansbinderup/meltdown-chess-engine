@@ -184,7 +184,7 @@ constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos
 }
 
 template<Player player>
-constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64_t& hash)
+constexpr BitBoard performMove(const BitBoard& board, movegen::Move move)
 {
     BitBoard newBoard = board;
 
@@ -193,40 +193,40 @@ constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64
     const auto pieceType = board.getAttackerAtSquare<player>(move.fromSquare()).value();
 
     if (move.isCastleMove()) {
-        performCastleMove(newBoard, move, hash);
+        performCastleMove(newBoard, move, newBoard.hash);
     } else if (move.takeEnPessant()) {
         if constexpr (player == PlayerWhite) {
-            movePiece(newBoard.pieces[WhitePawn], fromPos, toPos, WhitePawn, hash);
-            clearPiece(newBoard.pieces[BlackPawn], enpessantCapturePosition<player>(toPos), BlackPawn, hash);
+            movePiece(newBoard.pieces[WhitePawn], fromPos, toPos, WhitePawn, newBoard.hash);
+            clearPiece(newBoard.pieces[BlackPawn], enpessantCapturePosition<player>(toPos), BlackPawn, newBoard.hash);
         } else {
-            movePiece(newBoard.pieces[BlackPawn], fromPos, toPos, BlackPawn, hash);
-            clearPiece(newBoard.pieces[WhitePawn], enpessantCapturePosition<player>(toPos), WhitePawn, hash);
+            movePiece(newBoard.pieces[BlackPawn], fromPos, toPos, BlackPawn, newBoard.hash);
+            clearPiece(newBoard.pieces[WhitePawn], enpessantCapturePosition<player>(toPos), WhitePawn, newBoard.hash);
         }
     } else if (move.isPromotionMove()) {
-        performPromotionMove<player>(newBoard, move, hash);
+        performPromotionMove<player>(newBoard, move, newBoard.hash);
     } else {
         if (move.isCapture()) {
             if (const auto victim = board.getTargetAtSquare<player>(move.toSquare())) {
-                clearPiece(newBoard.pieces[victim.value()], move.toPos(), victim.value(), hash);
+                clearPiece(newBoard.pieces[victim.value()], move.toPos(), victim.value(), newBoard.hash);
             }
         }
 
-        movePiece(newBoard.pieces[pieceType], fromPos, toPos, pieceType, hash);
+        movePiece(newBoard.pieces[pieceType], fromPos, toPos, pieceType, newBoard.hash);
     }
 
-    hashCastling(newBoard.castlingRights, hash); // remove current hash
+    hashCastling(newBoard.castlingRights, newBoard.hash); // remove current hash
     updateCastlingRights(newBoard, fromPos);
     updateCastlingRights(newBoard, toPos);
-    hashCastling(newBoard.castlingRights, hash); // add new hash
+    hashCastling(newBoard.castlingRights, newBoard.hash); // add new hash
 
     if (board.enPessant.has_value()) {
         newBoard.enPessant.reset();
-        hashEnpessant(board.enPessant.value(), hash);
+        hashEnpessant(board.enPessant.value(), newBoard.hash);
     }
 
     if (move.isDoublePush()) {
         newBoard.enPessant = enpessantCapturePosition<player>(toPos);
-        hashEnpessant(newBoard.enPessant.value(), hash);
+        hashEnpessant(newBoard.enPessant.value(), newBoard.hash);
     }
 
     newBoard.updateOccupation();
@@ -244,21 +244,21 @@ constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64
         newBoard.halfMoves++;
 
     newBoard.player = nextPlayer(player);
-    hashPlayer(hash);
+    hashPlayer(newBoard.hash);
 
     /* prefetch as soon as we have calculated the key/hash */
-    core::TranspositionTable::prefetch(hash);
+    core::TranspositionTable::prefetch(newBoard.hash);
 
     return newBoard;
 }
 
 // Helper: using inside loops means redundant colour checks
-constexpr BitBoard performMove(const BitBoard& board, movegen::Move move, uint64_t& hash)
+constexpr BitBoard performMove(const BitBoard& board, movegen::Move move)
 {
     if (board.player == PlayerWhite)
-        return performMove<PlayerWhite>(board, move, hash);
+        return performMove<PlayerWhite>(board, move);
     else
-        return performMove<PlayerBlack>(board, move, hash);
+        return performMove<PlayerBlack>(board, move);
 }
 
 constexpr void printPositionDebug(const BitBoard& board)
@@ -296,7 +296,7 @@ constexpr void printPositionDebug(const BitBoard& board)
         board.fullMoves,
         board.halfMoves,
         board.enPessant ? magic_enum::enum_name(*board.enPessant) : "none",
-        generateHashKey(board));
+        board.hash);
 
     // Print castling moves
     fmt::print("Castle: ");

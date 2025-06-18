@@ -93,29 +93,4 @@ constexpr static inline void hashPlayer(uint64_t& hash)
     hash ^= s_playerKey;
 }
 
-constexpr uint64_t generateHashKey(const BitBoard& board)
-{
-    uint64_t key = 0;
-    for (const auto pieceEnum : magic_enum::enum_values<Piece>()) {
-        uint64_t piece = board.pieces[pieceEnum];
-
-        utils::bitIterate(piece, [&](BoardPosition pos) {
-            key ^= s_pieceHashTable[pieceEnum][pos];
-        });
-    }
-
-    key ^= s_castlingHashTable[board.castlingRights];
-
-    if (board.enPessant.has_value()) {
-        key ^= s_enpessantHashTable[board.enPessant.value()];
-    }
-
-    /* only need to hash black as we only have two players */
-    if (board.player == PlayerBlack) {
-        key ^= s_playerKey;
-    }
-
-    return key;
-}
-
 }

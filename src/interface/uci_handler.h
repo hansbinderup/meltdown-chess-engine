@@ -133,14 +133,13 @@ private:
 
         /* helper to iterate list of moves - can be passed as both fen string or startpos */
         constexpr const auto iterateMovesFnc = [](std::string_view sv) {
-            uint64_t hash = core::generateHashKey(s_board);
             while (true) {
                 const auto moveSv = parsing::sv_next_split(sv);
                 const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
 
                 if (move.has_value()) {
-                    s_board = core::performMove(s_board, move.value(), hash);
-                    s_evaluator.updateRepetition(hash);
+                    s_evaluator.updateRepetition(s_board.hash);
+                    s_board = core::performMove(s_board, move.value());
                 } else {
                     break;
                 }

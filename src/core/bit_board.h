@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/board_defs.h"
+#include "core/zobrist_hashing.h"
 #include "magic_enum/magic_enum.hpp"
 #include <array>
 #include <cstdint>
@@ -38,6 +39,9 @@ struct BitBoard {
         fullMoves = 0;
         halfMoves = 0;
         enPessant.reset();
+
+        /* should be done last to reflect the full board state! */
+        updateHash();
     }
 
     constexpr void updateOccupation()
@@ -164,6 +168,29 @@ struct BitBoard {
         return false;
     }
 
+    void updateHash()
+    {
+        hash = 0;
+        for (const auto piece : magic_enum::enum_values<Piece>()) {
+            uint64_t pieceCopy = pieces[piece];
+
+            utils::bitIterate(pieceCopy, [&](BoardPosition pos) {
+                core::hashPiece(piece, pos, this->hash);
+            });
+        }
+
+        core::hashCastling(castlingRights, this->hash);
+
+        if (enPessant.has_value()) {
+            core::hashEnpessant(enPessant.value(), this->hash);
+        }
+
+        /* only need to hash black as we only have two players */
+        if (player == PlayerBlack) {
+            core::hashPlayer(this->hash);
+        }
+    }
+
     std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces {};
     std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation {};
     std::array<uint64_t, magic_enum::enum_count<Player>()> attacks {};
@@ -179,4 +206,7 @@ struct BitBoard {
     // amount of rounds that the game has been played
     uint32_t fullMoves {};
     uint32_t halfMoves {};
+
+    /* hash for the current position */
+    uint64_t hash {};
 };
