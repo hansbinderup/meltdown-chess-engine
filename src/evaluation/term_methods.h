@@ -136,10 +136,10 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
 
         const auto doubledPawns = std::popcount(ourPawns & s_fileMaskTable[pos]);
         if (doubledPawns > 1)
-            ADD_SCORE(doublePawnPenalty);
+            ADD_SCORE_INDEXED(doublePawnPenalty, row);
 
         if ((ourPawns & s_isolationMaskTable[pos]) == 0)
-            ADD_SCORE(isolatedPawnPenalty);
+            ADD_SCORE_INDEXED(isolatedPawnPenalty, row);
 
         if (s_passedPawnMaskTable[player][ourKingPos] & square) {
             const uint8_t shieldDistance = std::min(utils::verticalDistance(ourKingPos, pos), pawnShieldSize);

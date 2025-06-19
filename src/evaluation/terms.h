@@ -10,8 +10,8 @@ using WeightTable = std::array<TermScore, T>;
 #define TERM_LIST(TERM)                \
     TERM(tempoScore, 1)                \
     TERM(pieceValues, 6)               \
-    TERM(doublePawnPenalty, 1)         \
-    TERM(isolatedPawnPenalty, 1)       \
+    TERM(doublePawnPenalty, 8)         \
+    TERM(isolatedPawnPenalty, 8)       \
     TERM(protectedPawnScore, 8)        \
     TERM(passedPawnBonus, 8)           \
     TERM(freePassedPawnBonus, 8)       \
