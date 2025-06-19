@@ -30,6 +30,7 @@ using WeightTable = std::array<TermScore, T>;
     TERM(knightMobilityScore, 9)       \
     TERM(knightOutpostScore, 4)        \
     TERM(knightShelterBonus, 1)        \
+    TERM(knightInactiveScore, 4)       \
     TERM(bishopMobilityScore, 14)      \
     TERM(bishopOutpostScore, 4)        \
     TERM(bishopShelterBonus, 1)        \

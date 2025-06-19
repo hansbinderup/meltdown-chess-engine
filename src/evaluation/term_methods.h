@@ -197,6 +197,11 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
     constexpr Player opponent = nextPlayer(player);
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
 
+    constexpr Piece theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
+    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
+    const BoardPosition ourKingPos = utils::lsbToPosition(board.pieces[ourKing]);
+    const BoardPosition theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
+
     const uint64_t ourPawns = board.pieces[ourPawn];
     const uint64_t theirPawns = board.pieces[theirPawn];
     const uint64_t pawnDefends = ctx.pawnAttacks[player];
@@ -227,6 +232,12 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
             const bool isDefended = square & pawnDefends;
 
             ADD_SCORE_INDEXED(knightOutpostScore, isOutside + (isDefended << 1));
+        }
+
+        /* penalize knights that are far from both kings, indicating poor influence or centrality ("Knight in Siberia") */
+        const uint8_t kingDistance = std::min(utils::absoluteDistance(pos, ourKingPos), utils::absoluteDistance(pos, theirKingPos));
+        if (kingDistance >= 4) {
+            ADD_SCORE_INDEXED(knightInactiveScore, kingDistance - 4);
         }
     });
 
