@@ -6,6 +6,7 @@ BUILD_DIR=".build"
 RUN=false
 OPTIMIZATION="dev"
 SPSA=false
+NATIVE=false
 ARGS=()
 
 # Parse flags
@@ -14,6 +15,7 @@ while [[ $# -gt 0 ]]; do
         -r) RUN=true ;;
         --release) OPTIMIZATION="release" ;;
         --spsa) SPSA=true ;;
+        --native) NATIVE=true ;;
         *) echo "Unknown option: $1" && exit 1 ;;
     esac
     shift
@@ -37,7 +39,12 @@ if $SPSA; then
     BUILD_DIR=".spsa-build"
 fi
 
-if [ ! -d "$BUILD_DIR" ]; then
+# if --native has been provided then let meson configure the build based on available toolchains
+# otherwise default to our defined target based on OS
+if $NATIVE; then
+    BUILD_DIR=".build-native"
+    meson setup "$BUILD_DIR" --buildtype=release -Dcpp_args=-march=native -Dc_args=-march=native --reconfigure
+elif [ ! -d "$BUILD_DIR" ]; then
     NATIVE_TARGET=$(scripts/get-native-target.sh)
     echo "Setting up Meson for $NATIVE_TARGET with ARGS: ${ARGS[*]}"
     meson setup "$BUILD_DIR" --cross-file "targets/$NATIVE_TARGET" --buildtype=release "${ARGS[@]}"

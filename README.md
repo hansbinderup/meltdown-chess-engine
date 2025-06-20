@@ -55,35 +55,22 @@ The build scripts currently support Linux and Windows. The OS is automatically d
 1. Setup [docker](https://docs.docker.com/get-started/get-docker/)
 2. Run docker iteractively: `./docker/run.sh`
 3. Run one of the 3 build scripts:
-    * Release build: `./scripts/build.sh --release <-r | optional: run the executable>`
-    * Development build: `./scripts/build.sh <-r | optional: run the executable>`
+    * Release build: `./scripts/build.sh --release [--native] [-r]`
+    * Development build: `./scripts/build.sh [-r]`
     * For debugging in gdb: `./scripts/debug.sh`
     * Compile and run unit-tests: `./scripts/unit_test.sh`
+
+<sub>
+<code>[--native]</code>: Use native CPU optimizations and local toolchains
+<code>[-r]</code>: Automatically run the executable after building   
+</sub>
 
 #### Building without Docker
 
 If you prefer to compile without Docker you must ensure that `meson` (min. v1.1) is installed and your compiler supports cpp23.
 You can then run step #3 from above.
 
-### Manual builds 
-
-If you prefer to use a different compiler, linker or maybe the above didn't work for you, then you can also resort to setting up your build using meson manually.
-
-There are two ways: 1. let meson handle the setup for you. 2. Create a config file where you specify the setup.
-
-You only have to setup meson once with the steps from below.
-
-If breaking changes have been introduced you're required to reconfigure the build. You can do this by adding the --reconfigure flag to the setup.
-
-NOTE: compiler should still support cpp23.
-
-##### 1. Setup the build automatically with meson
-
-1. Run: `meson setup <build dir> --buildtype=release -Dcpp_args=-march=native -Dc_args=-march=native`
-
-Meson should automatically detect which toolchains are available and use the one that seems suitable.
-
-##### 2. Setup the build with cross compilation targets
+### Custom build (cross compilation target)
 
 If you, for some reason, want to perform a cross compilation or simply want more control over your build, then you can specify these yourself.
 
@@ -92,7 +79,9 @@ In the folder `targets` are some predefined cross compilation targets. If you en
 1. Create a new cross compilation target (see [`targets/`](https://github.com/hansbinderup/meltdown-chess-engine/tree/main/targets) for inspiration).
 2. Setup the build: `meson setup <build dir> --cross-file <target file from #1> --buildtype=release`
 
-#### Compile the build
+You only have to setup meson once with the steps from below.
+
+If breaking changes have been introduced you're required to reconfigure the build. You can do this by adding the `--reconfigure` flag to the setup.
 
 When the build has been setup you can now compile it.
 
