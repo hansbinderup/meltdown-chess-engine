@@ -18,19 +18,22 @@ enum KillerMoveType {
     Second,
 };
 
+enum PromotionOffsets : int32_t {
+    Good = 8000,
+    Bad = -8000,
+};
+
 enum PickerPhase {
     GenerateSyzygyMoves,
     Syzygy,
     GenerateMoves,
     TtMove,
-    CaptureGood,
-    PromotionGood,
+    TacticalGood,
     KillerMoveFirst,
     KillerMoveSecond,
     CounterMove,
     HistoryMove,
-    PromotionBad,
-    BadCapture,
+    TacticalBad,
     Done,
 };
 
@@ -88,22 +91,13 @@ public:
             if (const auto pickedMove = pickTtMove())
                 return pickedMove;
 
-            m_phase = PickerPhase::CaptureGood;
+            m_phase = PickerPhase::TacticalGood;
 
             return pickNextMove<player>(board);
         }
 
-        case CaptureGood: {
-            if (const auto pickedMove = pickCapture<true>(board))
-                return pickedMove;
-
-            m_phase = PickerPhase::PromotionGood;
-
-            return pickNextMove<player>(board);
-        }
-
-        case PromotionGood: {
-            if (const auto pickedMove = pickPromotion<true>())
+        case TacticalGood: {
+            if (const auto pickedMove = pickTacticalMove<true>(board))
                 return pickedMove;
 
             m_phase = PickerPhase::KillerMoveFirst;
@@ -142,21 +136,13 @@ public:
             if (const auto pickedMove = pickHistoryMove<player>(board))
                 return pickedMove;
 
-            m_phase = PickerPhase::PromotionBad;
+            m_phase = PickerPhase::TacticalBad;
 
             return pickNextMove<player>(board);
         }
 
-        case PromotionBad: {
-            if (const auto pickedMove = pickPromotion<false>())
-                return pickedMove;
-
-            m_phase = PickerPhase::BadCapture;
-
-            return pickNextMove<player>(board);
-        }
-        case BadCapture: {
-            if (const auto pickedMove = pickCapture<false>(board))
+        case TacticalBad: {
+            if (const auto pickedMove = pickTacticalMove<false>(board))
                 return pickedMove;
 
             m_phase = PickerPhase::Done;
@@ -220,65 +206,64 @@ private:
     }
 
     template<bool isGood>
-    constexpr std::optional<movegen::Move> pickCapture(const BitBoard& board)
+    constexpr std::optional<movegen::Move> pickTacticalMove(const BitBoard& board)
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
-        int32_t bestScore = s_minScore;
+        int32_t bestScore = std::numeric_limits<int32_t>::min();
         uint16_t bestMoveIndex {};
 
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_moves[i].isCapture()) {
-                int32_t seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
-
-                if constexpr (isGood) {
-                    if (seeScore >= 0 && seeScore > bestScore) {
-                        bestMove = m_moves[i];
-                        bestScore = seeScore;
-                        bestMoveIndex = i;
-                    }
-                } else {
-                    // Already eliminated good captures
-                    if (seeScore > bestScore) {
-                        bestMove = m_moves[i];
-                        bestScore = seeScore;
-                        bestMoveIndex = i;
-                    }
-                }
-            }
-        }
-        if (bestMove.has_value())
-            m_moves.nullifyMove(bestMoveIndex);
-
-        return bestMove;
-    }
-
-    template<bool isGood>
-    constexpr std::optional<movegen::Move> pickPromotion()
-    {
         if constexpr (isGood) {
-            /* Currently, good captures are considered better than good promotions, and bad captures are worse than bad promotions */
             for (uint16_t i = 0; i < m_moves.count(); i++) {
-                if (!m_moves[i].isNull() && m_moves[i].promotionType() == PromotionQueen && !m_moves[i].isCapture()) {
-                    const auto pickedMove = m_moves[i];
+                // Only good captures or promotions
+                if (!(m_moves[i].isCapture() || m_moves[i].promotionType() == PromotionQueen))
+                    continue;
 
-                    m_moves.nullifyMove(i);
+                int32_t seeScore = std::numeric_limits<int32_t>::min();
 
-                    return pickedMove;
+                if (m_moves[i].isCapture() && m_moves[i].promotionType() == PromotionQueen) {
+                    seeScore = evaluation::SeeSwap::run(board, m_moves[i]) + PromotionOffsets::Good;
+                } else if (m_moves[i].isCapture()) {
+                    seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
+                } else {
+                    seeScore = PromotionOffsets::Good;
+                }
+
+                // Sorting
+                if (seeScore >= 0 && seeScore > bestScore) {
+                    bestMove = m_moves[i];
+                    bestScore = seeScore;
+                    bestMoveIndex = i;
                 }
             }
         } else {
             for (uint16_t i = 0; i < m_moves.count(); i++) {
-                if (!m_moves[i].isNull() && m_moves[i].isPromotionMove() && !m_moves[i].isCapture()) {
-                    const auto pickedMove = m_moves[i];
+                // Only bad promotions and bad captures
+                if (!(m_moves[i].isCapture() || m_moves[i].isPromotionMove()))
+                    continue;
 
-                    m_moves.nullifyMove(i);
+                int32_t seeScore = std::numeric_limits<int32_t>::min();
 
-                    return pickedMove;
+                if (m_moves[i].isCapture() && m_moves[i].isPromotionMove()) {
+                    seeScore = evaluation::SeeSwap::run(board, m_moves[i]) + PromotionOffsets::Bad;
+                } else if (m_moves[i].isCapture()) {
+                    seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
+                } else {
+                    seeScore = PromotionOffsets::Bad;
+                }
+
+                // Sorting
+                if (seeScore > bestScore) {
+                    bestMove = m_moves[i];
+                    bestScore = seeScore;
+                    bestMoveIndex = i;
                 }
             }
         }
 
-        return std::nullopt;
+        if (bestMove.has_value())
+            m_moves.nullifyMove(bestMoveIndex);
+
+        return bestMove;
     }
 
     constexpr std::optional<movegen::Move> pickKillerMove(KillerMoveType type)
