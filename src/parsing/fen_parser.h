@@ -71,8 +71,9 @@ public:
             }
         }
 
-        /* last thing to do - update hash so it reflects the full board state */
+        /* last thing to do - update hashes so they reflect the full board state */
         board.hash = core::generateHash(board);
+        board.kpHash = core::generateKingPawnHash(board);
 
         if (success)
             return board;

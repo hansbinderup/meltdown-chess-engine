@@ -153,6 +153,7 @@ struct BitBoard {
     uint16_t fullMoves {};
     uint16_t halfMoves {};
 
-    /* hash for the current position */
+    /* hashes for the current position */
     uint64_t hash {};
+    uint64_t kpHash {};
 };
