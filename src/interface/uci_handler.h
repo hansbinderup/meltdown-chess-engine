@@ -139,8 +139,8 @@ private:
                 const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
 
                 if (move.has_value()) {
-                    s_board = core::performMove(s_board, move.value(), hash);
                     s_evaluator.updateRepetition(hash);
+                    s_board = core::performMove(s_board, move.value(), hash);
                 } else {
                     break;
                 }
