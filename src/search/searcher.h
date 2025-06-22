@@ -200,14 +200,12 @@ public:
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
                      "Static eval:     {}\n",
-            m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), evaluation::staticEvaluation(board));
+            m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), m_staticEval.get(board));
     }
 
     template<bool isPv, bool isRoot = false>
     constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false, bool nullSearch = false)
     {
-        assert(m_stackItr->board.hash == core::generateHashKey(m_stackItr->board));
-
         m_searchTables.updatePvLength(m_ply);
 
         if constexpr (!isRoot) {
@@ -229,7 +227,7 @@ public:
 
         // Engine is not designed to search deeper than this! Make sure to stop before it's too late
         if (m_ply >= s_maxSearchDepth) {
-            return evaluation::staticEvaluation(board);
+            return m_staticEval.get(board);
         }
 
         const bool isChecked = core::isKingAttacked(board);
@@ -479,7 +477,7 @@ private:
         }
 
         if (m_ply >= s_maxSearchDepth)
-            return evaluation::staticEvaluation(board);
+            return m_staticEval.get(board);
 
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->board.hash);
         const bool isChecked = core::isKingAttacked(board);
@@ -655,7 +653,7 @@ private:
         if (entry.has_value() && entry->eval != s_noScore) {
             return entry->eval;
         } else {
-            const Score eval = evaluation::staticEvaluation(board);
+            const Score eval = m_staticEval.get(board);
             core::TranspositionTable::writeEntry(m_stackItr->board.hash, s_noScore, eval, movegen::nullMove(), ttPv, 0, m_ply, core::TtAlpha);
             return eval;
         }
@@ -708,5 +706,7 @@ private:
 
     std::promise<SearcherResult> m_searchPromise;
     std::future<SearcherResult> m_futureResult;
+
+    evaluation::StaticEvaluation m_staticEval;
 };
 }

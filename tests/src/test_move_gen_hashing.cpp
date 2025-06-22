@@ -8,13 +8,21 @@ constexpr uint8_t s_defaultSearchDepth = 3;
 
 void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 {
+    REQUIRE(board.hash == core::generateHash(board));
+    REQUIRE(board.kpHash == core::generateKingPawnHash(board));
+
     movegen::ValidMoves moves;
     core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
     for (const auto& move : moves) {
         const auto newBoard = core::performMove(board, move);
-        const auto newHash = core::generateHash(newBoard);
 
-        REQUIRE(newBoard.hash == newHash);
+        /* don't end up in positions where eg king is gone */
+        if (core::isKingAttacked(newBoard, board.player)) {
+            continue;
+        }
+
+        REQUIRE(newBoard.hash == core::generateHash(newBoard));
+        REQUIRE(newBoard.kpHash == core::generateKingPawnHash(newBoard));
 
         if (depth != 0) {
             testAllMoves(newBoard, depth - 1);

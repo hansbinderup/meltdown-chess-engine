@@ -118,4 +118,19 @@ constexpr uint64_t generateHash(const BitBoard& board)
     return hash;
 }
 
+static inline uint64_t generateKingPawnHash(const BitBoard& board)
+{
+    uint64_t hash = 0;
+    constexpr auto kpPieces = std::to_array<Piece>({ WhitePawn, WhiteKing, BlackPawn, BlackKing });
+    for (const auto pieceEnum : kpPieces) {
+        uint64_t piece = board.pieces[pieceEnum];
+
+        utils::bitIterate(piece, [&](BoardPosition pos) {
+            hash ^= s_pieceHashTable[pieceEnum][pos];
+        });
+    }
+
+    return hash;
+}
+
 }
