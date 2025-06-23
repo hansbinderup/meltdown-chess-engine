@@ -23,6 +23,7 @@ enum PickerPhase {
     Syzygy,
     GenerateMoves,
     TtMove,
+    GenerateCaptureScores,
     CaptureGood,
     PromotionGood,
     KillerMoveFirst,
@@ -88,13 +89,21 @@ public:
             if (const auto pickedMove = pickTtMove())
                 return pickedMove;
 
+            m_phase = PickerPhase::GenerateCaptureScores;
+
+            return pickNextMove<player>(board);
+        }
+
+        case GenerateCaptureScores: {
+            generateCaptureScores(board);
+
             m_phase = PickerPhase::CaptureGood;
 
             return pickNextMove<player>(board);
         }
 
         case CaptureGood: {
-            if (const auto pickedMove = pickCapture<true>(board))
+            if (const auto pickedMove = pickCapture<true>())
                 return pickedMove;
 
             m_phase = PickerPhase::PromotionGood;
@@ -155,8 +164,9 @@ public:
 
             return pickNextMove<player>(board);
         }
+
         case BadCapture: {
-            if (const auto pickedMove = pickCapture<false>(board))
+            if (const auto pickedMove = pickCapture<false>())
                 return pickedMove;
 
             m_phase = PickerPhase::Done;
@@ -219,35 +229,43 @@ private:
         return std::nullopt;
     }
 
+    void generateCaptureScores(const BitBoard& board)
+    {
+
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (m_moves[i].isCapture()) {
+                m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
+            }
+        }
+    }
+
     template<bool isGood>
-    constexpr std::optional<movegen::Move> pickCapture(const BitBoard& board)
+    constexpr std::optional<movegen::Move> pickCapture()
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
         int32_t bestScore = s_minScore;
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_moves[i].isCapture()) {
-                int32_t seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
+            if (m_moves[i].isCapture()) {
+                const int32_t score = m_scores[i];
 
                 if constexpr (isGood) {
-                    if (seeScore >= 0 && seeScore > bestScore) {
-                        bestMove = m_moves[i];
-                        bestScore = seeScore;
-                        bestMoveIndex = i;
+                    if (score < 0) {
+                        continue;
                     }
-                } else {
-                    // Already eliminated good captures
-                    if (seeScore > bestScore) {
-                        bestMove = m_moves[i];
-                        bestScore = seeScore;
-                        bestMoveIndex = i;
-                    }
+                }
+                if (score > bestScore) {
+                    bestMove = m_moves[i];
+                    bestScore = score;
+                    bestMoveIndex = i;
                 }
             }
         }
-        if (bestMove.has_value())
+
+        if (bestMove.has_value()) {
             m_moves.nullifyMove(bestMoveIndex);
+        }
 
         return bestMove;
     }
@@ -355,5 +373,6 @@ private:
     std::optional<movegen::Move> m_prevMove { std::nullopt };
 
     movegen::ValidMoves m_moves {};
+    std::array<int32_t, s_maxMoves> m_scores {};
 };
 }
