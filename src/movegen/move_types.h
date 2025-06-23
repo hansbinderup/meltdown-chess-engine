@@ -200,7 +200,8 @@ public:
         return flag == MoveFlag::KingCastle || flag == MoveFlag::QueenCastle;
     }
 
-    constexpr CastleType castleType(Player player) const
+    template<Player player>
+    constexpr CastleType castleType() const
     {
         const auto flag = getFlag();
         switch (flag) {
