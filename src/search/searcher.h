@@ -166,7 +166,7 @@ public:
         movegen::ValidMoves captures;
         core::getAllMoves<movegen::MoveCapture>(board, captures);
 
-        MovePicker<movegen::MoveCapture> capturePicker { m_searchTables, m_ply, PickerPhase::GenerateMoves };
+        MovePicker<movegen::MoveCapture> capturePicker { m_searchTables, m_ply, PickerPhase::TtMove };
 
         if (captures.count()) {
             fmt::print("Captures[{}]: ", captures.count());
@@ -189,7 +189,7 @@ public:
 
         fmt::println("Move evaluations [{}]:", depth);
 
-        MovePicker<movegen::MovePseudoLegal> allMovesPicker { m_searchTables, m_ply, PickerPhase::GenerateMoves };
+        MovePicker<movegen::MovePseudoLegal> allMovesPicker { m_searchTables, m_ply, PickerPhase::TtMove };
 
         while (const auto& moveOpt = allMovesPicker.pickNextMove(board)) {
             const auto move = moveOpt.value();
@@ -314,7 +314,7 @@ public:
             depth--;
         }
 
-        auto phase = PickerPhase::GenerateMoves;
+        auto phase = PickerPhase::TtMove;
 
         if (syzygy::isTableActive(board)) {
             /* generateSyzygyMoves is not thread safe - allow primary searcher only to take this path! */
@@ -519,7 +519,7 @@ private:
 
         const auto ttMove = tryFetchTtMove(ttProbe);
 
-        MovePicker<movegen::MoveCapture> picker { m_searchTables, m_ply, PickerPhase::GenerateMoves, ttMove };
+        MovePicker<movegen::MoveCapture> picker { m_searchTables, m_ply, PickerPhase::TtMove, ttMove };
 
         while (const auto& moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
