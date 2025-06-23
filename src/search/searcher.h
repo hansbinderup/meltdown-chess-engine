@@ -675,10 +675,7 @@ private:
     {
         const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(board, m_stackItr->board.hash, m_ply) || board.hasInsufficientMaterial();
         if (isDraw) {
-            /* draw score is 0 but to avoid blindness towards three fold lines
-             * we add a slight variance to the draw score
-             * it will still be approx 0~ cp: [-0.1:0.1] */
-            return 1 - (m_nodes & 2); /* draw score */
+            return m_staticEval.getDrawScore(m_nodes, m_ply);
         }
 
         return std::nullopt;

@@ -31,7 +31,7 @@ public:
     {
         TermScore score(0, 0);
 
-        uint8_t phaseScore = 0;
+        m_phase = 0;
         auto ctx = prepareContext(board);
 
         /* terms that are not using ctx */
@@ -45,10 +45,10 @@ public:
 #endif
 
         /* piece scores - should be computed first as they populate ctx */
-        APPLY_SCORE(getKnightScore, board, ctx, phaseScore);
-        APPLY_SCORE(getBishopScore, board, ctx, phaseScore);
-        APPLY_SCORE(getRookScore, board, ctx, phaseScore);
-        APPLY_SCORE(getQueenScore, board, ctx, phaseScore);
+        APPLY_SCORE(getKnightScore, board, ctx, m_phase);
+        APPLY_SCORE(getBishopScore, board, ctx, m_phase);
+        APPLY_SCORE(getRookScore, board, ctx, m_phase);
+        APPLY_SCORE(getQueenScore, board, ctx, m_phase);
         APPLY_SCORE(getKingScore, board, ctx);
 
         /* terms that consume ctx */
@@ -58,8 +58,21 @@ public:
         APPLY_SCORE(getPawnPushThreatScore, board, ctx);
         APPLY_SCORE(getPassedPawnsScore, board, ctx);
 
-        const Score evaluation = score.phaseScore(phaseScore);
+        const Score evaluation = score.phaseScore(m_phase);
         return board.player == PlayerWhite ? evaluation : -evaluation;
+    }
+
+    inline Score getDrawScore(uint64_t nodes, uint8_t ply) const
+    {
+        /* https://web.archive.org/web/20070707023203/www.brucemo.com/compchess/programming/contempt.htm
+         * add contempt factor: helps with drawing against weaker opponents - continue playing even if drawn
+         * in the early stages of the game */
+        constexpr evaluation::TermScore contemptFactor(-50, 0);
+
+        const Score score = contemptFactor.phaseScore(m_phase) + (nodes & 2);
+
+        /* we need to apply the correct sign to the score based on whose turn it is */
+        return ply % 2 == 0 ? score : -score;
     }
 
 private:
@@ -103,6 +116,9 @@ private:
     }
 
     KingPawnCache m_kpCache {};
+
+    /* just default to something sensible - will be updated whenver we perform an eval */
+    uint8_t m_phase { s_middleGamePhase / 2 };
 };
 
 }
