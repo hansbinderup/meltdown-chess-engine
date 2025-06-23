@@ -71,6 +71,9 @@ public:
             }
         }
 
+        /* last thing to do - update hash so it reflects the full board state */
+        board.hash = core::generateHash(board);
+
         if (success)
             return board;
 
