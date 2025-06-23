@@ -15,6 +15,7 @@ endif
 # *************************************************************
 
 openbench:
+	meson subprojects update --reset
 	meson setup .openbench --cross-file targets/linux-native.txt --wipe --buildtype=release
 	meson compile -C .openbench
 	cp .openbench/meltdown-chess-engine $(EXE)

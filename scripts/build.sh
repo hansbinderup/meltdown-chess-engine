@@ -43,10 +43,14 @@ fi
 # otherwise default to our defined target based on OS
 if $NATIVE; then
     BUILD_DIR=".build-native"
+
+	meson subprojects update --reset
     meson setup "$BUILD_DIR" --buildtype=release -Dcpp_args=-march=native -Dc_args=-march=native --reconfigure
 elif [ ! -d "$BUILD_DIR" ]; then
     NATIVE_TARGET=$(scripts/get-native-target.sh)
     echo "Setting up Meson for $NATIVE_TARGET with ARGS: ${ARGS[*]}"
+
+	meson subprojects update --reset
     meson setup "$BUILD_DIR" --cross-file "targets/$NATIVE_TARGET" --buildtype=release "${ARGS[@]}"
 fi
 

@@ -21,6 +21,9 @@ ARCHS=(
 rm -rf "$RELEASE_DIR" || true
 mkdir -p "$RELEASE_DIR"
 
+# ensure subprojects are always fully up to date
+meson subprojects update --reset
+
 for ARCH in "${ARCHS[@]}"; do
     echo "Building for $ARCH..."
 
