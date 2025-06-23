@@ -23,15 +23,13 @@ enum PickerPhase {
     Syzygy,
     GenerateMoves,
     TtMove,
-    GenerateCaptureScores,
-    CaptureGood,
-    PromotionGood,
+    GenerateNoisyScores,
+    NoisyGood,
     KillerMoveFirst,
     KillerMoveSecond,
     CounterMove,
     HistoryMove,
-    PromotionBad,
-    BadCapture,
+    NoisyBad,
     Done,
 };
 
@@ -45,6 +43,10 @@ public:
         , m_ttMove(ttMove)
         , m_prevMove(prevMove)
     {
+        if constexpr (moveType == movegen::MoveCapture) {
+            if (m_ttMove && !m_ttMove->isCapture())
+                m_ttMove.reset();
+        }
     }
 
     constexpr uint16_t numGeneratedMoves()
@@ -78,7 +80,7 @@ public:
         }
 
         case GenerateMoves: {
-            generateAllMoves(board);
+            core::getAllMoves<moveType>(board, m_moves);
 
             m_phase = PickerPhase::TtMove;
 
@@ -89,30 +91,21 @@ public:
             if (const auto pickedMove = pickTtMove())
                 return pickedMove;
 
-            m_phase = PickerPhase::GenerateCaptureScores;
+            m_phase = PickerPhase::GenerateNoisyScores;
 
             return pickNextMove<player>(board);
         }
 
-        case GenerateCaptureScores: {
-            generateCaptureScores(board);
+        case GenerateNoisyScores: {
+            generateNoisyScores(board);
 
-            m_phase = PickerPhase::CaptureGood;
-
-            return pickNextMove<player>(board);
-        }
-
-        case CaptureGood: {
-            if (const auto pickedMove = pickCapture<true>())
-                return pickedMove;
-
-            m_phase = PickerPhase::PromotionGood;
+            m_phase = PickerPhase::NoisyGood;
 
             return pickNextMove<player>(board);
         }
 
-        case PromotionGood: {
-            if (const auto pickedMove = pickPromotion<true>())
+        case NoisyGood: {
+            if (const auto pickedMove = pickNoisyMove<true>())
                 return pickedMove;
 
             m_phase = PickerPhase::KillerMoveFirst;
@@ -151,22 +144,13 @@ public:
             if (const auto pickedMove = pickHistoryMove<player>(board))
                 return pickedMove;
 
-            m_phase = PickerPhase::PromotionBad;
+            m_phase = PickerPhase::NoisyBad;
 
             return pickNextMove<player>(board);
         }
 
-        case PromotionBad: {
-            if (const auto pickedMove = pickPromotion<false>())
-                return pickedMove;
-
-            m_phase = PickerPhase::BadCapture;
-
-            return pickNextMove<player>(board);
-        }
-
-        case BadCapture: {
-            if (const auto pickedMove = pickCapture<false>())
+        case NoisyBad: {
+            if (const auto pickedMove = pickNoisyMove<false>())
                 return pickedMove;
 
             m_phase = PickerPhase::Done;
@@ -192,11 +176,6 @@ public:
     }
 
 private:
-    constexpr void generateAllMoves(const BitBoard& board)
-    {
-        core::getAllMoves<moveType>(board, m_moves);
-    }
-
     // Syzygy moves are already sorted: return first, then second, third etc
     constexpr std::optional<movegen::Move> pickSyzygyMove()
     {
@@ -229,25 +208,28 @@ private:
         return std::nullopt;
     }
 
-    void generateCaptureScores(const BitBoard& board)
+    void generateNoisyScores(const BitBoard& board)
     {
-
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i].isCapture()) {
-                m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
+                m_scores[i] += evaluation::SeeSwap::run(board, m_moves[i]);
+            } else if (m_moves[i].promotionType() == PromotionQueen) {
+                m_scores[i] += spsa::seeQueenValue;
+            } else if (m_moves[i].isPromotionMove()) {
+                m_scores[i] -= 10000;
             }
         }
     }
 
     template<bool isGood>
-    constexpr std::optional<movegen::Move> pickCapture()
+    constexpr std::optional<movegen::Move> pickNoisyMove()
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
-        int32_t bestScore = s_minScore;
+        int32_t bestScore = std::numeric_limits<int32_t>::min();
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (m_moves[i].isCapture()) {
+            if (m_moves[i].isNoisyMove()) {
                 const int32_t score = m_scores[i];
 
                 if constexpr (isGood) {
@@ -268,35 +250,6 @@ private:
         }
 
         return bestMove;
-    }
-
-    template<bool isGood>
-    constexpr std::optional<movegen::Move> pickPromotion()
-    {
-        if constexpr (isGood) {
-            /* Currently, good captures are considered better than good promotions, and bad captures are worse than bad promotions */
-            for (uint16_t i = 0; i < m_moves.count(); i++) {
-                if (!m_moves[i].isNull() && m_moves[i].promotionType() == PromotionQueen && !m_moves[i].isCapture()) {
-                    const auto pickedMove = m_moves[i];
-
-                    m_moves.nullifyMove(i);
-
-                    return pickedMove;
-                }
-            }
-        } else {
-            for (uint16_t i = 0; i < m_moves.count(); i++) {
-                if (!m_moves[i].isNull() && m_moves[i].isPromotionMove() && !m_moves[i].isCapture()) {
-                    const auto pickedMove = m_moves[i];
-
-                    m_moves.nullifyMove(i);
-
-                    return pickedMove;
-                }
-            }
-        }
-
-        return std::nullopt;
     }
 
     constexpr std::optional<movegen::Move> pickKillerMove(KillerMoveType type)
