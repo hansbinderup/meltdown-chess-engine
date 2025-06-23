@@ -136,6 +136,7 @@ public:
         m_tbHits = 0;
         m_selDepth = 0;
         m_searchTables.resetHistoryNodes();
+        m_gamePhase = s_middleGamePhase;
     }
 
     void reset()
@@ -201,7 +202,7 @@ public:
                      "Search score:    {}\n"
                      "PV-line:         {}\n"
                      "Static eval:     {}\n",
-            m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), evaluation::staticEvaluation(board));
+            m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), evaluation::staticEvaluation(board, m_gamePhase));
     }
 
     template<bool isPv, bool isRoot = false>
@@ -228,7 +229,7 @@ public:
 
         // Engine is not designed to search deeper than this! Make sure to stop before it's too late
         if (m_ply >= s_maxSearchDepth) {
-            return evaluation::staticEvaluation(board);
+            return evaluation::staticEvaluation(board, m_gamePhase);
         }
 
         const bool isChecked = core::isKingAttacked(board);
@@ -478,7 +479,7 @@ private:
         }
 
         if (m_ply >= s_maxSearchDepth)
-            return evaluation::staticEvaluation(board);
+            return evaluation::staticEvaluation(board, m_gamePhase);
 
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
         const bool isChecked = core::isKingAttacked(board);
@@ -659,7 +660,7 @@ private:
         if (entry.has_value() && entry->eval != s_noScore) {
             return entry->eval;
         } else {
-            const Score eval = evaluation::staticEvaluation(board);
+            const Score eval = evaluation::staticEvaluation(board, m_gamePhase);
             core::TranspositionTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), ttPv, 0, m_ply, core::TtAlpha);
             return eval;
         }
@@ -679,12 +680,17 @@ private:
 
     inline std::optional<Score> checkForDraw(const BitBoard& board)
     {
+        /* https://web.archive.org/web/20070707023203/www.brucemo.com/compchess/programming/contempt.htm
+         * add contempt factor: helps with drawing against weaker opponents - continue playing even if drawn
+         * in the early stages of the game */
+        constexpr evaluation::TermScore contemptFactor(-50, 0);
+
         const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(board, m_stackItr->hash, m_ply) || board.hasInsufficientMaterial();
         if (isDraw) {
-            /* draw score is 0 but to avoid blindness towards three fold lines
-             * we add a slight variance to the draw score
-             * it will still be approx 0~ cp: [-0.1:0.1] */
-            return 1 - (m_nodes & 2); /* draw score */
+            const int8_t score = contemptFactor.phaseScore(m_gamePhase) + (m_nodes & 2);
+
+            /* we need to apply the correct sign to the score based on whose turn it is */
+            return m_ply % 2 == 0 ? score : -score;
         }
 
         return std::nullopt;
@@ -699,6 +705,7 @@ private:
     Repetition m_repetition;
     SearchTables m_searchTables {};
     uint8_t m_selDepth {};
+    uint8_t m_gamePhase { s_middleGamePhase };
     bool m_isPrimary { true };
 
     struct StackInfo {

@@ -34,11 +34,11 @@ static inline TermContext prepareContext(const BitBoard& board)
     };
 }
 
-static inline Score staticEvaluation(const BitBoard& board)
+static inline Score staticEvaluation(const BitBoard board, uint8_t& gamePhase)
 {
     TermScore score(0, 0);
 
-    uint8_t phaseScore = 0;
+    gamePhase = 0;
     auto ctx = prepareContext(board);
 
     /* terms that are not using ctx */
@@ -46,10 +46,10 @@ static inline Score staticEvaluation(const BitBoard& board)
 
     /* piece scores - should be computed first as they populate ctx */
     APPLY_SCORE(getPawnScore, board, ctx);
-    APPLY_SCORE(getKnightScore, board, ctx, phaseScore);
-    APPLY_SCORE(getBishopScore, board, ctx, phaseScore);
-    APPLY_SCORE(getRookScore, board, ctx, phaseScore);
-    APPLY_SCORE(getQueenScore, board, ctx, phaseScore);
+    APPLY_SCORE(getKnightScore, board, ctx, gamePhase);
+    APPLY_SCORE(getBishopScore, board, ctx, gamePhase);
+    APPLY_SCORE(getRookScore, board, ctx, gamePhase);
+    APPLY_SCORE(getQueenScore, board, ctx, gamePhase);
     APPLY_SCORE(getKingScore, board, ctx);
 
     /* terms that consume ctx */
@@ -59,7 +59,7 @@ static inline Score staticEvaluation(const BitBoard& board)
     APPLY_SCORE(getPawnPushThreatScore, board, ctx);
     APPLY_SCORE(getPassedPawnsScore, board, ctx);
 
-    const Score evaluation = score.phaseScore(phaseScore);
+    const Score evaluation = score.phaseScore(gamePhase);
     return board.player == PlayerWhite ? evaluation : -evaluation;
 }
 
