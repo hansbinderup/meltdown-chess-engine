@@ -47,11 +47,6 @@ public:
         return std::shared_ptr<Searcher>(new Searcher());
     }
 
-    void setHashKey(uint64_t hash)
-    {
-        m_stack.front().hash = hash;
-    }
-
     void setIsPrimary(bool isPrimary)
     {
         m_isPrimary = isPrimary;
@@ -86,6 +81,8 @@ public:
     {
         assert(m_stackItr == m_stack.begin());
 
+        m_stack.front().board = board;
+
         return negamax<true, true>(depth, board, alpha, beta);
     }
 
@@ -95,6 +92,8 @@ public:
 
         m_searchPromise = std::promise<SearcherResult> {};
         m_futureResult = m_searchPromise.get_future();
+
+        m_stack.front().board = board;
 
         [[maybe_unused]] const bool started = threadPool.submit([this, depth, board, alpha, beta] {
             SearcherResult result {
@@ -207,6 +206,8 @@ public:
     template<bool isPv, bool isRoot = false>
     constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false, bool nullSearch = false)
     {
+        assert(m_stackItr->board.hash == core::generateHashKey(m_stackItr->board));
+
         m_searchTables.updatePvLength(m_ply);
 
         if constexpr (!isRoot) {
@@ -216,7 +217,7 @@ public:
             }
         }
 
-        const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const auto ttProbe = core::TranspositionTable::probe(m_stackItr->board.hash);
         if constexpr (!isPv && !isRoot) {
             if (ttProbe.has_value()) {
                 const auto testResult = core::testEntry(*ttProbe, m_ply, depth, alpha, beta);
@@ -331,7 +332,7 @@ public:
                     if (wdlTtFlag == core::TtExact
                         || (wdlTtFlag == core::TtAlpha && wdlScore <= alpha)
                         || (wdlTtFlag == core::TtBeta && wdlScore >= beta)) {
-                        core::TranspositionTable::writeEntry(m_stackItr->hash, wdlScore, s_noScore, movegen::nullMove(), ttPv, depth, m_ply, wdlTtFlag);
+                        core::TranspositionTable::writeEntry(m_stackItr->board.hash, wdlScore, s_noScore, movegen::nullMove(), ttPv, depth, m_ply, wdlTtFlag);
                         return wdlScore;
                     }
 
@@ -456,7 +457,7 @@ public:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, ttPv, depth, m_ply, ttFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval, bestMove, ttPv, depth, m_ply, ttFlag);
         return bestScore;
     }
 
@@ -480,7 +481,7 @@ private:
         if (m_ply >= s_maxSearchDepth)
             return evaluation::staticEvaluation(board);
 
-        const auto ttProbe = core::TranspositionTable::probe(m_stackItr->hash);
+        const auto ttProbe = core::TranspositionTable::probe(m_stackItr->board.hash);
         const bool isChecked = core::isKingAttacked(board);
         const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
@@ -562,7 +563,7 @@ private:
             return -s_mateValue + m_ply;
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->hash, bestScore, m_stackItr->eval, bestMove, ttPv, 0, m_ply, ttFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval, bestMove, ttPv, 0, m_ply, ttFlag);
         return bestScore;
     }
 
@@ -573,15 +574,14 @@ private:
     std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode)
     {
         auto nullMoveBoard = board;
-        uint64_t hash = m_stackItr->hash;
 
-        /* update repetition before updating the hash - we want the current position's hash */
-        m_repetition.add(hash);
+        /* add current position as potential repetition */
+        m_repetition.add(board.hash);
 
         if (nullMoveBoard.enPessant.has_value())
-            core::hashEnpessant(nullMoveBoard.enPessant.value(), hash);
+            core::hashEnpessant(nullMoveBoard.enPessant.value(), nullMoveBoard.hash);
 
-        core::hashPlayer(hash);
+        core::hashPlayer(nullMoveBoard.hash);
 
         /* enPessant is invalid if we skip move */
         nullMoveBoard.enPessant.reset();
@@ -590,7 +590,6 @@ private:
         nullMoveBoard.player = nextPlayer(nullMoveBoard.player);
 
         m_stackItr += 2;
-        m_stackItr->hash = hash;
         m_stackItr->board = nullMoveBoard;
 
         m_ply += 2;
@@ -612,21 +611,18 @@ private:
 
     bool makeMove(const BitBoard& board, movegen::Move move)
     {
-        uint64_t hash = m_stackItr->hash;
-        const auto newBoard = core::performMove(board, move, hash);
-
+        auto newBoard = core::performMove(board, move);
         if (core::isKingAttacked(newBoard, board.player)) {
             /* invalid move */
             return false;
         }
 
-        /* add current position to repetitions before proceeding */
-        m_repetition.add(m_stackItr->hash);
+        /* add current position as potential repetition */
+        m_repetition.add(board.hash);
 
         /* update stack for next iteration */
         m_stackItr++;
-        m_stackItr->hash = hash;
-        m_stackItr->board = newBoard;
+        m_stackItr->board = std::move(newBoard);
         m_stackItr->move = move;
 
         m_ply++;
@@ -660,7 +656,7 @@ private:
             return entry->eval;
         } else {
             const Score eval = evaluation::staticEvaluation(board);
-            core::TranspositionTable::writeEntry(m_stackItr->hash, s_noScore, eval, movegen::nullMove(), ttPv, 0, m_ply, core::TtAlpha);
+            core::TranspositionTable::writeEntry(m_stackItr->board.hash, s_noScore, eval, movegen::nullMove(), ttPv, 0, m_ply, core::TtAlpha);
             return eval;
         }
     }
@@ -679,7 +675,7 @@ private:
 
     inline std::optional<Score> checkForDraw(const BitBoard& board)
     {
-        const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(board, m_stackItr->hash, m_ply) || board.hasInsufficientMaterial();
+        const bool isDraw = board.halfMoves >= 100 || m_repetition.isRepetition(board, m_stackItr->board.hash, m_ply) || board.hasInsufficientMaterial();
         if (isDraw) {
             /* draw score is 0 but to avoid blindness towards three fold lines
              * we add a slight variance to the draw score
@@ -704,7 +700,6 @@ private:
     struct StackInfo {
         BitBoard board;
         movegen::Move move;
-        uint64_t hash;
         Score eval;
     };
 

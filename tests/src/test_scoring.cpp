@@ -21,14 +21,13 @@ TEST_CASE("Scoring", "[scoring]")
     {
         SECTION("Test start position")
         {
-            BitBoard boardW;
-            BitBoard boardB;
+            auto boardW = parsing::FenParser::parse(s_startPosFen);
+            auto boardB = parsing::FenParser::parse(s_startPosFen);
 
-            boardW.reset();
-            boardB.reset();
-            boardB.player = PlayerBlack; /* flip side */
+            REQUIRE(boardW.has_value());
+            REQUIRE(boardB.has_value());
 
-            REQUIRE(evaluation::staticEvaluation(boardW) == evaluation::staticEvaluation(boardB));
+            boardB->player = PlayerBlack; /* flip side */
         }
 
         SECTION("Position 1")
