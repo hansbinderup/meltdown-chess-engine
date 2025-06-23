@@ -80,8 +80,9 @@ public:
         int depth = 0;
         std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
 
-        /* piece that will track the scoring of next piece */
-        Piece nextPiece = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
+        /* piece that will track the scoring of next piece
+         * NOTE: WhiteQueen is just a hack - white and black have same score */
+        Piece nextPiece = move.promotionType() == PromotionQueen ? WhiteQueen : board.getAttackerAtSquare(move.fromSquare(), board.player).value();
 
         Player player = board.player;
 
