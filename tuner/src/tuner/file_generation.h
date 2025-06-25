@@ -64,4 +64,3 @@ namespace evaluation {{
 
     fmt::println("Results have been written to {}", GENERATED_FILE);
 }
-

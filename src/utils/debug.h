@@ -25,4 +25,3 @@ constexpr void printBitboard(uint64_t board)
 }
 
 }
-

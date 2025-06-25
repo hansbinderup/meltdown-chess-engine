@@ -55,6 +55,13 @@ ln -sf "$BUILD_DIR"/compile_commands.json .
 # Compile
 meson compile -C "$BUILD_DIR"
 
+# try to force developers to always format code
+if [[ "$OPTIMIZATION" == "dev" ]]; then
+    pushd "$BUILD_DIR"
+    ninja clang-format || true
+    popd
+fi
+
 # Run the executable (if -r is passed or for SPSA builds)
 if $RUN; then
     "$BUILD_DIR/meltdown-chess-engine"

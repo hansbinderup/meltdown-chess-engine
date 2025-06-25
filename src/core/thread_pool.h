@@ -127,4 +127,3 @@ private:
     /* queue does not expand so ensure that we have enough space to actually queue jobs */
     constexpr static inline size_t s_jobScalar { 2 };
 };
-

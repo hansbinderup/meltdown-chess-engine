@@ -228,4 +228,3 @@ inline void printSearchInfo(std::shared_ptr<search::Searcher> searcher, Score sc
 }
 
 }
-

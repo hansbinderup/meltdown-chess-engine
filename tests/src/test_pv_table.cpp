@@ -67,4 +67,3 @@ TEST_CASE("Test PVTable heuristic", "[PVTable]")
         REQUIRE(pvTable.bestMove() == Move {});
     }
 }
-

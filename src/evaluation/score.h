@@ -51,4 +51,3 @@ constexpr inline std::optional<int8_t> scoreMateDistance(int16_t score)
 
     return std::nullopt;
 }
-
