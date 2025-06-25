@@ -114,4 +114,3 @@ constexpr inline bool isKing(Piece piece)
 }
 
 }
-

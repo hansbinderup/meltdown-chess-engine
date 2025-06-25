@@ -113,4 +113,3 @@ struct fmt::formatter<NpsPrint> : fmt::formatter<std::string_view> {
         return fmt::format_to(ctx.out(), "");
     }
 };
-

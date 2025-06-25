@@ -52,4 +52,3 @@ static inline uint64_t getKnightMoves(BoardPosition pos)
 }
 
 }
-

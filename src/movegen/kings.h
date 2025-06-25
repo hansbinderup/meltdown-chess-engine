@@ -53,4 +53,3 @@ static inline uint64_t getKingMoves(BoardPosition pos)
 }
 
 }
-

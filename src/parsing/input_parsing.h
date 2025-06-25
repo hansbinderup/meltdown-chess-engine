@@ -97,4 +97,3 @@ static inline std::optional<movegen::Move> moveFromString(const BitBoard& board,
 }
 
 }
-

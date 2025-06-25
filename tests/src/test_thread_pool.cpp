@@ -61,4 +61,3 @@ TEST_CASE("Test Thread Pool", "[ThreadPool]")
         workDone.wait();
     }
 }
-

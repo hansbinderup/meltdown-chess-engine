@@ -55,4 +55,3 @@ TEST_CASE("KillerMoves: Reset functionality", "[KillerMoves]")
     killerMoves.reset();
     REQUIRE(killerMoves.get(g_testPly) == KillerMoves::KillerMove {});
 }
-

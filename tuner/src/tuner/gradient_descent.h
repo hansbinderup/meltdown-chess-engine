@@ -144,4 +144,3 @@ static void runGradientDescentTuning()
     }
 }
 }
-

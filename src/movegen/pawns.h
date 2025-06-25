@@ -165,4 +165,3 @@ static inline uint64_t getPawnAttacksFromPos(BoardPosition pos)
 }
 
 }
-
