@@ -14,7 +14,9 @@ endif
 # FIXME: add compile argument to openbench
 # *************************************************************
 
+build_dir := .build-openbench
+
 openbench:
-	meson setup .openbench --cross-file targets/linux-native.txt --wipe --buildtype=release
-	meson compile -C .openbench
-	cp .openbench/meltdown-chess-engine $(EXE)
+	meson setup $(build_dir) --cross-file targets/linux-native.txt --wipe --buildtype=release
+	meson compile -C $(build_dir)
+	cp $(build_dir)/meltdown-chess-engine $(EXE)

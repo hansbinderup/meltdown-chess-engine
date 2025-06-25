@@ -36,7 +36,7 @@ fi
 # custom build for SPSA to ensure proper meson setup
 if $SPSA; then
     ARGS+=("-Dspsa=true")
-    BUILD_DIR=".spsa-build"
+    BUILD_DIR=".build-spsa"
 fi
 
 # if --native has been provided then let meson configure the build based on available toolchains
