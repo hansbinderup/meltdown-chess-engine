@@ -2,7 +2,7 @@
 
 set -e
 
-BUILD_DIR=".debug"
+BUILD_DIR=".build-debug"
 
 if [ ! -d "$BUILD_DIR" ]; then
     NATIVE_TARGET=$(scripts/get-native-target.sh)
