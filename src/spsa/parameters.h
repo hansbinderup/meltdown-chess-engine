@@ -22,33 +22,33 @@
  *
  * For more details, see: src/spsa/README.md */
 #define TUNABLE_LIST(TUNABLE)                                    \
-    TUNABLE(fullDepthMove, uint8_t, 4, 1, 12, 1)                 \
-    TUNABLE(rfpReductionLimit, uint8_t, 3, 0, 12, 1)             \
-    TUNABLE(rfpMargin, Score, 100, 0, 150, 10)                   \
-    TUNABLE(rfpEvaluationMargin, Score, 120, 0, 150, 10)         \
+    TUNABLE(fullDepthMove, uint8_t, 2, 1, 12, 1)                 \
+    TUNABLE(rfpReductionLimit, uint8_t, 6, 0, 12, 1)             \
+    TUNABLE(rfpMargin, Score, 102, 0, 150, 10)                   \
+    TUNABLE(rfpEvaluationMargin, Score, 119, 0, 150, 10)         \
     TUNABLE(razorReductionLimit, uint8_t, 3, 0, 12, 1)           \
-    TUNABLE(razorMarginShallow, Score, 125, 0, 250, 10)          \
-    TUNABLE(razorMarginDeep, Score, 175, 0, 250, 10)             \
-    TUNABLE(razorDeepReductionLimit, uint8_t, 2, 0, 12, 1)       \
-    TUNABLE(nmpBaseMargin, int8_t, -120, -200, 0, 10)            \
+    TUNABLE(razorMarginShallow, Score, 138, 0, 250, 10)          \
+    TUNABLE(razorMarginDeep, Score, 184, 0, 250, 10)             \
+    TUNABLE(razorDeepReductionLimit, uint8_t, 4, 0, 12, 1)       \
+    TUNABLE(nmpBaseMargin, int8_t, -110, -200, 0, 10)            \
     TUNABLE(nmpMarginFactor, uint8_t, 20, 0, 100, 5)             \
-    TUNABLE(nmpReductionBase, uint8_t, 4, 1, 12, 1)              \
+    TUNABLE(nmpReductionBase, uint8_t, 5, 1, 12, 1)              \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 1, 12, 1)            \
-    TUNABLE(iirDepthLimit, uint8_t, 4, 2, 12, 1)                 \
-    TUNABLE(aspirationWindow, uint8_t, 50, 10, 100, 5)           \
-    TUNABLE(timeManIncFrac, uint16_t, 75, 1, 150, 5)             \
-    TUNABLE(timeManBaseFrac, uint16_t, 50, 1, 150, 5)            \
-    TUNABLE(timeManLimitFrac, uint16_t, 75, 1, 150, 5)           \
-    TUNABLE(timeManSoftFrac, uint16_t, 50, 1, 150, 5)            \
-    TUNABLE(timeManHardFrac, uint16_t, 300, 100, 500, 20)        \
-    TUNABLE(timeManNodeFracBase, uint8_t, 150, 1, 200, 10)       \
-    TUNABLE(timeManNodeFracMultiplier, uint8_t, 170, 1, 200, 10) \
-    TUNABLE(timeManScoreMargin, uint8_t, 10, 1, 20, 1)           \
-    TUNABLE(seePawnValue, int32_t, 100, 50, 200, 5)              \
-    TUNABLE(seeKnightValue, int32_t, 422, 200, 600, 10)          \
-    TUNABLE(seeBishopValue, int32_t, 422, 200, 600, 10)          \
-    TUNABLE(seeRookValue, int32_t, 642, 400, 1000, 10)           \
-    TUNABLE(seeQueenValue, int32_t, 1015, 800, 1500, 10)
+    TUNABLE(iirDepthLimit, uint8_t, 2, 2, 12, 1)                 \
+    TUNABLE(aspirationWindow, uint8_t, 60, 10, 100, 5)           \
+    TUNABLE(timeManIncFrac, uint16_t, 80, 1, 150, 5)             \
+    TUNABLE(timeManBaseFrac, uint16_t, 54, 1, 150, 5)            \
+    TUNABLE(timeManLimitFrac, uint16_t, 78, 1, 150, 5)           \
+    TUNABLE(timeManSoftFrac, uint16_t, 49, 1, 150, 5)            \
+    TUNABLE(timeManHardFrac, uint16_t, 316, 100, 500, 20)        \
+    TUNABLE(timeManNodeFracBase, uint8_t, 145, 1, 200, 10)       \
+    TUNABLE(timeManNodeFracMultiplier, uint8_t, 187, 1, 200, 10) \
+    TUNABLE(timeManScoreMargin, uint8_t, 9, 1, 20, 1)            \
+    TUNABLE(seePawnValue, int32_t, 112, 50, 200, 5)              \
+    TUNABLE(seeKnightValue, int32_t, 412, 200, 600, 10)          \
+    TUNABLE(seeBishopValue, int32_t, 433, 200, 600, 10)          \
+    TUNABLE(seeRookValue, int32_t, 638, 400, 1000, 10)           \
+    TUNABLE(seeQueenValue, int32_t, 1010, 800, 1500, 10)
 
 #ifdef SPSA
 
