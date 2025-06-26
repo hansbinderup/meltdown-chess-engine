@@ -32,7 +32,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         REQUIRE(moves.count() == 1);
 
         Score score = evaluation::SeeSwap::run(*board, moves[0]);
-        REQUIRE(score == 100);
+        REQUIRE(score == spsa::seePawnValue);
     }
 
     SECTION("Test position 2 (Nxe5)")
@@ -49,6 +49,6 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         REQUIRE(move->toPos() == E5);
 
         Score score = evaluation::SeeSwap::run(*board, *move);
-        REQUIRE(score == -322);
+        REQUIRE(score == (spsa::seePawnValue - spsa::seeKnightValue));
     }
 }
