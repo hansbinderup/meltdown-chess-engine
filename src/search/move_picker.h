@@ -21,8 +21,8 @@ enum KillerMoveType {
 enum PickerPhase {
     GenerateSyzygyMoves,
     Syzygy,
-    TtMove,
     GenerateMoves,
+    TtMove,
     GenerateCaptureScores,
     CaptureGood,
     PromotionGood,
@@ -45,15 +45,11 @@ public:
         , m_ttMove(ttMove)
         , m_prevMove(prevMove)
     {
-        if constexpr (moveType == movegen::MoveCapture) {
-            if (m_ttMove && !m_ttMove->isCapture())
-                m_ttMove.reset();
-        }
     }
 
     constexpr uint16_t numGeneratedMoves()
     {
-        return m_ttMove ? 1 : m_moves.count();
+        return m_moves.count();
     }
 
     template<Player player> constexpr std::optional<movegen::Move> pickNextMove(const BitBoard& board)
@@ -65,7 +61,7 @@ public:
             if (syzygyActive) {
                 m_phase = PickerPhase::Syzygy;
             } else {
-                m_phase = PickerPhase::TtMove;
+                m_phase = PickerPhase::GenerateMoves;
             }
 
             return pickNextMove<player>(board);
@@ -81,17 +77,17 @@ public:
             return pickNextMove<player>(board);
         }
 
-        case TtMove: {
-            m_phase = PickerPhase::GenerateMoves;
+        case GenerateMoves: {
+            generateAllMoves(board);
 
-            if (const auto pickedMove = pickTtMove())
-                return pickedMove;
+            m_phase = PickerPhase::TtMove;
 
             return pickNextMove<player>(board);
         }
 
-        case GenerateMoves: {
-            generateAllMoves(board);
+        case TtMove: {
+            if (const auto pickedMove = pickTtMove())
+                return pickedMove;
 
             m_phase = PickerPhase::GenerateCaptureScores;
 
@@ -218,19 +214,25 @@ private:
 
     constexpr std::optional<movegen::Move> pickTtMove()
     {
-        return m_ttMove;
+        if (!m_ttMove.has_value())
+            return std::nullopt;
+
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (!m_moves[i].isNull() && m_moves[i] == *m_ttMove) {
+                const auto ttMove = m_moves[i];
+
+                m_moves.nullifyMove(i);
+
+                return ttMove;
+            }
+        }
+        return std::nullopt;
     }
 
     void generateCaptureScores(const BitBoard& board)
     {
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (m_ttMove && m_moves[i] == m_ttMove.value()) {
-                m_moves.nullifyMove(i);
-                m_ttMove.reset();
-                continue;
-            }
-
             if (m_moves[i].isCapture()) {
                 m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
             }
