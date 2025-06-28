@@ -18,11 +18,9 @@ enum KillerMoveType {
     Second,
 };
 
-enum ScoringOffsets : int32_t {
-    CaptureGood = 20000,
-    CaptureBad = -20000,
-    PromotionGood = 10000,
-    PromotionBad = -10000,
+enum PromotionOffsets : int32_t {
+    Good = 8000,
+    Bad = -8000,
 };
 
 enum PickerPhase {
@@ -30,13 +28,13 @@ enum PickerPhase {
     Syzygy,
     GenerateMoves,
     TtMove,
-    GenerateNoisyScores,
-    NoisyGood,
+    GenerateTacticalScores,
+    TacticalGood,
     KillerMoveFirst,
     KillerMoveSecond,
     CounterMove,
     HistoryMove,
-    NoisyBad,
+    TacticalBad,
     Done,
 };
 
@@ -54,7 +52,6 @@ public:
             if (m_ttMove && !m_ttMove->isCapture())
                 m_ttMove.reset();
         }
-        m_scores.fill(0);
     }
 
     constexpr uint16_t numGeneratedMoves()
@@ -99,21 +96,21 @@ public:
             if (const auto pickedMove = pickTtMove())
                 return pickedMove;
 
-            m_phase = PickerPhase::GenerateNoisyScores;
+            m_phase = PickerPhase::GenerateTacticalScores;
 
             return pickNextMove<player>(board);
         }
 
-        case GenerateNoisyScores: {
-            generateNoisyScores(board);
+        case GenerateTacticalScores: {
+            generateTacticalScores(board);
 
-            m_phase = PickerPhase::NoisyGood;
+            m_phase = PickerPhase::TacticalGood;
 
             return pickNextMove<player>(board);
         }
 
-        case NoisyGood: {
-            if (const auto pickedMove = pickNoisyMove<true>())
+        case TacticalGood: {
+            if (const auto pickedMove = pickTacticalMove<true>())
                 return pickedMove;
 
             m_phase = PickerPhase::KillerMoveFirst;
@@ -152,13 +149,13 @@ public:
             if (const auto pickedMove = pickHistoryMove<player>(board))
                 return pickedMove;
 
-            m_phase = PickerPhase::NoisyBad;
+            m_phase = PickerPhase::TacticalBad;
 
             return pickNextMove<player>(board);
         }
 
-        case NoisyBad: {
-            if (const auto pickedMove = pickNoisyMove<false>())
+        case TacticalBad: {
+            if (const auto pickedMove = pickTacticalMove<false>())
                 return pickedMove;
 
             m_phase = PickerPhase::Done;
@@ -221,24 +218,24 @@ private:
         return std::nullopt;
     }
 
-    void generateNoisyScores(const BitBoard& board)
+    void generateTacticalScores(const BitBoard& board)
     {
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i].isCapture()) {
-                const int32_t seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
-                m_scores[i] = seeScore + seeScore >= 0 ? ScoringOffsets::CaptureGood : ScoringOffsets::CaptureBad;
+                m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
             }
-
-            if (m_moves[i].promotionType() == PromotionQueen) {
-                m_scores[i] += ScoringOffsets::PromotionGood;
+            // Capture-promotions are handled in SEE swap
+            else if (m_moves[i].promotionType() == PromotionQueen) {
+                m_scores[i] = PromotionOffsets::Good;
             } else if (m_moves[i].isPromotionMove()) {
-                m_scores[i] += ScoringOffsets::PromotionBad;
+                m_scores[i]
+                    = PromotionOffsets::Bad;
             }
         }
     }
 
     template<bool isGood>
-    constexpr std::optional<movegen::Move> pickNoisyMove()
+    constexpr std::optional<movegen::Move> pickTacticalMove()
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
         int32_t bestScore = s_minScore;
