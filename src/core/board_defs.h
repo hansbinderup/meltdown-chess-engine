@@ -153,3 +153,5 @@ constexpr static inline size_t s_maxThreads { 128 };
 
 using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 constexpr static inline std::chrono::milliseconds s_defaultMoveOverhead { 50 };
+
+constexpr static inline std::string_view s_startPosFen { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };

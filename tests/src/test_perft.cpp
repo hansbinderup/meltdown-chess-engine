@@ -12,12 +12,12 @@ TEST_CASE("Perft", "[perft]")
 {
     core::TranspositionTable::setSizeMb(16);
 
-    BitBoard board;
-    board.reset();
-
     SECTION("Test perft from start position")
     {
-        Perft::run(board, 5);
+        const auto board = parsing::FenParser::parse(s_startPosFen);
+        REQUIRE(board.has_value());
+
+        Perft::run(board.value(), 5);
         REQUIRE(Perft::s_nodes == 4865609);
         REQUIRE(Perft::s_captures == 82719);
         REQUIRE(Perft::s_enPessants == 258);

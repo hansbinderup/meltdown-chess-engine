@@ -82,12 +82,6 @@ public:
             TimeManager::start(board);
         }
 
-        const uint64_t hash = core::generateHashKey(board);
-
-        for (auto& searcher : m_searchers) {
-            searcher->setHashKey(hash);
-        }
-
         return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
     }
 

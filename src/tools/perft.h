@@ -50,7 +50,7 @@ private:
 
         if (depth == 0) {
             for (const auto& move : moves) {
-                auto newBoard = core::performMove(board, move, s_hash);
+                auto newBoard = core::performMove(board, move);
                 if (core::isKingAttacked(newBoard, board.player)) {
                     // invalid move
                     continue;
@@ -88,7 +88,7 @@ private:
         }
 
         for (const auto& move : moves) {
-            auto newBoard = core::performMove(board, move, s_hash);
+            auto newBoard = core::performMove(board, move);
 
             if (core::isKingAttacked(newBoard, board.player)) {
                 // invalid move
@@ -130,7 +130,6 @@ private:
     static inline uint64_t s_enPessants {};
     static inline uint64_t s_promotions {};
     static inline uint64_t s_prevNodes {};
-    static inline uint64_t s_hash {};
 };
 
 }

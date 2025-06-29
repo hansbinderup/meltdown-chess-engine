@@ -7,6 +7,7 @@
 #include "evaluation/evaluator.h"
 
 using namespace search;
+using namespace evaluation;
 
 constexpr auto getPiece(const BitBoard& board, movegen::Move move)
 {
@@ -16,19 +17,21 @@ constexpr auto getPiece(const BitBoard& board, movegen::Move move)
 TEST_CASE("Scoring", "[scoring]")
 {
     core::TranspositionTable::setSizeMb(16);
+    StaticEvaluation staticEval {};
 
     SECTION("Test flipped score")
     {
         SECTION("Test start position")
         {
-            BitBoard boardW;
-            BitBoard boardB;
+            auto boardW = parsing::FenParser::parse(s_startPosFen);
+            auto boardB = parsing::FenParser::parse(s_startPosFen);
 
-            boardW.reset();
-            boardB.reset();
-            boardB.player = PlayerBlack; /* flip side */
+            REQUIRE(boardW.has_value());
+            REQUIRE(boardB.has_value());
 
-            REQUIRE(evaluation::staticEvaluation(boardW) == evaluation::staticEvaluation(boardB));
+            boardB->player = PlayerBlack; /* flip side */
+
+            REQUIRE(staticEval.get(*boardW) == staticEval.get(*boardB));
         }
 
         SECTION("Position 1")
@@ -39,7 +42,7 @@ TEST_CASE("Scoring", "[scoring]")
             REQUIRE(boardW.has_value());
             REQUIRE(boardB.has_value());
 
-            REQUIRE(evaluation::staticEvaluation(*boardW) == evaluation::staticEvaluation(*boardB));
+            REQUIRE(staticEval.get(*boardW) == staticEval.get(*boardB));
         }
     }
 

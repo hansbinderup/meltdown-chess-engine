@@ -24,7 +24,7 @@ public:
 
     static void run()
     {
-        s_board.reset();
+        s_board = parsing::FenParser::parse(s_startPosFen).value();
         core::TranspositionTable::setSizeMb(s_defaultTtSizeMb);
         s_evaluator.reset();
 
@@ -133,14 +133,13 @@ private:
 
         /* helper to iterate list of moves - can be passed as both fen string or startpos */
         constexpr const auto iterateMovesFnc = [](std::string_view sv) {
-            uint64_t hash = core::generateHashKey(s_board);
             while (true) {
                 const auto moveSv = parsing::sv_next_split(sv);
                 const auto move = parsing::moveFromString(s_board, moveSv.value_or(sv));
 
                 if (move.has_value()) {
-                    s_evaluator.updateRepetition(hash);
-                    s_board = core::performMove(s_board, move.value(), hash);
+                    s_evaluator.updateRepetition(s_board.hash);
+                    s_board = core::performMove(s_board, move.value());
                 } else {
                     break;
                 }
@@ -148,8 +147,7 @@ private:
         };
 
         if (command == "startpos") {
-            s_board.reset();
-
+            s_board = parsing::FenParser::parse(s_startPosFen).value();
             s_evaluator.reset();
 
             const auto subCommand = parsing::sv_next_split(args);
@@ -177,7 +175,7 @@ private:
 
     static bool handleUcinewgame()
     {
-        s_board.reset();
+        s_board = parsing::FenParser::parse(s_startPosFen).value();
         s_evaluator.reset();
         core::TranspositionTable::clear();
 

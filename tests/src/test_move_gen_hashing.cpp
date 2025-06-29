@@ -8,16 +8,21 @@ constexpr uint8_t s_defaultSearchDepth = 3;
 
 void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 {
-    const uint64_t originalHash = core::generateHashKey(board);
+    REQUIRE(board.hash == core::generateHash(board));
+    REQUIRE(board.kpHash == core::generateKingPawnHash(board));
 
     movegen::ValidMoves moves;
     core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
     for (const auto& move : moves) {
-        uint64_t hash = originalHash;
-        const auto newBoard = core::performMove(board, move, hash);
-        const auto newHash = core::generateHashKey(newBoard);
+        const auto newBoard = core::performMove(board, move);
 
-        REQUIRE(hash == newHash);
+        /* don't end up in positions where eg king is gone */
+        if (core::isKingAttacked(newBoard, board.player)) {
+            continue;
+        }
+
+        REQUIRE(newBoard.hash == core::generateHash(newBoard));
+        REQUIRE(newBoard.kpHash == core::generateKingPawnHash(newBoard));
 
         if (depth != 0) {
             testAllMoves(newBoard, depth - 1);
@@ -31,11 +36,11 @@ TEST_CASE("Movegen Hashing", "[movegen]")
 
     SECTION("Test from start position")
     {
-        BitBoard board;
-        board.reset(); // start position
+        const auto board = parsing::FenParser::parse(s_startPosFen);
+        REQUIRE(board.has_value());
 
         /* go to depth 4 to capture enpessant moves */
-        testAllMoves(board, 4);
+        testAllMoves(board.value(), 4);
     }
 
     SECTION("Test from tricky castle position")

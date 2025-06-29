@@ -104,6 +104,8 @@ inline bool unpackTrainingData(std::array<TrainingData, s_positions>& data)
     const size_t printInterval = s_positions / 10;
     size_t count = 0;
 
+    evaluation::StaticEvaluation staticEval {};
+
     std::string line;
     while (std::getline(file, line)) {
         /* trace should always be reset between each evaluation */
@@ -113,7 +115,7 @@ inline bool unpackTrainingData(std::array<TrainingData, s_positions>& data)
         const auto res = parseResult(line);
 
         if (board.has_value() && res.has_value()) {
-            std::ignore = evaluation::staticEvaluation(*board);
+            std::ignore = staticEval.get(*board);
 
             const uint8_t phase = computePhase(*board);
             const PFactors pFactors { phase / 24.0, (24.0 - phase) / 24.0 };

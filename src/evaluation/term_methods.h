@@ -107,25 +107,26 @@ static inline TermScore getTempoScore(const BitBoard& board)
     return score;
 }
 
+/* NOTE: this method should only score static king-pawn parameters (ie. only where king and pawn are involved - no threats etc) */
 template<Player player>
-static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
+static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContext& ctx)
 {
     TermScore score(0, 0);
 
     constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
     constexpr Piece theirPawn = player == PlayerWhite ? BlackPawn : WhitePawn;
     constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
+    constexpr Piece theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
     constexpr Player opponent = nextPlayer(player);
 
     const uint64_t ourPawns = board.pieces[ourPawn];
     const uint64_t theirPawns = board.pieces[theirPawn];
 
     const auto ourKingPos = utils::lsbToPosition(board.pieces[ourKing]);
+    const auto theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
 
-    /* we have already generated all pawn attacks, so we can simply update ctx as single operations */
-    ctx.attacksToKingZone[opponent] += std::popcount(ctx.kingZone[opponent] & ctx.pawnAttacks[player]);
-    ctx.pieceAttacks[player][Pawn] = ctx.pawnAttacks[player];
-    ctx.threats[player] |= ctx.pawnAttacks[player];
+    /* add psqt king score here as it's the only static king score */
+    ADD_SCORE_INDEXED(psqtKings, utils::relativePosition<player>(ourKingPos));
 
     utils::bitIterate(ourPawns, [&](BoardPosition pos) {
         const uint64_t square = utils::positionToSquare(pos);
@@ -156,8 +157,17 @@ static inline TermScore getPawnScore(const BitBoard& board, TermContext& ctx)
          * stoppers    -> check if candidate to become passed pawn */
         const uint64_t stoppers = s_passedPawnMaskTable[player][pos] & theirPawns;
         if (stoppers == 0) {
-            /* scores will be added in "getPassedPawnsScore" */
+            /* scores requiring full context will be added in "getPassedPawnsScore" */
             ctx.passedPawns[player] |= square;
+
+            /* always apply bonus to passeds pawn */
+            ADD_SCORE_INDEXED(passedPawnBonus, row);
+
+            /* king pawn distance score -> apply score based on distance to our/their king */
+            const uint8_t ourKingDistance = utils::absoluteDistance(pos, ourKingPos);
+            const uint8_t theirKingDistance = utils::absoluteDistance(pos, theirKingPos);
+            ADD_SCORE_INDEXED(passersOurKingDistance, ourKingDistance);
+            ADD_SCORE_INDEXED(passersTheirKingDistance, theirKingDistance);
         } else {
             /* pawns that are not already considered passed pawns might be considered as candidates */
             const uint64_t pushedPos = utils::pushForwardFromPos<player>(pos);
@@ -398,8 +408,6 @@ static inline TermScore getKingScore(const BitBoard& board, TermContext& ctx)
     utils::bitIterate(king, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getKingMoves(pos) & ~board.occupation[player];
 
-        ADD_SCORE_INDEXED(psqtKings, utils::relativePosition<player>(pos));
-
         ctx.threats[player] |= moves;
 
         /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
@@ -552,11 +560,9 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
 
     constexpr Player opponent = nextPlayer(player);
     constexpr Piece theirPawns = player == PlayerWhite ? BlackPawn : WhitePawn;
-    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
     constexpr Piece theirKing = player == PlayerWhite ? BlackKing : WhiteKing;
 
     const uint64_t passedPawns = ctx.passedPawns[player];
-    const auto ourKingPos = utils::lsbToPosition(board.pieces[ourKing]);
     const auto theirKingPos = utils::lsbToPosition(board.pieces[theirKing]);
     const bool kingPawnsOnly = board.occupation[opponent] == (board.pieces[theirKing] | board.pieces[theirPawns]);
     const bool tempo = board.player == opponent;
@@ -564,9 +570,6 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
     utils::bitIterate(passedPawns, [&](BoardPosition pos) {
         const uint8_t row = utils::relativeRow<player>(pos);
         const uint64_t pushedSquare = utils::pushForwardFromPos<player>(pos);
-
-        /* always apply bonus to passeds pawn */
-        ADD_SCORE_INDEXED(passedPawnBonus, row);
 
         /* if we can push the pawn without it being attacked -> apply free push bonus */
         const bool freePush = (board.occupation[Both] & pushedSquare) == 0 && (ctx.threats[opponent] & pushedSquare) == 0;
@@ -590,12 +593,6 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
         if (pawnSquareRule) {
             ADD_SCORE(pawnSquareRuleBonus);
         }
-
-        /* king pawn distance score -> apply score based on distance to our/their king */
-        const uint8_t ourKingDistance = utils::absoluteDistance(pos, ourKingPos);
-        const uint8_t theirKingDistance = utils::absoluteDistance(pos, theirKingPos);
-        ADD_SCORE_INDEXED(passersOurKingDistance, ourKingDistance);
-        ADD_SCORE_INDEXED(passersTheirKingDistance, theirKingDistance);
     });
 
     return score;
