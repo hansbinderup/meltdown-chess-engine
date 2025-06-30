@@ -226,15 +226,13 @@ private:
             if (m_moves[i].isCapture()) {
                 auto seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
 
-                m_scores[i] = seeScore;
-                const int32_t bonus = seeScore >= 0 ? ScoringOffsets::CaptureGood : ScoringOffsets::CaptureBad;
-                m_scores[i] += bonus;
+                m_scores[i] = seeScore + (seeScore >= 0 ? ScoringOffsets::CaptureGood : ScoringOffsets::CaptureBad);
             }
             // Capture-promotions are handled in SEE swap
             if (m_moves[i].promotionType() == PromotionQueen) {
-                m_scores[i] = ScoringOffsets::PromotionGood;
+                m_scores[i] += ScoringOffsets::PromotionGood;
             } else if (m_moves[i].isPromotionMove()) {
-                m_scores[i] = ScoringOffsets::PromotionBad;
+                m_scores[i] += ScoringOffsets::PromotionBad;
             }
         }
     }
