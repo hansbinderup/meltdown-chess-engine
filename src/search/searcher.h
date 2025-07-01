@@ -268,7 +268,7 @@ public:
 
                 /* dangerous to repeat null search on a null search - skip it here */
                 if (!nullSearch) {
-                    const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
+                    const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth + spsa::nmpImprovingMargin * isImproving;
                     if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
                         if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
                             return nullMoveScore.value();

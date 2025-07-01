@@ -32,6 +32,7 @@
     TUNABLE(razorDeepReductionLimit, uint8_t, 4, 0, 12, 1)       \
     TUNABLE(nmpBaseMargin, int8_t, -110, -200, 0, 10)            \
     TUNABLE(nmpMarginFactor, uint8_t, 20, 0, 100, 5)             \
+    TUNABLE(nmpImprovingMargin, uint8_t, 70, 0, 150, 10)         \
     TUNABLE(nmpReductionBase, uint8_t, 5, 1, 12, 1)              \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 1, 12, 1)            \
     TUNABLE(iirDepthLimit, uint8_t, 2, 2, 12, 1)                 \
