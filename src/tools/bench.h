@@ -63,7 +63,7 @@ public:
 
 private:
     static inline uint64_t s_nodesCount {};
-    constexpr static inline uint8_t s_defaultSearchDepth { 8 };
+    constexpr static inline uint8_t s_defaultSearchDepth { 10 };
 
     /* commonly used bench positions */
     constexpr static inline auto s_benchPositions = std::to_array<std::string_view>({
