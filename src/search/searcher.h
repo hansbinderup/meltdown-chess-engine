@@ -523,6 +523,15 @@ private:
         while (const auto& moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
 
+            /* FIXME: SEE doesn't handle promotions very well - skip pruning for those for now */
+            if (!move.isPromotionMove()) {
+                const auto seeScore = evaluation::SeeSwap::run(board, move);
+                if (seeScore < 0) {
+                    /* no need to continue searching captures if we know we end up losing anyways */
+                    continue;
+                }
+            }
+
             if (!makeMove(board, move)) {
                 continue;
             }
