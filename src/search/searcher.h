@@ -246,7 +246,6 @@ public:
 
         /* is the position part of the current or a previous PV line? */
         const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
-
         const Score correction = m_searchTables.getCorrectionHistory(board);
 
         /* update current stack with the static evaluation */
