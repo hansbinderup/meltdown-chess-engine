@@ -92,6 +92,7 @@ template<Player player>
 }
 
 constexpr uint8_t pawnShieldSize = s_terms.pawnShieldBonus.size();
+constexpr uint8_t pawnStormSize = s_terms.pawnStormScore.size();
 constexpr uint8_t kingZoneSize = s_terms.kingZone.size();
 
 template<Player player>
@@ -145,6 +146,12 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
         if (s_passedPawnMaskTable[player][ourKingPos] & square) {
             const uint8_t shieldDistance = std::min(utils::verticalDistance(ourKingPos, pos), pawnShieldSize);
             ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
+        }
+
+        /* pawn storm -> advancing connected pawns together to apply pressure */
+        if (s_passedPawnMaskTable[opponent][theirKingPos] & square) {
+            const uint8_t shieldDistance = std::min(utils::verticalDistance(theirKingPos, pos), pawnStormSize);
+            ADD_SCORE_INDEXED(pawnStormScore, shieldDistance - 1);
         }
 
         /* apply score if pawn is protected by one of our own pawns */
