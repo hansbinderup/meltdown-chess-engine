@@ -4,6 +4,7 @@ set -e
 
 BUILD_DIR=".build"
 RUN=false
+BENCH=false
 OPTIMIZATION="dev"
 SPSA=false
 NATIVE=false
@@ -13,6 +14,7 @@ ARGS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -r) RUN=true ;;
+        -b) BENCH=true ;;
         --release) OPTIMIZATION="release" ;;
         --spsa) SPSA=true ;;
         --native) NATIVE=true ;;
@@ -62,8 +64,11 @@ if [[ "$OPTIMIZATION" == "dev" ]]; then
     popd
 fi
 
-# Run the executable (if -r is passed or for SPSA builds)
-if $RUN; then
+if $BENCH; then
+    # Bench the executable (if -b is passed or for SPSA builds)
+    "$BUILD_DIR/meltdown-chess-engine" bench
+elif $RUN; then
+    # Run the executable (if -r is passed)
     "$BUILD_DIR/meltdown-chess-engine"
 fi
 
