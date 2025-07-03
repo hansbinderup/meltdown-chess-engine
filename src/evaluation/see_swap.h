@@ -58,13 +58,6 @@ class SeeSwap {
 public:
     static inline int32_t run(const BitBoard& board, movegen::Move move)
     {
-        if (move.isCastleMove()) {
-            return 0;
-        } else if (move.isDoublePush()) {
-            /* FIXME: should be take enpessant? */
-            return 100; /* Pawn takes pawn, so give it pawn score - anything else is difficult to handle here */
-        }
-
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
         uint64_t occ = board.occupation[Both] & ~(move.fromSquare());
 
