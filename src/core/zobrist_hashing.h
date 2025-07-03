@@ -133,4 +133,20 @@ static inline uint64_t generateKingPawnHash(const BitBoard& board)
     return hash;
 }
 
+/* slightly more efficient way to generate material hash */
+static inline uint64_t generateMaterialHash(const BitBoard& board)
+{
+    /* we don't care about kings here - they're always present */
+    constexpr auto materialPieces = std::to_array<Piece>({ WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen,
+        BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen });
+
+    uint64_t hash = 0;
+    for (const auto pieceEnum : materialPieces) {
+        uint8_t count = std::popcount(board.pieces[pieceEnum]);
+        hash ^= s_pieceHashTable[pieceEnum][count];
+    }
+
+    return hash;
+}
+
 }
