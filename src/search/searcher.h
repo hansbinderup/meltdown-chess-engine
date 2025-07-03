@@ -346,6 +346,9 @@ public:
             }
         }
 
+        /* will be reused so just precompute */
+        const bool ttCapture = ttMove.has_value() && ttMove->isCapture();
+
         /* entries for the TT */
         core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove {};
@@ -385,6 +388,7 @@ public:
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
+                    reduction += static_cast<int8_t>(ttCapture && !move.isCapture()); /* reduce more when tt move is capture */
 
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
