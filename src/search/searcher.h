@@ -247,8 +247,10 @@ public:
         /* is the position part of the current or a previous PV line? */
         const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
+        const Score correction = m_searchTables.getCorrectionHistory(board);
+
         /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
+        m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv) + correction;
 
         /* improving heuristics -> have the position improved since our last position? */
         const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
@@ -455,7 +457,14 @@ public:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval, bestMove, ttPv, depth, m_ply, ttFlag);
+        if (!isChecked
+            && bestMove.isQuietMove()
+            && !(ttFlag == core::TtFlag::TtAlpha && bestScore >= m_stackItr->eval)
+            && !(ttFlag == core::TtFlag::TtBeta && bestScore <= m_stackItr->eval)) {
+            m_searchTables.updateCorrectionHistory(board, depth, bestScore, m_stackItr->eval);
+        }
+
+        core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval - correction, bestMove, ttPv, depth, m_ply, ttFlag);
         return bestScore;
     }
 
@@ -482,13 +491,14 @@ private:
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->board.hash);
         const bool isChecked = core::isKingAttacked(board);
         const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
+        const Score correction = m_searchTables.getCorrectionHistory(board);
 
         if (isChecked) {
             /* be careful to cause cutoffs when checked */
             m_stackItr->eval = -s_mateValue + m_ply;
         } else {
             /* update current stack with the static evaluation */
-            m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
+            m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv) + correction;
         }
 
         /* stand pat */

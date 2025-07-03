@@ -36,6 +36,7 @@
     TUNABLE(nmpReductionFactor, uint8_t, 4, 1, 12, 1)            \
     TUNABLE(iirDepthLimit, uint8_t, 2, 2, 12, 1)                 \
     TUNABLE(aspirationWindow, uint8_t, 60, 10, 100, 5)           \
+    TUNABLE(pawnCorrectionWeight, uint16_t, 256, 100, 500, 25)   \
     TUNABLE(timeManIncFrac, uint16_t, 80, 1, 150, 5)             \
     TUNABLE(timeManBaseFrac, uint16_t, 54, 1, 150, 5)            \
     TUNABLE(timeManLimitFrac, uint16_t, 78, 1, 150, 5)           \
