@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/bit_board.h"
+#include "core/zobrist_hashing.h"
 #include "evaluation/score.h"
 #include "spsa/parameters.h"
 
@@ -23,17 +24,19 @@ public:
     inline Score getCorrection(const BitBoard& board) const
     {
         const Score kpCorrection = getEntry(board.player, board.kpHash);
+        const Score materialCorrection = getEntry(board.player, core::generateMaterialHash(board));
 
-        /* FIXME: add more correction here */
-        const Score corretion = kpCorrection * spsa::pawnCorrectionWeight;
+        const Score correction
+            = kpCorrection * spsa::pawnCorrectionWeight
+            + materialCorrection * spsa::materialCorrectionWeight;
 
-        return corretion / s_grain;
+        return correction / s_grain;
     }
 
     inline void update(const BitBoard& board, uint8_t depth, Score score, Score eval)
     {
-        /* FIXME: add more hashes here */
         updateEntry(board.player, board.kpHash, score, eval, depth);
+        updateEntry(board.player, core::generateMaterialHash(board), score, eval, depth);
     }
 
 private:
