@@ -1,5 +1,6 @@
 #pragma once
 
+#include "search/correction_history.h"
 #include "search/counter_moves.h"
 #include "search/history_moves.h"
 #include "search/killer_moves.h"
@@ -96,11 +97,22 @@ public:
         m_counterMoves.update(prevMove, counterMove);
     }
 
+    inline void updateCorrectionHistory(const BitBoard& board, uint8_t depth, Score score, Score eval)
+    {
+        m_correctionHistory.update(board, depth, score, eval);
+    }
+
+    inline Score getCorrectionHistory(const BitBoard& board)
+    {
+        return m_correctionHistory.getCorrection(board);
+    }
+
 private:
     PVTable m_pvTable {};
 
     KillerMoves m_killerMoves {};
     HistoryMoves m_historyMoves {};
     CounterMoves m_counterMoves {};
+    CorrectionHistory m_correctionHistory {};
 };
 };
