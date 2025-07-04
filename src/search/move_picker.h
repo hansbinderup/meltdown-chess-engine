@@ -19,10 +19,8 @@ enum KillerMoveType {
 };
 
 enum ScoringOffsets : int32_t {
-    CaptureGood = 20000,
-    CaptureBad = -20000,
-    PromotionGood = 10000,
-    PromotionBad = -10000,
+    PromotionGoodScore = spsa::seeQueenValue,
+    PromotionBadScore = -10000,
 };
 
 enum PickerPhase {
@@ -87,7 +85,7 @@ public:
         }
 
         case GenerateMoves: {
-            generateAllMoves(board);
+            core::getAllMoves<moveType>(board, m_moves);
 
             m_phase = PickerPhase::TtMove;
 
@@ -183,11 +181,6 @@ public:
     }
 
 private:
-    constexpr void generateAllMoves(const BitBoard& board)
-    {
-        core::getAllMoves<moveType>(board, m_moves);
-    }
-
     // Syzygy moves are already sorted: return first, then second, third etc
     constexpr std::optional<movegen::Move> pickSyzygyMove()
     {
@@ -224,15 +217,11 @@ private:
     {
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i].isCapture()) {
-                auto seeScore = evaluation::SeeSwap::run(board, m_moves[i]);
-
-                m_scores[i] = seeScore + (seeScore >= 0 ? ScoringOffsets::CaptureGood : ScoringOffsets::CaptureBad);
-            }
-            // Capture-promotions are handled in SEE swap
-            if (m_moves[i].promotionType() == PromotionQueen) {
-                m_scores[i] += ScoringOffsets::PromotionGood;
+                m_scores[i] += evaluation::SeeSwap::run(board, m_moves[i]);
+            } else if (m_moves[i].promotionType() == PromotionQueen) {
+                m_scores[i] += PromotionGoodScore;
             } else if (m_moves[i].isPromotionMove()) {
-                m_scores[i] += ScoringOffsets::PromotionBad;
+                m_scores[i] += PromotionBadScore;
             }
         }
     }
@@ -241,11 +230,11 @@ private:
     constexpr std::optional<movegen::Move> pickNoisyMove()
     {
         std::optional<movegen::Move> bestMove { std::nullopt };
-        int32_t bestScore = s_minScore;
+        int32_t bestScore = std::numeric_limits<int32_t>::min();
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (m_moves[i].isCapture() || m_moves[i].isPromotionMove()) {
+            if (m_moves[i].isNoisyMove()) {
                 const int32_t score = m_scores[i];
 
                 if constexpr (isGood) {
