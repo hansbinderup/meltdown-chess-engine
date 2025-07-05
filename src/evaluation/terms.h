@@ -23,6 +23,7 @@ using WeightTable = std::array<TermScore, T>;
     TERM(pawnSquareRuleBonus, 1)       \
     TERM(pawnShieldBonus, 3)           \
     TERM(pawnStormScore, 3)            \
+    TERM(pawnPhalanxScore, 1)          \
     TERM(rookOpenFileBonus, 1)         \
     TERM(rookSemiOpenFileBonus, 1)     \
     TERM(rook7thRankBonus, 1)          \
