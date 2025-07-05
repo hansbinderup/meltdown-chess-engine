@@ -159,6 +159,12 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
             ADD_SCORE_INDEXED(protectedPawnScore, row);
         }
 
+        /* phalanx pawns -> two or more pawns adjacent */
+        const uint64_t phalanxMask = utils::moveLeft(ourPawns) | utils::moveRight(ourPawns);
+        if (square & phalanxMask) {
+            ADD_SCORE(pawnPhalanxScore);
+        }
+
         /* passed pawn terms
          * no stoppers -> passed pawn
          * stoppers    -> check if candidate to become passed pawn */

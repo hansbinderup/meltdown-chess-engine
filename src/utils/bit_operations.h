@@ -78,6 +78,18 @@ static inline uint64_t pushForwardFromPos(BoardPosition pos)
     return pushForward<player>(square);
 }
 
+/* move the entire mask left */
+static inline uint64_t moveLeft(uint64_t pieces)
+{
+    return (pieces & ~s_aFileMask) >> 1;
+}
+
+/* move the entire mask right */
+static inline uint64_t moveRight(uint64_t pieces)
+{
+    return (pieces & ~s_hFileMask) << 1;
+}
+
 [[nodiscard]] constexpr inline BoardPosition flipPosition(BoardPosition pos) noexcept
 {
     return static_cast<BoardPosition>(pos ^ 56);
