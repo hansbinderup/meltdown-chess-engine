@@ -247,11 +247,16 @@ public:
         /* is the position part of the current or a previous PV line? */
         const bool ttPv = isPv || (ttProbe.has_value() && ttProbe->info.pv());
 
-        /* update current stack with the static evaluation */
-        m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
+        if (isChecked) {
+            /* evaluation terms are not considering king being attacked */
+            m_stackItr->eval = -s_mateValue + m_ply;
+        } else {
+            /* update current stack with the static evaluation */
+            m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv);
+        }
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
