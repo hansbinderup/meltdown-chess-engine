@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/attack_generation.h"
 #include "core/bit_board.h"
 #include "core/mask_tables.h"
 #include "evaluation/generated/tuned_terms.h"
@@ -406,6 +407,11 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
         /* update mobility score based on possible moves that are not attacked by their pawns */
         const int mobilityCount = std::popcount(moves & ~theirPawnAttacks);
         ADD_SCORE_INDEXED(queenMobilityScore, mobilityCount);
+
+        const uint64_t discoveredAttacks = attackgen::getDiscoveredAttacks<player>(board, pos);
+        if (discoveredAttacks != 0) {
+            ADD_SCORE(queenDiscoveredAttackScore);
+        }
 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
