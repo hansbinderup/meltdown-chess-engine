@@ -352,8 +352,7 @@ public:
         Score bestScore = s_minScore;
         uint64_t movesSearched = 0;
 
-        const auto prevMove = isRoot ? std::nullopt : std::optional<movegen::Move>((m_stackItr - 1)->move);
-
+        const auto prevMove = isRoot ? std::nullopt : std::make_optional((m_stackItr - 1)->move);
         MovePicker<movegen::MovePseudoLegal> picker(m_searchTables, m_ply, phase, ttMove, prevMove);
 
         while (const auto moveOpt = picker.pickNextMove(board)) {
@@ -435,8 +434,8 @@ public:
                 ttFlag = core::TtBeta;
 
                 m_searchTables.updateKillerMoves(move, m_ply);
-                if (!isRoot) {
-                    auto prevMove = (m_stackItr - 1)->move;
+                if constexpr (!isRoot) {
+                    const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);
                 }
 
