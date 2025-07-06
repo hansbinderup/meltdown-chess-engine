@@ -18,6 +18,12 @@ enum KillerMoveType {
     Second,
 };
 
+enum QuietMoveOffsets {
+    KillerMoveFirst = 30003,
+    KillerMoveSecond = 30002,
+    CounterMove = 30001,
+};
+
 enum PickerPhase {
     GenerateSyzygyMoves,
     Syzygy,
@@ -25,10 +31,8 @@ enum PickerPhase {
     TtMove,
     GenerateNoisyScores,
     NoisyGood,
-    KillerMoveFirst,
-    KillerMoveSecond,
-    CounterMove,
-    HistoryMove,
+    GenerateQuietScores,
+    QuietMove,
     NoisyBad,
     Done,
 };
@@ -108,40 +112,21 @@ public:
             if (const auto pickedMove = pickNoisyMove<true>())
                 return pickedMove;
 
-            m_phase = PickerPhase::KillerMoveFirst;
+            m_phase = PickerPhase::GenerateQuietScores;
 
             return pickNextMove<player>(board);
         }
 
-        case KillerMoveFirst: {
-            if (const auto pickedMove = pickKillerMove(KillerMoveType::First))
-                return pickedMove;
+        case GenerateQuietScores: {
+            generateQuietScores<player>(board);
 
-            m_phase = PickerPhase::KillerMoveSecond;
-
-            return pickNextMove<player>(board);
-        }
-
-        case KillerMoveSecond: {
-            if (const auto pickedMove = pickKillerMove(KillerMoveType::Second))
-                return pickedMove;
-
-            m_phase = PickerPhase::CounterMove;
+            m_phase = PickerPhase::QuietMove;
 
             return pickNextMove<player>(board);
         }
 
-        case CounterMove: {
-            if (const auto pickedMove = pickCounterMove())
-                return pickedMove;
-
-            m_phase = PickerPhase::HistoryMove;
-
-            return pickNextMove<player>(board);
-        }
-
-        case HistoryMove: {
-            if (const auto pickedMove = pickHistoryMove<player>(board))
+        case QuietMove: {
+            if (const auto pickedMove = pickQuietMove())
                 return pickedMove;
 
             m_phase = PickerPhase::NoisyBad;
@@ -252,68 +237,54 @@ private:
         return bestMove;
     }
 
-    constexpr std::optional<movegen::Move> pickKillerMove(KillerMoveType type)
+    // TODO template over bool hasCounter, to avoid redundant check?
+    template<Player player>
+    void generateQuietScores(const BitBoard& board)
     {
         const auto killerMoves = m_searchTables.getKillerMove(m_ply);
 
-        const auto killerMove = type == KillerMoveType::First ? killerMoves.first : killerMoves.second;
-
         for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (!m_moves[i].isQuietMove() || m_moves[i].isNull())
+                continue;
 
-            if (!m_moves[i].isNull() && m_moves[i] == killerMove && m_moves[i].isQuietMove()) {
-                auto pickedMove = m_moves[i];
+            if (m_moves[i] == killerMoves.first) {
+                m_scores[i] = QuietMoveOffsets::KillerMoveFirst;
+            } else if (m_moves[i] == killerMoves.second) {
+                m_scores[i] = QuietMoveOffsets::KillerMoveSecond;
+            } else if (m_prevMove && m_moves[i] == m_searchTables.getCounterMove(m_prevMove.value())) {
+                m_scores[i] = QuietMoveOffsets::CounterMove;
+            } else {
+                const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare());
+                m_scores[i] = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
 
-                m_moves.nullifyMove(i);
-
-                return pickedMove;
+                // Debug
+                if (m_scores[i] > QuietMoveOffsets::CounterMove)
+                    assert(false);
             }
         }
-        return std::nullopt;
     }
 
-    constexpr std::optional<movegen::Move> pickCounterMove()
+    constexpr std::optional<movegen::Move> pickQuietMove()
     {
-        if (!m_prevMove.has_value())
-            return std::nullopt;
-
-        const auto counterMove = m_searchTables.getCounterMove(m_prevMove.value());
-
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_moves[i].isQuietMove() && m_moves[i] == counterMove) {
-                auto pickedMove = m_moves[i];
-
-                m_moves.nullifyMove(i);
-
-                return pickedMove;
-            }
-        }
-        return std::nullopt;
-    }
-
-    template<Player player>
-    constexpr std::optional<movegen::Move> pickHistoryMove(const BitBoard& board)
-    {
+        std::optional<movegen::Move> bestMove { std::nullopt };
         int32_t bestScore = std::numeric_limits<int32_t>::min();
-        std::optional<movegen::Move> bestMove = std::nullopt;
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_moves[i].isQuietMove()) {
-                if (const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare())) {
-                    const int32_t score = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
+            if (m_moves[i].isQuietMove() && !m_moves[i].isNull()) {
+                const int32_t score = m_scores[i];
 
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = m_moves[i];
-                        bestMoveIndex = i;
-                    }
-                } else {
-                    assert(false);
+                if (score > bestScore) {
+                    bestMove = m_moves[i];
+                    bestScore = score;
+                    bestMoveIndex = i;
                 }
             }
         }
-        if (bestMove.has_value())
+
+        if (bestMove.has_value()) {
             m_moves.nullifyMove(bestMoveIndex);
+        }
 
         return bestMove;
     }
