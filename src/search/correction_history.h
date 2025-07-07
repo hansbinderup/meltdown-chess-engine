@@ -19,34 +19,65 @@ namespace search {
 
 class CorrectionHistory {
 public:
-    /* computes the combined correction score for a board by mixing
-     * corrections with their respective weights */
     inline Score getCorrection(const BitBoard& board) const
     {
-        const Score kpCorrection = getEntry(board.player, board.kpHash);
-        const Score materialCorrection = getEntry(board.player, core::generateMaterialHash(board));
+        if (board.player == PlayerWhite) {
+            return getCorrection<PlayerWhite>(board);
+        } else {
+            return getCorrection<PlayerBlack>(board);
+        }
+    }
+
+    /* computes the combined correction score for a board by mixing
+     * corrections with their respective weights */
+    template<Player player>
+    inline Score getCorrection(const BitBoard& board) const
+    {
+        constexpr Player opponent = nextPlayer(player);
+        const uint64_t threatKey = core::splitMixHash(board.attacks[opponent] & board.occupation[player]);
+
+        const Score kpCorrection = getEntry<player>(board.kpHash);
+        const Score materialCorrection = getEntry<player>(core::generateMaterialHash(board));
+        const Score threatCorrection = getEntry<player>(threatKey);
 
         const Score correction
             = kpCorrection * spsa::pawnCorrectionWeight
-            + materialCorrection * spsa::materialCorrectionWeight;
+            + materialCorrection * spsa::materialCorrectionWeight
+            + threatCorrection * spsa::threatCorrectionWeight;
 
         return correction / s_grain;
     }
 
+    template<Player player>
     inline void update(const BitBoard& board, uint8_t depth, Score score, Score eval)
     {
-        updateEntry(board.player, board.kpHash, score, eval, depth);
-        updateEntry(board.player, core::generateMaterialHash(board), score, eval, depth);
+        constexpr Player opponent = nextPlayer(player);
+        const uint64_t threatKey = core::splitMixHash(board.attacks[opponent] & board.occupation[player]);
+
+        updateEntry<player>(board.kpHash, score, eval, depth);
+        updateEntry<player>(core::generateMaterialHash(board), score, eval, depth);
+        updateEntry<player>(threatKey, score, eval, depth);
+    }
+
+    inline void update(const BitBoard& board, uint8_t depth, Score score, Score eval)
+    {
+        if (board.player == PlayerWhite) {
+            return update<PlayerWhite>(board, depth, score, eval);
+        } else {
+            return update<PlayerBlack>(board, depth, score, eval);
+        }
     }
 
 private:
-    Score getEntry(Player player, uint64_t hash) const
+    template<Player player>
+    Score getEntry(uint64_t hash) const
     {
         return m_table[player][hash & s_cacheMask] / s_grain;
     }
 
     /* updates the correction entry using a weighted mix of current and new data */
-    void updateEntry(Player player, uint64_t hash, Score bestScore, Score eval, uint8_t depth)
+    template<Player player>
+    void updateEntry(uint64_t hash, Score bestScore, Score eval, uint8_t depth)
     {
         Score& entry = m_table[player][hash & s_cacheMask];
 
