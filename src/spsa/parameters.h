@@ -38,6 +38,7 @@
     TUNABLE(aspirationWindow, uint8_t, 60, 10, 100, 5)               \
     TUNABLE(pawnCorrectionWeight, uint16_t, 250, 100, 500, 25)       \
     TUNABLE(materialCorrectionWeight, uint16_t, 1000, 500, 1500, 50) \
+    TUNABLE(threatCorrectionWeight, uint16_t, 500, 250, 1000, 25)    \
     TUNABLE(timeManIncFrac, uint16_t, 80, 1, 150, 5)                 \
     TUNABLE(timeManBaseFrac, uint16_t, 54, 1, 150, 5)                \
     TUNABLE(timeManLimitFrac, uint16_t, 78, 1, 150, 5)               \
