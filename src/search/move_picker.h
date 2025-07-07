@@ -25,10 +25,7 @@ enum PickerPhase {
     TtMove,
     GenerateNoisyScores,
     NoisyGood,
-    KillerMoveFirst,
-    KillerMoveSecond,
-    CounterMove,
-    HistoryMove,
+    QuietMove,
     NoisyBad,
     Done,
 };
@@ -108,40 +105,13 @@ public:
             if (const auto pickedMove = pickNoisyMove<true>())
                 return pickedMove;
 
-            m_phase = PickerPhase::KillerMoveFirst;
+            m_phase = PickerPhase::QuietMove;
 
             return pickNextMove<player>(board);
         }
 
-        case KillerMoveFirst: {
-            if (const auto pickedMove = pickKillerMove(KillerMoveType::First))
-                return pickedMove;
-
-            m_phase = PickerPhase::KillerMoveSecond;
-
-            return pickNextMove<player>(board);
-        }
-
-        case KillerMoveSecond: {
-            if (const auto pickedMove = pickKillerMove(KillerMoveType::Second))
-                return pickedMove;
-
-            m_phase = PickerPhase::CounterMove;
-
-            return pickNextMove<player>(board);
-        }
-
-        case CounterMove: {
-            if (const auto pickedMove = pickCounterMove())
-                return pickedMove;
-
-            m_phase = PickerPhase::HistoryMove;
-
-            return pickNextMove<player>(board);
-        }
-
-        case HistoryMove: {
-            if (const auto pickedMove = pickHistoryMove<player>(board))
+        case QuietMove: {
+            if (const auto pickedMove = pickQuietMove<player>(board))
                 return pickedMove;
 
             m_phase = PickerPhase::NoisyBad;
@@ -291,24 +261,47 @@ private:
     }
 
     template<Player player>
-    constexpr std::optional<movegen::Move> pickHistoryMove(const BitBoard& board)
+    constexpr std::optional<movegen::Move> pickQuietMove(const BitBoard& board)
     {
+        const auto killerMoves = m_searchTables.getKillerMove(m_ply);
+
         int32_t bestScore = std::numeric_limits<int32_t>::min();
         std::optional<movegen::Move> bestMove = std::nullopt;
         uint16_t bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull() && m_moves[i].isQuietMove()) {
-                if (const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare())) {
-                    const int32_t score = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
+            if (!m_moves[i].isNull() && m_moves[i].isQuietMove() && m_moves[i] == killerMoves.first) {
+                auto pickedMove = m_moves[i];
+                m_moves.nullifyMove(i);
+                return pickedMove;
+            }
+        }
 
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = m_moves[i];
-                        bestMoveIndex = i;
-                    }
-                } else {
-                    assert(false);
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (!m_moves[i].isNull() && m_moves[i].isQuietMove() && m_moves[i] == killerMoves.second) {
+                auto pickedMove = m_moves[i];
+                m_moves.nullifyMove(i);
+                return pickedMove;
+            }
+        }
+
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (!m_moves[i].isNull() && m_moves[i].isQuietMove() && m_prevMove.has_value() && m_moves[i] == m_searchTables.getCounterMove(m_prevMove.value())) {
+                auto pickedMove = m_moves[i];
+                m_moves.nullifyMove(i);
+                return pickedMove;
+            }
+        }
+
+        for (uint16_t i = 0; i < m_moves.count(); i++) {
+            if (!m_moves[i].isNull() && m_moves[i].isQuietMove()) {
+                const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare());
+                const int32_t score = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = m_moves[i];
+                    bestMoveIndex = i;
                 }
             }
         }
