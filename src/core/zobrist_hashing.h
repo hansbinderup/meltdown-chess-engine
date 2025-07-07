@@ -73,6 +73,11 @@ constexpr auto s_playerKey = createPlayerKey();
 
 }
 
+constexpr static inline uint64_t splitMixHash(uint64_t value)
+{
+    return splitmix64(value);
+}
+
 constexpr static inline void hashPiece(Piece piece, BoardPosition pos, uint64_t& hash)
 {
     hash ^= s_pieceHashTable[piece][pos];
