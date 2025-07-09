@@ -49,6 +49,11 @@ public:
         }
     }
 
+    inline PickerPhase getPhase() const
+    {
+        return m_phase;
+    }
+
     constexpr uint16_t numGeneratedMoves()
     {
         return m_moves.count();

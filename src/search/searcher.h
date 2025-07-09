@@ -365,6 +365,20 @@ public:
         while (const auto moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
 
+            if constexpr (!isRoot) {
+                if (move.isCapture()
+                    && movesSearched > 0
+                    && picker.getPhase() >= PickerPhase::NoisyBad
+                    && !scoreIsMate(bestScore)) {
+                    const Score margin = -spsa::seeMargin * depth;
+                    const Score seeScore = evaluation::SeeSwap::run(board, move);
+
+                    if (seeScore < margin) {
+                        continue;
+                    }
+                }
+            }
+
             if (!makeMove(board, move)) {
                 continue;
             }

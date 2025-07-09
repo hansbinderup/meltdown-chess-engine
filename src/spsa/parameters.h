@@ -35,6 +35,7 @@
     TUNABLE(nmpReductionBase, uint8_t, 5, 1, 12, 1)                  \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 1, 12, 1)                \
     TUNABLE(iirDepthLimit, uint8_t, 2, 2, 12, 1)                     \
+    TUNABLE(seeMargin, uint8_t, 100, 0, 200, 10)                     \
     TUNABLE(aspirationWindow, uint8_t, 60, 10, 100, 5)               \
     TUNABLE(pawnCorrectionWeight, uint16_t, 250, 100, 500, 25)       \
     TUNABLE(materialCorrectionWeight, uint16_t, 1000, 500, 1500, 50) \
