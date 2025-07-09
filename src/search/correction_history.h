@@ -39,11 +39,15 @@ public:
         const Score kpCorrection = getEntry<player>(board.kpHash);
         const Score materialCorrection = getEntry<player>(core::generateMaterialHash(board));
         const Score threatCorrection = getEntry<player>(threatKey);
+        const Score wNonPawnCorrection = getEntry<player>(core::generateNonPawnHash<PlayerWhite>(board));
+        const Score bNonPawnCorrection = getEntry<player>(core::generateNonPawnHash<PlayerBlack>(board));
 
         const Score correction
             = kpCorrection * spsa::pawnCorrectionWeight
             + materialCorrection * spsa::materialCorrectionWeight
-            + threatCorrection * spsa::threatCorrectionWeight;
+            + threatCorrection * spsa::threatCorrectionWeight
+            + wNonPawnCorrection * spsa::nonPawnCorrectionWeight
+            + bNonPawnCorrection * spsa::nonPawnCorrectionWeight;
 
         return correction / s_grain;
     }
@@ -57,6 +61,8 @@ public:
         updateEntry<player>(board.kpHash, score, eval, depth);
         updateEntry<player>(core::generateMaterialHash(board), score, eval, depth);
         updateEntry<player>(threatKey, score, eval, depth);
+        updateEntry<player>(core::generateNonPawnHash<PlayerWhite>(board), score, eval, depth);
+        updateEntry<player>(core::generateNonPawnHash<PlayerBlack>(board), score, eval, depth);
     }
 
     inline void update(const BitBoard& board, uint8_t depth, Score score, Score eval)

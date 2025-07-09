@@ -154,4 +154,22 @@ static inline uint64_t generateMaterialHash(const BitBoard& board)
     return hash;
 }
 
+/* generate hash based on which non-pawn pieces are present */
+template<Player player>
+static inline uint64_t generateNonPawnHash(const BitBoard& board)
+{
+    /* we don't care about kings here - they're always present */
+    constexpr auto whitePieces = std::to_array<Piece>({ WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen });
+    constexpr auto blackPieces = std::to_array<Piece>({ BlackKnight, BlackBishop, BlackRook, BlackQueen });
+    constexpr auto nonPawnPieces = player == PlayerWhite ? whitePieces : blackPieces;
+
+    uint64_t hash = 0;
+    for (const auto pieceEnum : nonPawnPieces) {
+        uint8_t count = std::popcount(board.pieces[pieceEnum]);
+        hash ^= s_pieceHashTable[pieceEnum][count];
+    }
+
+    return hash;
+}
+
 }
