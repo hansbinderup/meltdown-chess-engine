@@ -8,7 +8,6 @@
 #include "movegen/knights.h"
 #include "movegen/move_types.h"
 #include "movegen/rooks.h"
-#include "spsa/parameters.h"
 
 #include <cstdint>
 
@@ -80,9 +79,10 @@ public:
         int depth = 0;
         std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
 
-        /* piece that will track the scoring of next piece
-         * NOTE: WhiteQueen is just a hack - white and black have same score */
-        Piece nextPiece = move.promotionType() == PromotionQueen ? WhiteQueen : board.getAttackerAtSquare(move.fromSquare(), board.player).value();
+        /* piece that will track the scoring of next piece */
+        Piece nextPiece = move.isPromotionMove()
+            ? static_cast<Piece>(promotionToColorlessPiece(move.promotionType()))
+            : board.getAttackerAtSquare(move.fromSquare(), board.player).value();
 
         Player player = board.player;
 
@@ -158,25 +158,5 @@ private:
 
     constexpr static inline auto s_whitePawnTable = generatePawnTable<PlayerWhite>();
     constexpr static inline auto s_blackPawnTable = generatePawnTable<PlayerBlack>();
-
-    /* piece values simplified */
-    TUNABLE_CONSTEXPR(auto)
-    s_pieceValues = std::to_array<int32_t>(
-        {
-            /* white pieces */
-            spsa::seePawnValue,
-            spsa::seeKnightValue,
-            spsa::seeBishopValue,
-            spsa::seeRookValue,
-            spsa::seeQueenValue,
-            s_maxScore,
-            /* black pieces */
-            spsa::seePawnValue,
-            spsa::seeKnightValue,
-            spsa::seeBishopValue,
-            spsa::seeRookValue,
-            spsa::seeQueenValue,
-            s_maxScore,
-        });
 };
 }
