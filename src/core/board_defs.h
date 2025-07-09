@@ -127,11 +127,10 @@ constexpr static inline uint8_t s_sixthRow { 40 };
 constexpr static inline uint8_t s_seventhRow { 48 };
 constexpr static inline uint8_t s_eightRow { 56 };
 
-constexpr static inline uint64_t s_lightSquares = 0x55aa55aa55aa55aa;
-constexpr static inline uint64_t s_darkSquares = 0xaa55aa55aa55aa55;
-
 constexpr static inline uint32_t s_maxMoves { 256 };
 constexpr static inline uint64_t s_aFileMask { 0x0101010101010101 };
+constexpr static inline uint64_t s_dFileMask { 0x0808080808080808 };
+constexpr static inline uint64_t s_eFileMask { 0x1010101010101010 };
 constexpr static inline uint64_t s_hFileMask { 0x8080808080808080 };
 
 constexpr static inline uint64_t s_row1Mask { 0xffULL << s_firstRow };
@@ -142,6 +141,10 @@ constexpr static inline uint64_t s_row5Mask { 0xffULL << s_fifthRow };
 constexpr static inline uint64_t s_row6Mask { 0xffULL << s_sixthRow };
 constexpr static inline uint64_t s_row7Mask { 0xffULL << s_seventhRow };
 constexpr static inline uint64_t s_row8Mask { 0xffULL << s_eightRow };
+
+constexpr static inline uint64_t s_lightSquares = 0x55aa55aa55aa55aa;
+constexpr static inline uint64_t s_darkSquares = 0xaa55aa55aa55aa55;
+constexpr static inline uint64_t s_centerSquares = (s_row4Mask | s_row5Mask) & (s_dFileMask | s_eFileMask);
 
 constexpr static inline uint64_t s_whiteOutpostRankMask = s_row4Mask | s_row5Mask | s_row6Mask;
 constexpr static inline uint64_t s_blackOutpostRankMask = s_row3Mask | s_row4Mask | s_row5Mask;
