@@ -358,6 +358,7 @@ public:
         movegen::Move bestMove {};
         Score bestScore = s_minScore;
         uint64_t movesSearched = 0;
+        const bool noisyTtMove = ttMove.has_value() && ttMove->isNoisyMove();
 
         const auto prevMove = isRoot ? std::nullopt : std::make_optional((m_stackItr - 1)->move);
         MovePicker<movegen::MovePseudoLegal> picker(m_searchTables, m_ply, phase, ttMove, prevMove);
@@ -391,6 +392,8 @@ public:
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
+                    reduction -= static_cast<int8_t>(ttPv); /* reduce less when tt pv */
+                    reduction += static_cast<int8_t>(noisyTtMove); /* reduce more when noisy tt move */
 
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
