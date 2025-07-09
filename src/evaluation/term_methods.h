@@ -298,6 +298,11 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         const uint8_t blockingPawnsCount = std::popcount(coloredSquares & ourPawns);
         ADD_SCORE_INDEXED(badBishopScore, blockingPawnsCount);
 
+        /* attaking two center squares means that the bishop controls the long diagonal (a1-h8 or h1-a8) */
+        if (std::popcount(moves & s_centerSquares) >= 2) {
+            ADD_SCORE(bishopLongDiagScore);
+        }
+
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Bishop] = moves;
