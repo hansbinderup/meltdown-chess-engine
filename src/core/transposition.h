@@ -109,7 +109,7 @@ public:
     constexpr static void prefetch([[maybe_unused]] uint64_t key)
     {
         assert(s_tableSize > 0);
-        __builtin_prefetch(&s_table[key % s_tableSize]);
+        __builtin_prefetch(&s_table[computeHashIndex(key)]);
     }
 
     static std::size_t getSizeMb()
@@ -150,7 +150,7 @@ public:
     {
         assert(s_tableSize > 0);
 
-        auto& entry = s_table[key % s_tableSize];
+        auto& entry = s_table[computeHashIndex(key)];
 
         uint64_t entryKey = entry.key.load(std::memory_order_relaxed);
         auto entryData = entry.data.load(std::memory_order_relaxed);
@@ -166,7 +166,7 @@ public:
     {
         assert(s_tableSize > 0);
 
-        auto& entry = s_table[key % s_tableSize];
+        auto& entry = s_table[computeHashIndex(key)];
         const auto entryKey = entry.key.load(std::memory_order_relaxed);
         const auto entryData = entry.data.load(std::memory_order_relaxed);
         const bool sameKey = key == entryKey;
@@ -199,6 +199,20 @@ public:
     constexpr static std::size_t tableSizeFromMb(size_t sizeMb)
     {
         return (sizeMb * 1024 * 1024) / sizeof(TtEntry);
+    }
+
+    constexpr static inline uint64_t computeHashIndex(uint64_t key)
+    {
+        /* computes a fast hash index using 128-bit multiplication
+         *
+         * this avoids costly division (modulo) by using the upper 64 bits of
+         * (key * tableSize), a method known as multiply-shift hashing
+         *
+         * this is faster than key % tableSize, but may introduce slight bias
+         * if tableSize is not a power of two */
+
+        using uint128_t = unsigned __int128;
+        return static_cast<uint64_t>((static_cast<uint128_t>(key) * static_cast<uint128_t>(s_tableSize)) >> 64);
     }
 
 private:
