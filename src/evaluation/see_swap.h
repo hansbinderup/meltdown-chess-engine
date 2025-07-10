@@ -3,6 +3,7 @@
 #include "core/bit_board.h"
 #include "core/board_defs.h"
 
+#include "core/move_handling.h"
 #include "movegen/bishops.h"
 #include "movegen/kings.h"
 #include "movegen/knights.h"
@@ -57,24 +58,17 @@ class SeeSwap {
 public:
     static inline int32_t run(const BitBoard& board, movegen::Move move)
     {
-        if (move.isCastleMove()) {
-            return 0;
-        } else if (move.isDoublePush()) {
-            /* FIXME: should be take enpessant? */
-            return 100; /* Pawn takes pawn, so give it pawn score - anything else is difficult to handle here */
-        }
+        /* this only evaluates the see swap score for captures - used for move ordering */
+        assert(move.isCapture());
+
+        const uint64_t fromSquare = move.fromSquare();
+        const uint64_t toSquare = move.toSquare();
 
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
-        uint64_t occ = board.occupation[Both] & ~(move.fromSquare());
+        uint64_t occ = board.occupation[Both] & ~fromSquare;
 
         /* the position we are operation on - all attacks will be targeted here */
         const BoardPosition target = move.toPos();
-
-        /* intial attack mask based on our "new board occupation" */
-        uint64_t attackers = getAttackers<PlayerWhite>(board, target, occ) | getAttackers<PlayerBlack>(board, target, occ);
-
-        if (attackers == 0)
-            return 0; // No attackers, no exchanges
 
         int depth = 0;
         std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
@@ -82,13 +76,21 @@ public:
         /* piece that will track the scoring of next piece */
         Piece nextPiece = move.isPromotionMove()
             ? static_cast<Piece>(promotionToColorlessPiece(move.promotionType()))
-            : board.getAttackerAtSquare(move.fromSquare(), board.player).value();
+            : board.getAttackerAtSquare(fromSquare, board.player).value();
 
         Player player = board.player;
 
-        if (const auto initialPiece = board.getTargetAtSquare(move.toSquare(), player)) {
-            gain[depth] = s_pieceValues[*initialPiece];
+        /* we need to clear en-pessant manually as the capture square is different from the target square */
+        if (move.takeEnPessant()) {
+            gain[depth] = s_pieceValues[Pawn];
+            occ &= ~core::enpessantCaptureSquare(toSquare, player);
+        } else {
+            const auto initialPiece = board.getTargetAtSquare(toSquare, player).value();
+            gain[depth] = s_pieceValues[initialPiece];
         }
+
+        /* initial attack mask based on our "new board occupation" */
+        uint64_t attackers = getAttackers<PlayerWhite>(board, target, occ) | getAttackers<PlayerBlack>(board, target, occ);
 
         while (attackers) {
             depth++;
