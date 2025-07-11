@@ -216,7 +216,7 @@ public:
         }
 
         const auto ttProbe = core::TranspositionTable::probe(m_stackItr->board.hash);
-        if constexpr (!isPv && !isRoot) {
+        if constexpr (!isPv) {
             if (ttProbe.has_value()) {
                 const auto testResult = core::testEntry(*ttProbe, m_ply, depth, alpha, beta);
                 if (testResult.has_value()) {
