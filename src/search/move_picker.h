@@ -18,10 +18,11 @@ enum KillerMoveType {
     Second,
 };
 
-enum QuietMoveOffsets {
+enum MovePickerOffsets : int32_t {
     KillerMoveFirst = 100003,
     KillerMoveSecond = 100002,
     CounterMove = 100001,
+    BadPromotions = -10000,
 };
 
 enum PickerPhase {
@@ -56,6 +57,18 @@ public:
     constexpr uint16_t numGeneratedMoves()
     {
         return m_moves.count();
+    }
+
+    /* if enabled -> will skip quiets and bad promotions -> moves that are expected
+     * to not be "super good" */
+    inline void setSkipQuiets(bool enabled)
+    {
+        m_skipQuiets = enabled;
+    }
+
+    inline bool getSkipQuiets() const
+    {
+        return m_skipQuiets;
     }
 
     template<Player player> constexpr std::optional<movegen::Move> pickNextMove(const BitBoard& board)
@@ -118,6 +131,11 @@ public:
         }
 
         case GenerateQuietScores: {
+            if (m_skipQuiets) {
+                m_phase = PickerPhase::NoisyBad;
+                return pickNextMove<player>(board);
+            }
+
             generateQuietScores<player>(board);
 
             m_phase = PickerPhase::QuietMove;
@@ -126,8 +144,10 @@ public:
         }
 
         case QuietMove: {
-            if (const auto pickedMove = pickQuietMove())
-                return pickedMove;
+            if (!m_skipQuiets) {
+                if (const auto pickedMove = pickQuietMove())
+                    return pickedMove;
+            }
 
             m_phase = PickerPhase::NoisyBad;
 
@@ -197,11 +217,11 @@ private:
     {
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i].isCapture()) {
-                m_scores[i] += evaluation::SeeSwap::run(board, m_moves[i]);
+                m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
             } else if (m_moves[i].promotionType() == PromotionQueen) {
-                m_scores[i] += spsa::seeQueenValue;
+                m_scores[i] = spsa::seeQueenValue;
             } else if (m_moves[i].isPromotionMove()) {
-                m_scores[i] -= 10000;
+                m_scores[i] = MovePickerOffsets::BadPromotions;
             }
         }
     }
@@ -221,7 +241,14 @@ private:
                     if (score < 0) {
                         continue;
                     }
+                } else {
+                    /* if we're already pruning potentially bad moves then there's no reason to
+                     * pick a bad promotion - just skip it! */
+                    if (m_skipQuiets && score == BadPromotions) {
+                        continue;
+                    }
                 }
+
                 if (score > bestScore) {
                     bestMove = m_moves[i];
                     bestScore = score;
@@ -248,11 +275,11 @@ private:
                 continue;
 
             if (m_moves[i] == killerMoves.first) {
-                m_scores[i] = QuietMoveOffsets::KillerMoveFirst;
+                m_scores[i] = MovePickerOffsets::KillerMoveFirst;
             } else if (m_moves[i] == killerMoves.second) {
-                m_scores[i] = QuietMoveOffsets::KillerMoveSecond;
+                m_scores[i] = MovePickerOffsets::KillerMoveSecond;
             } else if (m_prevMove && m_moves[i] == m_searchTables.getCounterMove(m_prevMove.value())) {
-                m_scores[i] = QuietMoveOffsets::CounterMove;
+                m_scores[i] = MovePickerOffsets::CounterMove;
             } else {
                 const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare());
                 m_scores[i] = m_searchTables.getHistoryMove(attacker.value(), m_moves[i].toPos());
@@ -291,6 +318,7 @@ private:
     PickerPhase m_phase { PickerPhase::TtMove };
     std::optional<movegen::Move> m_ttMove { std::nullopt };
     std::optional<movegen::Move> m_prevMove { std::nullopt };
+    bool m_skipQuiets { false };
 
     movegen::ValidMoves m_moves {};
     std::array<int32_t, s_maxMoves> m_scores {};

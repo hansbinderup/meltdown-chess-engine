@@ -30,6 +30,10 @@
     TUNABLE(razorMarginShallow, Score, 138, 0, 250, 10)              \
     TUNABLE(razorMarginDeep, Score, 184, 0, 250, 10)                 \
     TUNABLE(razorDeepReductionLimit, uint8_t, 4, 0, 12, 1)           \
+    TUNABLE(efpBase, Score, 80, 0, 200, 10)                          \
+    TUNABLE(efpImproving, Score, 100, 0, 200, 10)                    \
+    TUNABLE(efpMargin, Score, 90, 0, 200, 10)                        \
+    TUNABLE(efpDepthLimit, uint8_t, 5, 0, 12, 1)                     \
     TUNABLE(nmpBaseMargin, int8_t, -110, -200, 0, 10)                \
     TUNABLE(nmpMarginFactor, uint8_t, 20, 0, 100, 5)                 \
     TUNABLE(nmpReductionBase, uint8_t, 5, 1, 12, 1)                  \

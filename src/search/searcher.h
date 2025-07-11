@@ -365,6 +365,23 @@ public:
         while (const auto moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
 
+            /* static forward pruning
+             * prune entire branches at pre-frontier nodes based on static criterias */
+            if constexpr (!isPv) {
+                if (!isChecked && !picker.getSkipQuiets() && bestScore > s_minScore) {
+
+                    const uint8_t lmrDepth = depth - std::min<uint8_t>(getLmrReduction(depth, movesSearched), depth);
+                    const Score margin = spsa::efpBase + (spsa::efpMargin * lmrDepth) + (spsa::efpImproving * isImproving);
+
+                    /* extended futility pruning (EFP)
+                     * after searching a certain depth we can start pruning
+                     * moves that will most likely not improve alpha (for now skip quiets) */
+                    if (lmrDepth <= spsa::efpDepthLimit && m_stackItr->eval + margin < alpha) {
+                        picker.setSkipQuiets(true);
+                    }
+                }
+            }
+
             if (!makeMove(board, move)) {
                 continue;
             }
