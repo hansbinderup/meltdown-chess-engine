@@ -260,6 +260,9 @@ public:
         /* improving heuristics -> have the position improved since our last position? */
         const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
+        /* Max moves allowed by late move reduction */
+        const uint64_t lmpMaxMoves = (spsa::lmpBase + spsa::lmpMargin * depth * depth) / (1 + spsa::lmpImproving * !isImproving);
+
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
         if constexpr (!isPv) {
@@ -377,6 +380,11 @@ public:
                      * after searching a certain depth we can start pruning
                      * moves that will most likely not improve alpha (for now skip quiets) */
                     if (lmrDepth <= spsa::efpDepthLimit && m_stackItr->eval + margin < alpha) {
+                        picker.setSkipQuiets(true);
+                    }
+
+                    /* Late move pruning: https://www.madchess.net/2020/02/08/madchess-3-0-beta-4478cb8-late-move-pruning/ */
+                    if (depth <= spsa::lmpDepthLimit && movesSearched >= lmpMaxMoves) {
                         picker.setSkipQuiets(true);
                     }
                 }
