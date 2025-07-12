@@ -24,7 +24,7 @@ public:
         const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player);
 
         if (!attacker.has_value())
-            return; // nothing to do
+            assert(false);
 
         m_historyMoves.at(move.toPos()).at(attacker.value()) += ply;
     }

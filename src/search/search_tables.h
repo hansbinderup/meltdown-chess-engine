@@ -1,5 +1,6 @@
 #pragma once
 
+#include "search/continuation_history.h"
 #include "search/correction_history.h"
 #include "search/counter_moves.h"
 #include "search/history_moves.h"
@@ -107,6 +108,16 @@ public:
         return m_correctionHistory.getCorrection(board);
     }
 
+    inline void updateContinuationHistory(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove, Score score)
+    {
+        m_continuationHistory.update(prevPiece, prevPos, currentMove, score);
+    }
+
+    inline Score getContinuationHistory(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove) const
+    {
+        return m_continuationHistory.getScore(prevPiece, prevPos, currentMove);
+    }
+
 private:
     PVTable m_pvTable {};
 
@@ -114,5 +125,6 @@ private:
     HistoryMoves m_historyMoves {};
     CounterMoves m_counterMoves {};
     CorrectionHistory m_correctionHistory {};
+    ContinuationHistory m_continuationHistory {};
 };
 };
