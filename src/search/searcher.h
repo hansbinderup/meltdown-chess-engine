@@ -9,6 +9,7 @@
 #include "search/move_picker.h"
 #include "search/repetition.h"
 #include "search/search_tables.h"
+#include "search/stack_info.h"
 #include "spsa/parameters.h"
 
 #include "core/zobrist_hashing.h"
@@ -252,7 +253,8 @@ public:
             /* evaluation terms are not considering king being attacked */
             m_stackItr->eval = -s_mateValue + m_ply;
         } else {
-            correction = m_searchTables.getCorrectionHistory(board);
+            correction = getCorrection(board);
+
             /* update current stack with the static evaluation */
             m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv) + correction;
         }
@@ -462,6 +464,7 @@ public:
                 if constexpr (!isRoot) {
                     const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);
+                    updateContinuationHistory(move, score);
                 }
 
                 break;
@@ -526,7 +529,8 @@ private:
             /* be careful to cause cutoffs when checked */
             m_stackItr->eval = -s_mateValue + m_ply;
         } else {
-            correction = m_searchTables.getCorrectionHistory(board);
+            correction = getCorrection(board);
+
             /* update current stack with the static evaluation */
             m_stackItr->eval = fetchOrStoreEval(board, ttProbe, ttPv) + correction;
         }
@@ -618,6 +622,7 @@ private:
 
         m_stackItr += 2;
         m_stackItr->board = nullMoveBoard;
+        m_stackItr->move = movegen::nullMove();
 
         m_ply += 2;
 
@@ -710,6 +715,46 @@ private:
         return std::nullopt;
     }
 
+    Score getCorrection(const BitBoard& board)
+    {
+        Score correction = m_searchTables.getCorrectionHistory(board);
+
+        if (m_ply >= 1) {
+            const auto& s = m_stack[m_ply - 1];
+            if (!s.move.isNull()) {
+                const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
+                correction += m_searchTables.getContinuationHistory(*prevPiece, s.move.toPos(), m_stackItr->move) / spsa::continuationDivisor;
+            }
+        }
+
+        return correction;
+    }
+
+    void updateContinuationHistory(movegen::Move move, Score score)
+    {
+        if (m_ply >= 1) {
+            const auto& s = m_stack[m_ply - 1];
+            if (!s.move.isNull()) {
+                const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
+                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, score);
+            }
+        }
+        if (m_ply >= 2) {
+            const auto& s = m_stack[m_ply - 2];
+            if (!s.move.isNull()) {
+                const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
+                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, score);
+            }
+        }
+        if (m_ply >= 4) {
+            const auto& s = m_stack[m_ply - 4];
+            if (!s.move.isNull()) {
+                const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
+                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, score);
+            }
+        }
+    }
+
     static inline uint8_t s_numSearchers {};
     static inline std::atomic_bool s_searchStopped { true };
 
@@ -720,12 +765,6 @@ private:
     SearchTables m_searchTables {};
     uint8_t m_selDepth {};
     bool m_isPrimary { true };
-
-    struct StackInfo {
-        BitBoard board;
-        movegen::Move move;
-        Score eval;
-    };
 
     std::array<StackInfo, s_maxSearchDepth> m_stack;
     decltype(m_stack)::iterator m_stackItr = m_stack.begin();
