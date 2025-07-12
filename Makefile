@@ -17,6 +17,6 @@ endif
 build_dir := .build-openbench
 
 openbench:
-	meson setup $(build_dir) --cross-file targets/linux-native.txt --wipe --buildtype=release
+	meson setup $(build_dir) --cross-file targets/linux-native.txt --wipe --buildtype=release -Dspsa=true
 	meson compile -C $(build_dir)
 	cp $(build_dir)/meltdown-chess-engine $(EXE)
