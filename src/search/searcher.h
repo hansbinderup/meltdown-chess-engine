@@ -636,6 +636,7 @@ private:
 
         m_stackItr += 2;
         m_stackItr->board = nullMoveBoard;
+        m_stackItr->move = movegen::nullMove();
 
         m_ply += 2;
 
