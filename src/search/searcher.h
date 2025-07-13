@@ -258,7 +258,7 @@ public:
         }
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = !isChecked && !nullSearch && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
         /* Max moves allowed by late move reduction */
         const uint64_t lmpMaxMoves = (spsa::lmpBase + spsa::lmpMargin * depth * depth) / (1 + spsa::lmpImproving * !isImproving);
@@ -634,18 +634,18 @@ private:
         /* give opponent an extra move */
         nullMoveBoard.player = nextPlayer(nullMoveBoard.player);
 
-        m_stackItr += 2;
+        m_ply++;
+        m_stackItr++;
+
         m_stackItr->board = nullMoveBoard;
         m_stackItr->move = movegen::nullMove();
-
-        m_ply += 2;
 
         /* perform search with reduced depth (based on reduction limit) */
         const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
         Score score = -zeroWindow(depth - reduction, nullMoveBoard, -beta + 1, !cutNode, true);
 
-        m_ply -= 2;
-        m_stackItr -= 2;
+        m_ply--;
+        m_stackItr--;
         m_repetition.remove();
 
         if (score >= beta) {
