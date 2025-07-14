@@ -203,8 +203,8 @@ public:
             m_nodes, score, fmt::join(m_searchTables.getPvTable(), " "), m_staticEval.get(board));
     }
 
-    template<bool isPv, bool isRoot = false>
-    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false, bool nullSearch = false)
+    template<bool isPv, bool isRoot = false, bool nullSearch = false>
+    constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false)
     {
         m_searchTables.updatePvLength(m_ply);
 
@@ -258,7 +258,7 @@ public:
         }
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = !isChecked && !nullSearch && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = !nullSearch && !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
         /* Max moves allowed by late move reduction */
         const uint64_t lmpMaxMoves = (spsa::lmpBase + spsa::lmpMargin * depth * depth) / (1 + spsa::lmpImproving * !isImproving);
@@ -277,7 +277,7 @@ public:
                 }
 
                 /* dangerous to repeat null search on a null search - skip it here */
-                if (!nullSearch) {
+                if constexpr (!nullSearch) {
                     const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
                     if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
                         if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
@@ -457,18 +457,22 @@ public:
                 ttFlag = core::TtExact;
                 bestMove = move;
 
-                m_searchTables.updateHistoryMoves(board, move, m_ply);
-                m_searchTables.updatePvTable(move, m_ply);
+                if constexpr (!nullSearch) {
+                    m_searchTables.updateHistoryMoves(board, move, m_ply);
+                    m_searchTables.updatePvTable(move, m_ply);
+                }
             }
 
             if (score >= beta) {
                 bestMove = move;
                 ttFlag = core::TtBeta;
 
-                m_searchTables.updateKillerMoves(move, m_ply);
-                if constexpr (!isRoot) {
-                    const auto prevMove = (m_stackItr - 1)->move;
-                    m_searchTables.updateCounterMoves(prevMove, move);
+                if constexpr (!nullSearch) {
+                    m_searchTables.updateKillerMoves(move, m_ply);
+                    if constexpr (!isRoot) {
+                        const auto prevMove = (m_stackItr - 1)->move;
+                        m_searchTables.updateCounterMoves(prevMove, move);
+                    }
                 }
 
                 break;
@@ -505,9 +509,10 @@ public:
     }
 
 private:
-    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window, bool cutNode, bool nullSearch = false)
+    template<bool nullSearch = false>
+    inline Score zeroWindow(uint8_t depth, const BitBoard& board, Score window, bool cutNode)
     {
-        return negamax<false>(depth, board, window - 1, window, cutNode, nullSearch);
+        return negamax<false, false, nullSearch>(depth, board, window - 1, window, cutNode);
     }
 
     template<bool isPv>
@@ -642,7 +647,7 @@ private:
 
         /* perform search with reduced depth (based on reduction limit) */
         const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
-        Score score = -zeroWindow(depth - reduction, nullMoveBoard, -beta + 1, !cutNode, true);
+        Score score = -zeroWindow<true>(depth - reduction, nullMoveBoard, -beta + 1, !cutNode);
 
         m_ply--;
         m_stackItr--;
