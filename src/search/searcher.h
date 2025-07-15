@@ -620,6 +620,8 @@ private:
     {
         auto nullMoveBoard = board;
 
+        core::TranspositionTable::prefetch(board.hash);
+
         /* add current position as potential repetition */
         m_repetition.add(board.hash);
 
@@ -661,6 +663,9 @@ private:
             /* invalid move */
             return false;
         }
+
+        /* prefetch as soon as we have calculated the key/hash */
+        core::TranspositionTable::prefetch(newBoard.hash);
 
         /* add current position as potential repetition */
         m_repetition.add(board.hash);

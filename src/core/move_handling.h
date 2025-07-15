@@ -282,9 +282,6 @@ constexpr BitBoard performMove(const BitBoard& board, movegen::Move move)
     newBoard.player = nextPlayer(player);
     hashPlayer(newBoard.hash);
 
-    /* prefetch as soon as we have calculated the key/hash */
-    core::TranspositionTable::prefetch(newBoard.hash);
-
     return newBoard;
 }
 
