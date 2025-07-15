@@ -206,6 +206,10 @@ public:
     template<bool isPv, bool isRoot = false, bool nullSearch = false>
     constexpr Score negamax(uint8_t depth, const BitBoard& board, Score alpha = s_minScore, Score beta = s_maxScore, bool cutNode = false)
     {
+        static_assert(!(isPv == true && nullSearch == true)); /* null search should never be a pv search */
+        static_assert(!(isRoot == true && nullSearch == true)); /* root should never be searched as null search */
+        static_assert(!(isRoot == true && isPv == false)); /* root should always be searched a pv */
+
         m_searchTables.updatePvLength(m_ply);
 
         if constexpr (!isRoot) {
@@ -258,7 +262,7 @@ public:
         }
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = !nullSearch && !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = checkIsImproving<nullSearch>(isChecked);
 
         /* Max moves allowed by late move reduction */
         const uint64_t lmpMaxMoves = (spsa::lmpBase + spsa::lmpMargin * depth * depth) / (1 + spsa::lmpImproving * !isImproving);
@@ -732,6 +736,16 @@ private:
         }
 
         return std::nullopt;
+    }
+
+    template<bool nullSearch>
+    inline bool checkIsImproving(bool isChecked) const
+    {
+        if constexpr (nullSearch) {
+            return false;
+        } else {
+            return !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        }
     }
 
     static inline uint8_t s_numSearchers {};
