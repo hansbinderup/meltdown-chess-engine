@@ -596,7 +596,7 @@ private:
             }
         }
 
-        core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval, bestMove, ttPv, 0, m_ply, ttFlag);
+        core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval - correction, bestMove, ttPv, 0, m_ply, ttFlag);
         return bestScore;
     }
 
