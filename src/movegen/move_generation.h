@@ -24,7 +24,7 @@ constexpr static inline void generateKnightMoves(ValidMoves& validMoves, uint64_
                 const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
                 validMoves.addMove(Move::create(from, pos, isCapture));
             });
-        } else if constexpr (type == MoveCapture) {
+        } else if constexpr (type == MoveCapture || type == MoveNoisy) {
             const uint64_t moves = getKnightMoves(from) & theirOccupation;
             utils::bitIterate(moves, [&](BoardPosition pos) {
                 validMoves.addMove(Move::create(from, pos, true));
@@ -45,7 +45,7 @@ constexpr static inline void generateRookMoves(ValidMoves& validMoves, uint64_t 
                 const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
                 validMoves.addMove(Move::create(from, pos, isCapture));
             });
-        } else if constexpr (type == MoveCapture) {
+        } else if constexpr (type == MoveCapture || type == MoveNoisy) {
             const uint64_t moves = getRookMoves(from, ownOccupation | theirOccupation) & theirOccupation;
             utils::bitIterate(moves, [&](BoardPosition pos) {
                 validMoves.addMove(Move::create(from, pos, true));
@@ -66,7 +66,7 @@ constexpr static inline void generateBishopMoves(ValidMoves& validMoves, uint64_
                 const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
                 validMoves.addMove(Move::create(from, pos, isCapture));
             });
-        } else if constexpr (type == MoveCapture) {
+        } else if constexpr (type == MoveCapture || type == MoveNoisy) {
             const uint64_t moves = getBishopMoves(from, ownOccupation | theirOccupation) & theirOccupation;
             utils::bitIterate(moves, [&](BoardPosition pos) {
                 validMoves.addMove(Move::create(from, pos, true));
@@ -94,7 +94,7 @@ constexpr static inline void generateKingMoves(ValidMoves& validMoves, uint64_t 
                 const bool isCapture = utils::positionToSquare(pos) & theirOccupation;
                 validMoves.addMove(Move::create(from, pos, isCapture));
             });
-        } else if constexpr (type == MoveCapture) {
+        } else if constexpr (type == MoveCapture || type == MoveNoisy) {
             const uint64_t moves = s_kingsTable.at(from) & theirOccupation & ~attacks;
             utils::bitIterate(moves, [&](BoardPosition pos) {
                 validMoves.addMove(Move::create(from, pos, true));
@@ -228,7 +228,7 @@ constexpr static inline void getPawnMoves(ValidMoves& validMoves, const BitBoard
 template<Player player, MoveType type>
 constexpr static inline void getCastlingMoves(ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    if constexpr (type == MoveCapture) {
+    if constexpr (type == MoveCapture || type == MoveNoisy) {
         return;
     }
 

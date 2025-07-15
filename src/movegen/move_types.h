@@ -10,6 +10,7 @@ namespace movegen {
 enum MoveType {
     MovePseudoLegal,
     MoveCapture,
+    MoveNoisy,
 };
 
 /* NOTE: all captures have 0b100 set
