@@ -68,7 +68,7 @@ constexpr static inline void getWhitePawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnMoves(validMoves, attackLeft, 7, true);
     backtrackPawnMoves(validMoves, attackRight, 9, true);
 
-    if constexpr (type == MovePseudoLegal) {
+    if constexpr (type == MovePseudoLegal || type == MoveNoisy) {
         uint64_t promoteStraight = ((pawns & s_row7Mask) << 8) & ~allOccupation;
         backtrackPawnPromotions(validMoves, promoteStraight, 8, false);
     }
@@ -99,7 +99,7 @@ constexpr static inline void getBlackPawnMoves(ValidMoves& validMoves, uint64_t 
     backtrackPawnMoves(validMoves, attackLeft, -9, true);
     backtrackPawnMoves(validMoves, attackRight, -7, true);
 
-    if constexpr (type == MovePseudoLegal) {
+    if constexpr (type == MovePseudoLegal || type == MoveNoisy) {
         uint64_t promoteStraight = ((pawns & s_row2Mask) >> 8) & ~allOccupation;
 
         backtrackPawnPromotions(validMoves, promoteStraight, -8, false);
