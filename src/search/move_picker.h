@@ -127,7 +127,12 @@ public:
             if (const auto pickedMove = pickNoisyMove<true>())
                 return pickedMove;
 
-            m_phase = PickerPhase::GenerateQuietScores;
+            /* when running qsearch we don't want to search bad noisy - so just go straight to done */
+            if constexpr (moveType == movegen::MoveNoisy || moveType == movegen::MoveCapture) {
+                m_phase = PickerPhase::Done;
+            } else {
+                m_phase = PickerPhase::GenerateQuietScores;
+            }
 
             return pickNextMove<player>(board);
         }
