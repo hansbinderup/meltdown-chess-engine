@@ -561,7 +561,6 @@ private:
         core::TtFlag ttFlag = core::TtAlpha;
         movegen::Move bestMove = movegen::nullMove();
         Score bestScore = m_stackItr->eval;
-        uint16_t movesSearched = 0;
 
         const auto ttMove = tryFetchTtMove(ttProbe);
 
@@ -580,7 +579,6 @@ private:
             if (isSearchStopped())
                 return s_minScore;
 
-            movesSearched++;
             if (score > bestScore) {
                 bestScore = score;
             }
@@ -596,16 +594,6 @@ private:
                 ttFlag = core::TtExact;
                 alpha = score;
             }
-        }
-
-        /* no captures - simply return static eval */
-        if (picker.numGeneratedMoves() == 0) {
-            return m_stackItr->eval;
-        }
-
-        /* no legal moves while being in check -> this must be a checkmate! */
-        if (isChecked && movesSearched == 0) {
-            return -s_mateValue + m_ply;
         }
 
         core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval, bestMove, ttPv, 0, m_ply, ttFlag);
