@@ -557,6 +557,7 @@ private:
 
         const auto ttMove = tryFetchTtMove(ttProbe);
 
+        /* noisy picker auto prunes bad noisy - no need to handle it here */
         MovePicker<movegen::MoveNoisy> picker { m_searchTables, m_ply, PickerPhase::GenerateMoves, ttMove };
 
         while (const auto& moveOpt = picker.pickNextMove(board)) {
