@@ -301,13 +301,6 @@ public:
                             if (newScore < beta)
                                 return (newScore > score) ? newScore : score;
                         }
-
-                        score += spsa::razorMarginDeep;
-                        if (score < beta && depth <= spsa::razorDeepReductionLimit) {
-                            const Score newScore = quiesence<isPv>(board, alpha, beta);
-                            if (newScore < beta)
-                                return (newScore > score) ? newScore : score;
-                        }
                     }
                 }
             }
