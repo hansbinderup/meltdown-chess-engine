@@ -557,7 +557,7 @@ private:
 
         const auto ttMove = tryFetchTtMove(ttProbe);
 
-        MovePicker<movegen::MoveCapture> picker { m_searchTables, m_ply, PickerPhase::GenerateMoves, ttMove };
+        MovePicker<movegen::MoveNoisy> picker { m_searchTables, m_ply, PickerPhase::GenerateMoves, ttMove };
 
         while (const auto& moveOpt = picker.pickNextMove(board)) {
             const auto move = moveOpt.value();
