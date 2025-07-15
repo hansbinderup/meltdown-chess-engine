@@ -48,7 +48,9 @@ public:
         , m_ttMove(ttMove)
         , m_prevMove(prevMove)
     {
-        if constexpr (moveType == movegen::MoveCapture) {
+        if constexpr (moveType == movegen::MoveCapture || moveType == movegen::MoveNoisy) {
+            m_skipQuiets = true;
+
             if (m_ttMove && !m_ttMove->isCapture())
                 m_ttMove.reset();
         }
