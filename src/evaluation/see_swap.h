@@ -119,13 +119,13 @@ private:
     constexpr static inline uint64_t getAttackers(const BitBoard& board, BoardPosition target, uint64_t occ)
     {
         if constexpr (player == PlayerWhite) {
-            return s_whitePawnTable[target]
+            return (s_whitePawnTable[target] & board.pieces[WhitePawn])
                 | (movegen::getKnightMoves(target) & board.pieces[WhiteKnight])
                 | (movegen::getBishopMoves(target, occ) & (board.pieces[WhiteBishop] | board.pieces[WhiteQueen]))
                 | (movegen::getRookMoves(target, occ) & (board.pieces[WhiteRook] | board.pieces[WhiteQueen]))
                 | (movegen::getKingMoves(target) & board.pieces[WhiteKing]);
         } else {
-            return s_blackPawnTable[target]
+            return (s_blackPawnTable[target] & board.pieces[BlackPawn])
                 | (movegen::getKnightMoves(target) & board.pieces[BlackKnight])
                 | (movegen::getBishopMoves(target, occ) & (board.pieces[BlackBishop] | board.pieces[BlackQueen]))
                 | (movegen::getRookMoves(target, occ) & (board.pieces[BlackRook] | board.pieces[BlackQueen]))
