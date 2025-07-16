@@ -72,7 +72,7 @@ public:
         const BoardPosition target = move.toPos();
 
         /* intial attack mask based on our "new board occupation" */
-        uint64_t attackers = getAttackers<PlayerWhite>(board, target, occ) | getAttackers<PlayerBlack>(board, target, occ);
+        uint64_t attackers = getAttackers(board, target, occ);
 
         if (attackers == 0)
             return 0; // No attackers, no exchanges
@@ -103,7 +103,7 @@ public:
             nextPiece = *piece;
 
             /* update attackers after removing captured piece */
-            attackers = getAttackers<PlayerWhite>(board, target, occ) | getAttackers<PlayerBlack>(board, target, occ);
+            attackers = getAttackers(board, target, occ);
         }
 
         /* Backtrack the sequence and evaluate the score */
@@ -115,22 +115,20 @@ public:
     }
 
 private:
-    template<Player player>
     constexpr static inline uint64_t getAttackers(const BitBoard& board, BoardPosition target, uint64_t occ)
     {
-        if constexpr (player == PlayerWhite) {
-            return (s_whitePawnTable[target] & board.pieces[WhitePawn])
-                | (movegen::getKnightMoves(target) & board.pieces[WhiteKnight])
-                | (movegen::getBishopMoves(target, occ) & (board.pieces[WhiteBishop] | board.pieces[WhiteQueen]))
-                | (movegen::getRookMoves(target, occ) & (board.pieces[WhiteRook] | board.pieces[WhiteQueen]))
-                | (movegen::getKingMoves(target) & board.pieces[WhiteKing]);
-        } else {
-            return (s_blackPawnTable[target] & board.pieces[BlackPawn])
-                | (movegen::getKnightMoves(target) & board.pieces[BlackKnight])
-                | (movegen::getBishopMoves(target, occ) & (board.pieces[BlackBishop] | board.pieces[BlackQueen]))
-                | (movegen::getRookMoves(target, occ) & (board.pieces[BlackRook] | board.pieces[BlackQueen]))
-                | (movegen::getKingMoves(target) & board.pieces[BlackKing]);
-        }
+        /* create masks for both sides and return a mask with all attacks from both sides */
+        const uint64_t knights = board.pieces[WhiteKnight] | board.pieces[BlackKnight];
+        const uint64_t diagSliders = board.pieces[WhiteBishop] | board.pieces[BlackBishop] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
+        const uint64_t hvSliders = board.pieces[WhiteRook] | board.pieces[BlackRook] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
+        const uint64_t kings = board.pieces[WhiteKing] | board.pieces[BlackKing];
+
+        return (s_whitePawnTable[target] & board.pieces[WhitePawn])
+            | (s_blackPawnTable[target] & board.pieces[BlackPawn])
+            | (movegen::getKnightMoves(target) & knights)
+            | (movegen::getBishopMoves(target, occ) & diagSliders)
+            | (movegen::getRookMoves(target, occ) & hvSliders)
+            | (movegen::getKingMoves(target) & kings);
     }
 
     constexpr static inline std::optional<Piece> getLeastValuableAttacker(const BitBoard& board, uint64_t attackers, uint64_t& occ, Player player)
