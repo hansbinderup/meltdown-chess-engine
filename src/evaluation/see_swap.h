@@ -131,27 +131,29 @@ private:
             | (movegen::getKingMoves(target) & kings);
     }
 
-    constexpr static inline std::optional<Piece> getLeastValuableAttacker(const BitBoard& board, uint64_t attackers, uint64_t& occ, Player player)
+    template<Player player>
+    constexpr static inline std::optional<Piece> getLeastValuableAttacker(const BitBoard& board, uint64_t attackers, uint64_t& occ)
     {
-        if (player == PlayerWhite) {
-            for (const auto piece : s_whitePieces) {
-                uint64_t subset = attackers & occ & board.pieces[piece];
-                if (subset) {
-                    occ &= ~subset; /* clear the piece we just found */
-                    return piece;
-                }
-            }
-        } else {
-            for (const auto piece : s_blackPieces) {
-                uint64_t subset = attackers & occ & board.pieces[piece];
-                if (subset) {
-                    occ &= ~subset; /* clear the piece we just found */
-                    return piece;
-                }
+        constexpr auto pieces = player == PlayerWhite ? s_whitePieces : s_blackPieces;
+
+        for (const auto piece : pieces) {
+            uint64_t subset = attackers & occ & board.pieces[piece];
+            if (subset) {
+                occ &= ~utils::lsbToSquare(subset); /* clear the piece we just found */
+                return piece;
             }
         }
 
         return std::nullopt; /* attackers must be empty */
+    }
+
+    constexpr static inline std::optional<Piece> getLeastValuableAttacker(const BitBoard& board, uint64_t attackers, uint64_t& occ, Player player)
+    {
+        if (player == PlayerWhite) {
+            return getLeastValuableAttacker<PlayerWhite>(board, attackers, occ);
+        } else {
+            return getLeastValuableAttacker<PlayerBlack>(board, attackers, occ);
+        }
     }
 
     constexpr static inline auto s_whitePawnTable = generatePawnTable<PlayerWhite>();
