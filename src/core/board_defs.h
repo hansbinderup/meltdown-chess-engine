@@ -102,6 +102,24 @@ constexpr inline char promotionToString(PromotionType p)
     return ' ';
 }
 
+constexpr inline std::optional<ColorlessPiece> promotionToColorlessPiece(PromotionType promotion)
+{
+    switch (promotion) {
+    case PromotionNone:
+        break;
+    case PromotionQueen:
+        return Queen;
+    case PromotionKnight:
+        return Knight;
+    case PromotionBishop:
+        return Bishop;
+    case PromotionRook:
+        return Rook;
+    }
+
+    return std::nullopt;
+}
+
 constexpr static inline uint8_t s_amountPieces = magic_enum::enum_count<Piece>();
 
 enum Phases : uint8_t {

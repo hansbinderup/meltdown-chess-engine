@@ -65,30 +65,40 @@ public:
             return 100; /* Pawn takes pawn, so give it pawn score - anything else is difficult to handle here */
         }
 
-        /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
-        uint64_t occ = board.occupation[Both] & ~(move.fromSquare());
+        Player player = board.player;
+        const uint64_t fromSquare = move.fromSquare();
+        const uint64_t toSquare = move.toSquare();
 
         /* the position we are operation on - all attacks will be targeted here */
         const BoardPosition target = move.toPos();
+
+        int depth = 0;
+        std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
+
+        const auto promotionPiece = promotionToColorlessPiece(move.promotionType());
+
+        /* piece that will track the scoring of next piece */
+        Piece nextPiece = promotionPiece.has_value()
+            ? static_cast<Piece>(promotionPiece.value())
+            : board.getAttackerAtSquare(fromSquare, board.player).value();
+
+        /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
+        uint64_t occ = board.occupation[Both] & ~fromSquare;
+
+        if (const auto initialPiece = board.getTargetAtSquare(move.toSquare(), player)) {
+            gain[depth] = s_pieceValues[*initialPiece];
+        }
+
+        /* subtract pawn from promotion value */
+        if (promotionPiece.has_value()) {
+            gain[depth] -= s_pieceValues[Pawn];
+        }
 
         /* intial attack mask based on our "new board occupation" */
         uint64_t attackers = getAttackers(board, target, occ);
 
         if (attackers == 0)
             return 0; // No attackers, no exchanges
-
-        int depth = 0;
-        std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
-
-        /* piece that will track the scoring of next piece
-         * NOTE: WhiteQueen is just a hack - white and black have same score */
-        Piece nextPiece = move.promotionType() == PromotionQueen ? WhiteQueen : board.getAttackerAtSquare(move.fromSquare(), board.player).value();
-
-        Player player = board.player;
-
-        if (const auto initialPiece = board.getTargetAtSquare(move.toSquare(), player)) {
-            gain[depth] = s_pieceValues[*initialPiece];
-        }
 
         while (attackers) {
             depth++;
