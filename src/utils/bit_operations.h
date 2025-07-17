@@ -48,6 +48,11 @@ constexpr uint8_t relativeRow(BoardPosition pos)
     return static_cast<BoardPosition>(std::countr_zero(piece));
 }
 
+[[nodiscard]] constexpr inline uint64_t lsbToSquare(uint64_t piece) noexcept
+{
+    return 1ULL << std::countr_zero(piece);
+}
+
 /* iterates over each set bit in the bitboard `data` and calls `fnc` with the corresponding BoardPosition
  * `fnc` is invoked once per set bit, with the position of the least significant bit */
 template<typename Func>
