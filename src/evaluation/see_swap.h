@@ -3,6 +3,7 @@
 #include "core/bit_board.h"
 #include "core/board_defs.h"
 
+#include "core/move_handling.h"
 #include "movegen/bishops.h"
 #include "movegen/kings.h"
 #include "movegen/knights.h"
@@ -58,12 +59,8 @@ class SeeSwap {
 public:
     static inline int32_t run(const BitBoard& board, movegen::Move move)
     {
-        if (move.isCastleMove()) {
-            return 0;
-        } else if (move.isDoublePush()) {
-            /* FIXME: should be take enpessant? */
-            return 100; /* Pawn takes pawn, so give it pawn score - anything else is difficult to handle here */
-        }
+        /* currently only works for captures */
+        assert(move.isCapture());
 
         Player player = board.player;
         const uint64_t fromSquare = move.fromSquare();
@@ -85,8 +82,13 @@ public:
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
         uint64_t occ = board.occupation[Both] & ~fromSquare;
 
-        if (const auto initialPiece = board.getTargetAtSquare(move.toSquare(), player)) {
-            gain[depth] = s_pieceValues[*initialPiece];
+        /* we need to clear en-pessant manually as the capture square is different from the target square */
+        if (move.takeEnPessant()) {
+            gain[depth] = s_pieceValues[Pawn];
+            occ &= ~core::enpessantCaptureSquare(toSquare, player);
+        } else {
+            const auto initialPiece = board.getTargetAtSquare(toSquare, player).value();
+            gain[depth] = s_pieceValues[initialPiece];
         }
 
         /* subtract pawn from promotion value */

@@ -197,6 +197,25 @@ constexpr static inline BoardPosition enpessantCapturePosition(BoardPosition pos
 }
 
 template<Player player>
+constexpr static inline uint64_t enpessantCaptureSquare(uint64_t square)
+{
+    if constexpr (player == PlayerWhite) {
+        return square >> 8;
+    } else {
+        return square << 8;
+    }
+}
+
+constexpr static inline uint64_t enpessantCaptureSquare(uint64_t square, Player player)
+{
+    if (player == PlayerWhite) {
+        return enpessantCaptureSquare<PlayerWhite>(square);
+    } else {
+        return enpessantCaptureSquare<PlayerBlack>(square);
+    }
+}
+
+template<Player player>
 constexpr void performEnpessantMove(BitBoard& newBoard, movegen::Move move)
 {
     constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
