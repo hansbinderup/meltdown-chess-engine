@@ -110,6 +110,10 @@ public:
             if (!piece.has_value())
                 break; // No more attackers
 
+            /* illegal position if king is attacked after capturing */
+            if (utils::isKing(*piece) && ((attackers & occ & board.occupation[nextPlayer(board.player)]) != 0)) {
+                break;
+            }
             /* update speculative score */
             gain[depth] = s_pieceValues[nextPiece] - gain[depth - 1];
             nextPiece = *piece;

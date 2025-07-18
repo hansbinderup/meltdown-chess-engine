@@ -120,6 +120,11 @@ constexpr inline bool isPawn(Piece piece)
     }
 }
 
+constexpr inline bool isPawn(Piece piece)
+{
+    return piece == WhitePawn || piece == BlackPawn;
+}
+
 template<Player player>
 constexpr inline bool isKing(Piece piece)
 {
@@ -128,6 +133,21 @@ constexpr inline bool isKing(Piece piece)
     } else {
         return piece == BlackKing;
     }
+}
+
+constexpr inline bool isKing(Piece piece)
+{
+    return piece == WhiteKing || piece == BlackKing;
+}
+
+constexpr inline bool isDiagSlider(Piece piece)
+{
+    return piece == WhiteBishop || piece == BlackBishop || piece == WhiteQueen || piece == BlackQueen;
+}
+
+constexpr inline bool isHvSlider(Piece piece)
+{
+    return piece == WhiteRook || piece == BlackRook || piece == WhiteQueen || piece == BlackQueen;
 }
 
 }
