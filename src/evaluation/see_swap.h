@@ -80,7 +80,9 @@ public:
             : board.getAttackerAtSquare(fromSquare, board.player).value();
 
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
-        uint64_t occ = board.occupation[Both] & ~fromSquare;
+        uint64_t occ = board.occupation[Both];
+        occ &= ~fromSquare;
+        occ |= toSquare;
 
         /* we need to clear en-pessant manually as the capture square is different from the target square */
         if (move.takeEnPessant()) {
@@ -97,10 +99,7 @@ public:
         }
 
         /* intial attack mask based on our "new board occupation" */
-        uint64_t attackers = getAttackers(board, target, occ);
-
-        if (attackers == 0)
-            return 0; // No attackers, no exchanges
+        uint64_t attackers = getAttackers(board, target, occ) & occ;
 
         while (attackers) {
             depth++;
@@ -115,7 +114,7 @@ public:
             nextPiece = *piece;
 
             /* update attackers after removing captured piece */
-            attackers = getAttackers(board, target, occ);
+            attackers = getAttackers(board, target, occ) & occ;
         }
 
         /* Backtrack the sequence and evaluate the score */
@@ -149,7 +148,7 @@ private:
         constexpr auto pieces = player == PlayerWhite ? s_whitePieces : s_blackPieces;
 
         for (const auto piece : pieces) {
-            uint64_t subset = attackers & occ & board.pieces[piece];
+            uint64_t subset = attackers & board.pieces[piece];
             if (subset) {
                 occ &= ~utils::lsbToSquare(subset); /* clear the piece we just found */
                 return piece;
