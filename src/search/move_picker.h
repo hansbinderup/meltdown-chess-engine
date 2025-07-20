@@ -56,11 +56,6 @@ public:
         }
     }
 
-    constexpr uint16_t numGeneratedMoves()
-    {
-        return m_moves.count();
-    }
-
     /* if enabled -> will skip quiets and bad promotions -> moves that are expected
      * to not be "super good" */
     inline void setSkipQuiets(bool enabled)
@@ -100,6 +95,7 @@ public:
 
         case GenerateMoves: {
             core::getAllMoves<moveType>(board, m_moves);
+            m_size = m_moves.count();
 
             m_phase = PickerPhase::TtMove;
 
@@ -188,33 +184,43 @@ public:
     }
 
 private:
+    movegen::Move pickMove(uint16_t pos)
+    {
+        auto pickedMove = m_moves[pos];
+
+        m_moves[pos] = m_moves[m_size - 1];
+        m_scores[pos] = m_scores[m_size - 1];
+
+        m_size--;
+
+        return pickedMove;
+    }
+
     // Syzygy moves are already sorted: return first, then second, third etc
     constexpr std::optional<movegen::Move> pickSyzygyMove()
     {
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
-            if (!m_moves[i].isNull()) {
-                const auto pickedMove = m_moves[i];
+        if (m_syzygyHead == m_moves.count())
+            return std::nullopt;
 
-                m_moves.nullifyMove(i);
+        assert(!m_moves[m_syzygyHead].isNull());
+        auto pickedMove = m_moves[m_syzygyHead];
 
-                return pickedMove;
-            }
-        }
-        return std::nullopt;
+        m_syzygyHead++;
+
+        return pickedMove;
     }
 
-    constexpr std::optional<movegen::Move> pickTtMove()
+    constexpr std::optional<movegen::Move>
+    pickTtMove()
     {
         if (!m_ttMove.has_value())
             return std::nullopt;
 
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
+        for (uint16_t i = 0; i < m_size; i++) {
             if (!m_moves[i].isNull() && m_moves[i] == *m_ttMove) {
-                const auto ttMove = m_moves[i];
+                m_ttMove.reset();
 
-                m_moves.nullifyMove(i);
-
-                return ttMove;
+                return pickMove(i);
             }
         }
         return std::nullopt;
@@ -222,7 +228,7 @@ private:
 
     void generateNoisyScores(const BitBoard& board)
     {
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
+        for (uint16_t i = 0; i < m_size; i++) {
             if (m_moves[i].isCapture()) {
                 m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
             } else if (m_moves[i].promotionType() == PromotionQueen) {
@@ -236,11 +242,11 @@ private:
     template<bool isGood>
     constexpr std::optional<movegen::Move> pickNoisyMove()
     {
-        std::optional<movegen::Move> bestMove { std::nullopt };
         int32_t bestScore = std::numeric_limits<int32_t>::min();
         uint16_t bestMoveIndex {};
+        bool foundBestMove { false };
 
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
+        for (uint16_t i = 0; i < m_size; i++) {
             if (m_moves[i].isNoisyMove()) {
                 const int32_t score = m_scores[i];
 
@@ -257,18 +263,14 @@ private:
                 }
 
                 if (score > bestScore) {
-                    bestMove = m_moves[i];
+                    foundBestMove = true;
                     bestScore = score;
                     bestMoveIndex = i;
                 }
             }
         }
 
-        if (bestMove.has_value()) {
-            m_moves.nullifyMove(bestMoveIndex);
-        }
-
-        return bestMove;
+        return foundBestMove ? std::make_optional(pickMove(bestMoveIndex)) : std::nullopt;
     }
 
     // TODO template over bool hasCounter, to avoid redundant check?
@@ -277,7 +279,7 @@ private:
     {
         const auto killerMoves = m_searchTables.getKillerMove(m_ply);
 
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
+        for (uint16_t i = 0; i < m_size; i++) {
             if (!m_moves[i].isQuietMove() || m_moves[i].isNull())
                 continue;
 
@@ -296,27 +298,23 @@ private:
 
     constexpr std::optional<movegen::Move> pickQuietMove()
     {
-        std::optional<movegen::Move> bestMove {};
         int32_t bestScore = std::numeric_limits<int32_t>::min();
         uint16_t bestMoveIndex {};
+        bool foundBestMove { false };
 
-        for (uint16_t i = 0; i < m_moves.count(); i++) {
+        for (uint16_t i = 0; i < m_size; i++) {
             if (m_moves[i].isQuietMove() && !m_moves[i].isNull()) {
                 const int32_t score = m_scores[i];
 
                 if (score > bestScore) {
-                    bestMove = m_moves[i];
+                    foundBestMove = true;
                     bestScore = score;
                     bestMoveIndex = i;
                 }
             }
         }
 
-        if (bestMove.has_value()) {
-            m_moves.nullifyMove(bestMoveIndex);
-        }
-
-        return bestMove;
+        return foundBestMove ? std::make_optional(pickMove(bestMoveIndex)) : std::nullopt;
     }
 
     SearchTables& m_searchTables;
@@ -329,5 +327,7 @@ private:
 
     movegen::ValidMoves m_moves {};
     std::array<int32_t, s_maxMoves> m_scores {};
+    uint16_t m_size {};
+    uint16_t m_syzygyHead {};
 };
 }
