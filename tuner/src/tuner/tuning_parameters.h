@@ -12,7 +12,7 @@ constexpr size_t s_nTerms { sizeof(evaluation::Terms) / sizeof(evaluation::TermS
 constexpr double s_beta1 { 0.9 }; /* momementum */
 constexpr double s_beta2 { 0.999 }; /* velocity */
 constexpr size_t s_positions { 7153653 };
-constexpr size_t s_threads { 14 };
+constexpr size_t s_threads { 16 };
 constexpr size_t s_parameterPrintRate { 50 };
 
 /* these can be configured */

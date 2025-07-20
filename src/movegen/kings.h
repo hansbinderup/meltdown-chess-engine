@@ -47,7 +47,7 @@ constexpr auto s_kingsTable = generateKingsTable();
 
 }
 
-static inline uint64_t getKingMoves(BoardPosition pos)
+constexpr inline uint64_t getKingMoves(BoardPosition pos)
 {
     return s_kingsTable[pos];
 }

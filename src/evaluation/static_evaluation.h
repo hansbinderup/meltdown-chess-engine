@@ -78,9 +78,12 @@ public:
 private:
     TermContext prepareContext(const BitBoard& board) const
     {
+        const auto wKingPos = utils::lsbToPosition(board.pieces[WhiteKing]);
+        const auto bKingPos = utils::lsbToPosition(board.pieces[BlackKing]);
+
         auto ctx = TermContext {
             .pawnAttacks { attackgen::getPawnAttacks<PlayerWhite>(board), attackgen::getPawnAttacks<PlayerBlack>(board) },
-            .kingZone { attackgen::getKingAttacks<PlayerWhite>(board), attackgen::getKingAttacks<PlayerBlack>(board) },
+            .kingZone { s_kingZoneMaskTable[PlayerWhite][wKingPos], s_kingZoneMaskTable[PlayerBlack][bKingPos] },
             .attacksToKingZone { 0, 0 },
             .pieceAttacks {},
             .threats { 0, 0 },

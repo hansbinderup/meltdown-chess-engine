@@ -213,6 +213,53 @@ constexpr auto generateOutpostSquareMaskTable()
     return data;
 }
 
+/* attacks + own square + extend attacks in front eg:
+ * eg: table for G2 (White perspective):
+ * -8- 0 0 0 0 0 0 0 0
+ * -7- 0 0 0 0 0 0 0 0
+ * -6- 0 0 0 0 0 0 0 0
+ * -5- 0 0 0 0 0 0 0 0
+ * -4- 0 0 0 0 0 1 1 1
+ * -3- 0 0 0 0 0 1 1 1
+ * -2- 0 0 0 0 0 1 1 1
+ * -1- 0 0 0 0 0 1 1 1
+ *     A B C D E F G H
+ *
+ * Also extend when on a side file eg: K on A2:
+ * eg: table for H5 (Black perspective):
+ * -8- 0 0 0 0 0 0 0 0
+ * -7- 0 0 0 0 0 0 0 0
+ * -6- 0 0 0 0 0 1 1 1
+ * -5- 0 0 0 0 0 1 1 1
+ * -4- 0 0 0 0 0 1 1 1
+ * -3- 0 0 0 0 0 1 1 1
+ * -2- 0 0 0 0 0 0 0 0
+ * -1- 0 0 0 0 0 0 0 0
+ *     A B C D E F G H */
+constexpr auto generateKingZoneMaskTable()
+{
+    using KingZoneMaskTable = std::array<uint64_t, s_amountSquares>;
+    std::array<KingZoneMaskTable, magic_enum::enum_count<Player>()> data {};
+
+    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
+        const uint64_t attacks = movegen::getKingMoves(pos);
+        const uint64_t square = utils::positionToSquare(pos);
+
+        data[PlayerWhite][pos] = attacks | (attacks << 8) | square;
+        data[PlayerBlack][pos] = attacks | (attacks >> 8) | square;
+
+        if (square & s_aFileMask) {
+            data[PlayerWhite][pos] |= data[PlayerWhite][pos] << 1;
+            data[PlayerBlack][pos] |= data[PlayerBlack][pos] << 1;
+        } else if (square & s_hFileMask) {
+            data[PlayerWhite][pos] |= data[PlayerWhite][pos] >> 1;
+            data[PlayerBlack][pos] |= data[PlayerBlack][pos] >> 1;
+        }
+    }
+
+    return data;
+}
+
 }
 
 constexpr auto s_rowMaskTable = generateRowMaskTable();
@@ -220,5 +267,6 @@ constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
 constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
+constexpr auto s_kingZoneMaskTable = generateKingZoneMaskTable();
 
 }
