@@ -213,6 +213,7 @@ private:
                 const auto ttMove = m_moves[i];
 
                 m_moves.nullifyMove(i);
+                m_ttMove.reset();
 
                 return ttMove;
             }
