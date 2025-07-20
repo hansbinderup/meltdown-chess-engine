@@ -41,6 +41,7 @@ using WeightTable = std::array<TermScore, T>;
     TERM(queenMobilityScore, 28)       \
     TERM(kingVirtualMobilityScore, 28) \
     TERM(kingZone, 15)                 \
+    TERM(kingDefenders, 12)            \
     TERM(bishopPairScore, 1)           \
     TERM(pawnAttacks, 5)               \
     TERM(knightAttacks, 5)             \

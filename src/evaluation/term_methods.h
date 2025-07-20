@@ -440,9 +440,13 @@ static inline TermScore getKingScore(const BitBoard& board, TermContext& ctx)
 }
 
 template<Player player>
-static inline TermScore getKingZoneScore(TermContext& ctx)
+static inline TermScore getKingZoneScore(const BitBoard& board, TermContext& ctx)
 {
     TermScore score(0, 0);
+
+    constexpr Piece ourPawns = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece ourKnights = player == PlayerWhite ? WhiteKnight : BlackKnight;
+    constexpr Piece ourBishops = player == PlayerWhite ? WhiteBishop : BlackBishop;
 
     /* apply score / penalty based on the amount of attacks towards the king zone
      * the king zone is the 9 squares around the king ie. all king's attack for a given square
@@ -450,6 +454,10 @@ static inline TermScore getKingZoneScore(TermContext& ctx)
      * collect the counts and apply a score */
     const uint8_t kingZoneCount = std::min<uint8_t>(ctx.attacksToKingZone[player], kingZoneSize - 1);
     ADD_SCORE_INDEXED(kingZone, kingZoneCount);
+
+    const uint64_t defenders = board.pieces[ourPawns] | board.pieces[ourKnights] | board.pieces[ourBishops];
+    const uint8_t defendersCount = std::popcount(defenders & ctx.kingZone[player]);
+    ADD_SCORE_INDEXED(kingDefenders, defendersCount);
 
     return score;
 }

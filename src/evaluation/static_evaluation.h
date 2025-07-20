@@ -52,7 +52,7 @@ public:
         APPLY_SCORE(getKingScore, board, ctx);
 
         /* terms that consume ctx */
-        APPLY_SCORE(getKingZoneScore, ctx);
+        APPLY_SCORE(getKingZoneScore, board, ctx);
         APPLY_SCORE(getPieceAttacksScore, board, ctx);
         APPLY_SCORE(getChecksScore, board, ctx);
         APPLY_SCORE(getPawnPushThreatScore, board, ctx);
