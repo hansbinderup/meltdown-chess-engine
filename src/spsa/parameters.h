@@ -47,7 +47,7 @@
     TUNABLE(pawnCorrectionWeight, uint16_t, 268, 100, 500, 25)      \
     TUNABLE(materialCorrectionWeight, uint16_t, 884, 500, 1500, 50) \
     TUNABLE(threatCorrectionWeight, uint16_t, 521, 250, 1000, 25)   \
-    TUNABLE(continuationDivisor, uint16_t, 250, 100, 500, 25)       \
+    TUNABLE(continuationDivisor, uint16_t, 400, 100, 500, 25)       \
     TUNABLE(timeManIncFrac, uint16_t, 89, 1, 150, 5)                \
     TUNABLE(timeManBaseFrac, uint16_t, 53, 1, 150, 5)               \
     TUNABLE(timeManLimitFrac, uint16_t, 82, 1, 150, 5)              \
