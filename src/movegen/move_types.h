@@ -267,11 +267,6 @@ public:
         m_moves[m_count++] = std::move(move);
     }
 
-    void nullifyMove(uint32_t i)
-    {
-        m_moves.at(i) = nullMove();
-    }
-
     Move* begin()
     {
         return m_moves.begin();
