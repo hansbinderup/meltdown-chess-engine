@@ -236,11 +236,28 @@ constexpr auto generatePawnAttackMaskTable()
     return data;
 }
 
+constexpr auto generatePawnConnectedMaskTable()
+{
+    using PawnConnectedMaskTable = std::array<uint64_t, s_amountSquares>;
+    std::array<PawnConnectedMaskTable, magic_enum::enum_count<Player>()> data {};
+
+    const auto attacks = generatePawnAttackMaskTable();
+
+    for (uint8_t pos = 8; pos < 56; pos++) {
+        data[PlayerWhite][pos] = attacks[PlayerBlack][pos] | attacks[PlayerBlack][pos + 8];
+        data[PlayerBlack][pos] = attacks[PlayerWhite][pos] | attacks[PlayerWhite][pos - 8];
+    }
+    return data;
+}
+
+}
+
 constexpr auto s_rowMaskTable = generateRowMaskTable();
 constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
 constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
 constexpr auto s_pawnAttackMaskTable = generatePawnAttackMaskTable();
+constexpr auto s_pawnConnectedMaskTable = generatePawnConnectedMaskTable();
 
 }
