@@ -250,6 +250,34 @@ constexpr auto generatePawnConnectedMaskTable()
     return data;
 }
 
+constexpr auto generateAdjecentFileMask()
+{
+    std::array<uint64_t, 8> data {};
+
+    constexpr uint64_t fileMasks[8] = {
+        0x0101010101010101ull, /* file A */
+        0x0202020202020202ull, /* file B */
+        0x0404040404040404ull, /* file C */
+        0x0808080808080808ull, /* file D */
+        0x1010101010101010ull, /* file E */
+        0x2020202020202020ull, /* file F */
+        0x4040404040404040ull, /* file G */
+        0x8080808080808080ull /* file H */
+    };
+
+    for (uint8_t file = 0; file < 8; ++file) {
+        if (file > 0) {
+            data[file] |= fileMasks[file - 1];
+        }
+
+        if (file < 7) {
+            data[file] |= fileMasks[file + 1];
+        }
+    }
+
+    return data;
+}
+
 }
 
 constexpr auto s_rowMaskTable = generateRowMaskTable();
@@ -259,5 +287,6 @@ constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
 constexpr auto s_pawnAttackMaskTable = generatePawnAttackMaskTable();
 constexpr auto s_pawnConnectedMaskTable = generatePawnConnectedMaskTable();
+constexpr auto s_adjecentFilesMask = generateAdjecentFileMask();
 
 }

@@ -132,6 +132,7 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
     utils::bitIterate(ourPawns, [&](BoardPosition pos) {
         const uint64_t square = utils::positionToSquare(pos);
         const auto row = utils::relativeRow<player>(pos);
+        const auto file = pos % 8; /* FIXME: add helper */
 
         ADD_SCORE_INDEXED(pieceValues, Pawn);
         ADD_SCORE_INDEXED(psqtPawns, utils::relativePosition<player>(pos));
@@ -183,6 +184,9 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
             ADD_SCORE_INDEXED(passersTheirKingDistance, theirKingDistance);
         } else {
             /* pawns that are not already considered passed pawns might be considered as candidates */
+            const uint64_t neighbors = s_adjecentFilesMask[file] & ourPawns;
+            const uint64_t backup = s_passedPawnMaskTable[opponent][pos] & ourPawns;
+            const uint64_t connectedPawns = s_pawnConnectedMaskTable[player][pos] & ourPawns;
             const uint64_t pushedPos = utils::pushForwardFromPos<player>(pos);
             const uint64_t threats = movegen::getPawnAttacksFromPos<player>(pos) & theirPawns;
             const uint64_t defenders = movegen::getPawnAttacksFromPos<opponent>(pos) & ourPawns;
@@ -199,6 +203,14 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
                 } else {
                     ADD_SCORE_INDEXED(passerCandidateUndefended, row);
                 }
+            }
+
+            if (neighbors && pushedThreats && !backup) {
+                const bool offset = s_fileMasks[file] & theirPawns;
+                const uint8_t index = row + (offset * 8);
+                ADD_SCORE_INDEXED(backwardPawns, index);
+            } else if (connectedPawns) {
+                ADD_SCORE_INDEXED(connectedPawnScore, row);
             }
         }
     });

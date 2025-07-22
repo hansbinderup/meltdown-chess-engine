@@ -151,6 +151,17 @@ constexpr static inline uint64_t s_dFileMask { 0x0808080808080808 };
 constexpr static inline uint64_t s_eFileMask { 0x1010101010101010 };
 constexpr static inline uint64_t s_hFileMask { 0x8080808080808080 };
 
+constexpr auto s_fileMasks = std::to_array<uint64_t>({
+    0x0101010101010101, /* file A */
+    0x0202020202020202, /* file B */
+    0x0404040404040404, /* file C */
+    0x0808080808080808, /* file D */
+    0x1010101010101010, /* file E */
+    0x2020202020202020, /* file F */
+    0x4040404040404040, /* file G */
+    0x8080808080808080, /* file H */
+});
+
 constexpr static inline uint64_t s_row1Mask { 0xffULL << s_firstRow };
 constexpr static inline uint64_t s_row2Mask { 0xffULL << s_secondRow };
 constexpr static inline uint64_t s_row3Mask { 0xffULL << s_thirdRow };
