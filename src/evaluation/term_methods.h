@@ -134,6 +134,17 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
         const auto row = utils::relativeRow<player>(pos);
         const auto file = pos % 8; /* FIXME: add helper */
 
+        const uint64_t neighbors = s_adjecentFilesMask[file] & ourPawns;
+        const uint64_t backup = s_passedPawnMaskTable[opponent][pos] & ourPawns;
+        const uint64_t connectedPawns = s_pawnConnectedMaskTable[player][pos] & ourPawns;
+        const uint64_t stoppers = s_passedPawnMaskTable[player][pos] & theirPawns;
+        const uint64_t pushedPos = utils::pushForwardFromPos<player>(pos);
+        const uint64_t threats = movegen::getPawnAttacksFromPos<player>(pos) & theirPawns;
+        const uint64_t defenders = movegen::getPawnAttacksFromPos<opponent>(pos) & ourPawns;
+        const uint64_t pushedThreats = movegen::getPawnAttacks<player>(pushedPos) & theirPawns;
+        const uint64_t pushedDefenders = movegen::getPawnAttacks<opponent>(pushedPos) & ourPawns;
+        const uint64_t leftovers = stoppers ^ threats ^ pushedThreats;
+
         ADD_SCORE_INDEXED(pieceValues, Pawn);
         ADD_SCORE_INDEXED(psqtPawns, utils::relativePosition<player>(pos));
 
@@ -141,7 +152,7 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
         if (doubledPawns > 1)
             ADD_SCORE(doublePawnPenalty);
 
-        if ((ourPawns & s_isolationMaskTable[pos]) == 0)
+        if (!threats && !neighbors)
             ADD_SCORE(isolatedPawnPenalty);
 
         if (s_passedPawnMaskTable[player][ourKingPos] & square) {
@@ -166,10 +177,17 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
             ADD_SCORE(pawnPhalanxScore);
         }
 
+        if (neighbors && pushedThreats && !backup) {
+            const bool offset = s_fileMasks[file] & theirPawns;
+            const uint8_t index = row + (offset * 8);
+            ADD_SCORE_INDEXED(backwardPawns, index);
+        } else if (connectedPawns) {
+            ADD_SCORE_INDEXED(connectedPawnScore, row);
+        }
+
         /* passed pawn terms
          * no stoppers -> passed pawn
          * stoppers    -> check if candidate to become passed pawn */
-        const uint64_t stoppers = s_passedPawnMaskTable[player][pos] & theirPawns;
         if (stoppers == 0) {
             /* scores requiring full context will be added in "getPassedPawnsScore" */
             ctx.passedPawns[player] |= square;
@@ -183,17 +201,6 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
             ADD_SCORE_INDEXED(passersOurKingDistance, ourKingDistance);
             ADD_SCORE_INDEXED(passersTheirKingDistance, theirKingDistance);
         } else {
-            /* pawns that are not already considered passed pawns might be considered as candidates */
-            const uint64_t neighbors = s_adjecentFilesMask[file] & ourPawns;
-            const uint64_t backup = s_passedPawnMaskTable[opponent][pos] & ourPawns;
-            const uint64_t connectedPawns = s_pawnConnectedMaskTable[player][pos] & ourPawns;
-            const uint64_t pushedPos = utils::pushForwardFromPos<player>(pos);
-            const uint64_t threats = movegen::getPawnAttacksFromPos<player>(pos) & theirPawns;
-            const uint64_t defenders = movegen::getPawnAttacksFromPos<opponent>(pos) & ourPawns;
-            const uint64_t pushedThreats = movegen::getPawnAttacks<player>(pushedPos) & theirPawns;
-            const uint64_t pushedDefenders = movegen::getPawnAttacks<opponent>(pushedPos) & ourPawns;
-            const uint64_t leftovers = stoppers ^ threats ^ pushedThreats;
-
             /* if no enemy pawns can safely stop the advance and the push square is not outnumbered,
              * consider the pawn a passer candidate—classified by whether it's currently defended */
             if (!leftovers && std::popcount(pushedDefenders) >= std::popcount(pushedThreats)) {
@@ -203,14 +210,6 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
                 } else {
                     ADD_SCORE_INDEXED(passerCandidateUndefended, row);
                 }
-            }
-
-            if (neighbors && pushedThreats && !backup) {
-                const bool offset = s_fileMasks[file] & theirPawns;
-                const uint8_t index = row + (offset * 8);
-                ADD_SCORE_INDEXED(backwardPawns, index);
-            } else if (connectedPawns) {
-                ADD_SCORE_INDEXED(connectedPawnScore, row);
             }
         }
     });
