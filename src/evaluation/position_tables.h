@@ -2,6 +2,7 @@
 
 #include "core/board_defs.h"
 #include "magic_enum/magic_enum.hpp"
+#include "utils/bit_operations.h"
 
 namespace evaluation {
 
@@ -213,6 +214,26 @@ constexpr auto generateOutpostSquareMaskTable()
     return data;
 }
 
+constexpr auto generatePawnAttackMaskTable()
+{
+    using PawnAttackMaskTable = std::array<uint64_t, s_amountSquares>;
+    std::array<PawnAttackMaskTable, magic_enum::enum_count<Player>()> data {};
+
+    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
+        const uint64_t square = utils::positionToSquare(pos);
+
+        if ((square & s_aFileMask) == 0) {
+            data[PlayerWhite][pos] |= square << 7;
+            data[PlayerBlack][pos] |= square >> 9;
+        }
+
+        if ((square & s_hFileMask) == 0) {
+            data[PlayerWhite][pos] |= square << 9;
+            data[PlayerBlack][pos] |= square >> 7;
+        }
+    }
+
+    return data;
 }
 
 constexpr auto s_rowMaskTable = generateRowMaskTable();
@@ -220,5 +241,6 @@ constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
 constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
+constexpr auto s_pawnAttackMaskTable = generatePawnAttackMaskTable();
 
 }
