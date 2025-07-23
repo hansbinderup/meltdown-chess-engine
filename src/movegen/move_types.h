@@ -237,12 +237,12 @@ public:
         return data == 0;
     }
 
-private:
     constexpr inline MoveFlag getFlag() const
     {
         return static_cast<MoveFlag>((data >> s_flagShift) & s_flagMask);
     }
 
+private:
     constexpr static inline uint16_t s_toFromMask { 0b111111 }; /* 64 values */
     constexpr static inline uint8_t s_toShift { 6 };
 

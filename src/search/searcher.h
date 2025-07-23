@@ -354,6 +354,8 @@ public:
         movegen::Move bestMove {};
         Score bestScore = s_minScore;
         uint64_t movesSearched = 0;
+        const Score seeQuietMargin = spsa::seeQuietMargin * depth;
+        const Score seeNoisyMargin = spsa::seeNoisyMargin * depth * depth;
 
         const auto prevMove = isRoot ? std::nullopt : std::make_optional((m_stackItr - 1)->move);
         MovePicker<movegen::MovePseudoLegal> picker(m_searchTables, m_ply, phase, ttMove, prevMove);
@@ -379,6 +381,22 @@ public:
                     /* Late move pruning: https://www.madchess.net/2020/02/08/madchess-3-0-beta-4478cb8-late-move-pruning/ */
                     if (depth <= spsa::lmpDepthLimit && movesSearched >= lmpMaxMoves) {
                         picker.setSkipQuiets(true);
+                    }
+                }
+            }
+
+            if constexpr (!isRoot) {
+                /* skip this branch if SEE determines the static exchange results in a significant material loss */
+                const bool moveHasQuietFlag = move.getFlag() == movegen::MoveFlag::Quiet;
+                if (movesSearched > 0
+                    && !isChecked
+                    && depth <= spsa::seeDepthLimit
+                    && (move.isNoisyMove() || moveHasQuietFlag)
+                    && picker.getPhase() > PickerPhase::NoisyGood
+                    && !scoreIsMate(bestScore)) {
+                    const Score margin = moveHasQuietFlag ? -seeQuietMargin : -seeNoisyMargin;
+                    if (!evaluation::SeeSwap::isGreaterThanMargin(board, move, margin)) {
+                        continue;
                     }
                 }
             }
