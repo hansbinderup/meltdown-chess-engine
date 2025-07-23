@@ -12,8 +12,6 @@
 #include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
 
-#include <cstring>
-
 namespace core {
 
 namespace {

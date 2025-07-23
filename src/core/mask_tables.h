@@ -3,7 +3,7 @@
 #include "core/board_defs.h"
 #include "magic_enum/magic_enum.hpp"
 
-namespace evaluation {
+namespace core {
 
 namespace {
 
@@ -12,31 +12,6 @@ constexpr uint64_t s_fileA = {
     1ULL << A1 | 1ULL << A2 | 1ULL << A3 | 1ULL << A4
     | 1ULL << A5 | 1ULL << A6 | 1ULL << A7 | 1ULL << A8
 };
-
-/* Bitmask of the entire row of a given position
- *
- * eg: table for A1-B1...H1:
- * -8- 0 0 0 0 0 0 0 0
- * -7- 0 0 0 0 0 0 0 0
- * -6- 0 0 0 0 0 0 0 0
- * -5- 0 0 0 0 0 0 0 0
- * -4- 0 0 0 0 0 0 0 0
- * -3- 0 0 0 0 0 0 0 0
- * -2- 0 0 0 0 0 0 0 0
- * -1- 1 1 1 1 1 1 1 1
- *     A B C D E F G H
- */
-constexpr auto generateRowMaskTable()
-{
-    std::array<uint64_t, s_amountSquares> data;
-
-    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
-        const auto row = pos / 8;
-        data[pos] = 0xffULL << (row * 8);
-    }
-
-    return data;
-}
 
 /* Bitmask of the entire file of a given position
  *
@@ -213,12 +188,11 @@ constexpr auto generateOutpostSquareMaskTable()
     return data;
 }
 
-}
-
-constexpr auto s_rowMaskTable = generateRowMaskTable();
 constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
 constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
+
+}
 
 }
