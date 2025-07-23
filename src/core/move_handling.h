@@ -18,6 +18,41 @@ namespace core {
 
 namespace {
 
+constexpr auto generateCastlingRightMasks()
+{
+    std::array<uint8_t, s_amountSquares> data {};
+
+    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
+        switch (pos) {
+        case E1:
+            data[pos] = CastleWhiteKingSide | CastleWhiteQueenSide;
+            break;
+        case A1:
+            data[pos] = CastleWhiteQueenSide;
+            break;
+        case H1:
+            data[pos] = CastleWhiteKingSide;
+            break;
+        case E8:
+            data[pos] = CastleBlackKingSide | CastleBlackQueenSide;
+            break;
+        case A8:
+            data[pos] = CastleBlackQueenSide;
+            break;
+        case H8:
+            data[pos] = CastleBlackKingSide;
+            break;
+        default:
+            data[pos] = CastleNone;
+            break;
+        }
+    }
+
+    return data;
+}
+
+constexpr auto s_castleRightMasks = generateCastlingRightMasks();
+
 constexpr static inline void clearPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
     piece &= ~utils::positionToSquare(pos);
@@ -36,34 +71,9 @@ constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, B
     setPiece(piece, toPos, type, hash);
 }
 
-constexpr void updateCastlingRights(BitBoard& board, BoardPosition pos)
+constexpr inline void updateCastlingRights(BitBoard& board, BoardPosition pos)
 {
-    if (board.castlingRights == CastleNone) {
-        return;
-    }
-
-    switch (pos) {
-    case E1:
-        board.castlingRights &= ~(CastleWhiteKingSide | CastleWhiteQueenSide);
-        break;
-    case A1:
-        board.castlingRights &= ~CastleWhiteQueenSide;
-        break;
-    case H1:
-        board.castlingRights &= ~CastleWhiteKingSide;
-        break;
-    case E8:
-        board.castlingRights &= ~(CastleBlackKingSide | CastleBlackQueenSide);
-        break;
-    case A8:
-        board.castlingRights &= ~CastleBlackQueenSide;
-        break;
-    case H8:
-        board.castlingRights &= ~CastleBlackKingSide;
-        break;
-    default:
-        break;
-    }
+    board.castlingRights &= ~s_castleRightMasks[pos];
 }
 
 template<Player player>
