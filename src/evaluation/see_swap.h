@@ -17,7 +17,77 @@ namespace evaluation {
 
 class SeeSwap {
 public:
-    static inline int32_t run(const BitBoard& board, movegen::Move move)
+    static inline bool isGreaterThanMargin(const BitBoard& board, movegen::Move move, int32_t margin)
+    {
+        if (move.isCastleMove()) {
+            return margin >= 0;
+        }
+
+        int32_t balance = -margin;
+
+        Player player = board.player;
+        const uint64_t fromSquare = move.fromSquare();
+        const uint64_t toSquare = move.toSquare();
+
+        /* the position we are operation on - all attacks will be targeted here */
+        const BoardPosition target = move.toPos();
+
+        const auto promotionPiece = promotionToColorlessPiece(move.promotionType());
+
+        /* piece that will track the scoring of next piece */
+        Piece nextPiece = promotionPiece.has_value()
+            ? static_cast<Piece>(promotionPiece.value())
+            : board.getAttackerAtSquare(fromSquare, board.player).value();
+
+        /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
+        uint64_t occ = (board.occupation[Both] & ~fromSquare) | toSquare;
+
+        if (move.takeEnPessant()) {
+            occ &= ~core::enpessantCaptureSquare(toSquare, board.player);
+            balance += s_pieceValues[Pawn];
+        } else if (move.isCapture()) {
+            const Piece target = board.getTargetAtSquare(toSquare, board.player).value();
+            balance += s_pieceValues[target];
+        }
+
+        if (promotionPiece.has_value()) {
+            balance += s_pieceValues[*promotionPiece] - s_pieceValues[Pawn];
+        }
+
+        /* intial attack mask based on our "new board occupation" */
+        uint64_t attackers = getAttackers(board, target, occ) & occ;
+
+        while (true) {
+            player = nextPlayer(player);
+            if ((player == board.player && balance >= 0) || (player != board.player && balance <= 0)) {
+                break;
+            }
+
+            const auto piece = getLeastValuableAttacker(board, attackers, occ, player);
+            if (!piece.has_value())
+                break; /* no more attackers */
+
+            /* illegal position if king is attacked after capturing */
+            if (utils::isKing(*piece) && ((attackers & occ & board.occupation[nextPlayer(board.player)]) != 0)) {
+                break;
+            }
+
+            if (player == board.player) {
+                balance += s_pieceValues[nextPiece];
+            } else {
+                balance -= s_pieceValues[nextPiece];
+            }
+
+            /* update attackers after removing captured piece */
+            attackers = getAttackers(board, target, occ) & occ;
+            nextPiece = *piece;
+        }
+
+        return balance >= 0;
+    }
+
+    /* FIXME: use capture history as margin and replace with above */
+    static inline int32_t getCaptureScore(const BitBoard& board, movegen::Move move)
     {
         /* currently only works for captures */
         assert(move.isCapture());
@@ -40,7 +110,7 @@ public:
             : board.getAttackerAtSquare(fromSquare, board.player).value();
 
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
-        uint64_t occ = board.occupation[Both] & ~fromSquare;
+        uint64_t occ = (board.occupation[Both] & ~fromSquare) | toSquare;
 
         /* we need to clear en-pessant manually as the capture square is different from the target square */
         if (move.takeEnPessant()) {
@@ -109,7 +179,7 @@ private:
         constexpr auto pieces = player == PlayerWhite ? s_whitePieces : s_blackPieces;
 
         for (const auto piece : pieces) {
-            uint64_t subset = attackers & occ & board.pieces[piece];
+            uint64_t subset = attackers & board.pieces[piece];
             if (subset) {
                 occ &= ~utils::lsbToSquare(subset); /* clear the piece we just found */
                 return piece;
