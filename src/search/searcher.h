@@ -408,7 +408,7 @@ public:
                     reduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
-                    reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
+                    reduction += static_cast<int8_t>(cutNode * 2); /* reduce more when cut-node */
 
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
