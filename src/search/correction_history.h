@@ -19,6 +19,11 @@ namespace search {
 
 class CorrectionHistory {
 public:
+    inline void reset()
+    {
+        std::ranges::fill(m_table, CorrectionHistoryEntry {});
+    }
+
     inline Score getCorrection(const BitBoard& board) const
     {
         if (board.player == PlayerWhite) {
