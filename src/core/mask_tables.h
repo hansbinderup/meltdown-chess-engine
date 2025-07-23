@@ -3,40 +3,9 @@
 #include "core/board_defs.h"
 #include "magic_enum/magic_enum.hpp"
 
-namespace evaluation {
+namespace core {
 
 namespace {
-
-/* created here manually just to be explicit */
-constexpr uint64_t s_fileA = {
-    1ULL << A1 | 1ULL << A2 | 1ULL << A3 | 1ULL << A4
-    | 1ULL << A5 | 1ULL << A6 | 1ULL << A7 | 1ULL << A8
-};
-
-/* Bitmask of the entire row of a given position
- *
- * eg: table for A1-B1...H1:
- * -8- 0 0 0 0 0 0 0 0
- * -7- 0 0 0 0 0 0 0 0
- * -6- 0 0 0 0 0 0 0 0
- * -5- 0 0 0 0 0 0 0 0
- * -4- 0 0 0 0 0 0 0 0
- * -3- 0 0 0 0 0 0 0 0
- * -2- 0 0 0 0 0 0 0 0
- * -1- 1 1 1 1 1 1 1 1
- *     A B C D E F G H
- */
-constexpr auto generateRowMaskTable()
-{
-    std::array<uint64_t, s_amountSquares> data;
-
-    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
-        const auto row = pos / 8;
-        data[pos] = 0xffULL << (row * 8);
-    }
-
-    return data;
-}
 
 /* Bitmask of the entire file of a given position
  *
@@ -57,7 +26,7 @@ constexpr auto generateFileMaskTable()
 
     for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
         const auto file = pos % 8;
-        data[pos] = s_fileA << file;
+        data[pos] = s_aFileMask << file;
     }
 
     return data;
@@ -89,10 +58,10 @@ constexpr auto generateIsolationMaskTable()
          * Other files have isolation mask on both sides
          */
         if (file < 7)
-            data[pos] |= s_fileA << (file + 1);
+            data[pos] |= s_aFileMask << (file + 1);
 
         if (file > 0)
-            data[pos] |= s_fileA << (file - 1);
+            data[pos] |= s_aFileMask << (file - 1);
     }
 
     return data;
@@ -213,12 +182,50 @@ constexpr auto generateOutpostSquareMaskTable()
     return data;
 }
 
+constexpr auto generateCastlingRightMasks()
+{
+    std::array<uint8_t, s_amountSquares> data {};
+
+    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
+        switch (pos) {
+        case E1:
+            data[pos] = CastleWhiteKingSide | CastleWhiteQueenSide;
+            break;
+        case A1:
+            data[pos] = CastleWhiteQueenSide;
+            break;
+        case H1:
+            data[pos] = CastleWhiteKingSide;
+            break;
+        case E8:
+            data[pos] = CastleBlackKingSide | CastleBlackQueenSide;
+            break;
+        case A8:
+            data[pos] = CastleBlackQueenSide;
+            break;
+        case H8:
+            data[pos] = CastleBlackKingSide;
+            break;
+        default:
+            data[pos] = CastleNone;
+            break;
+        }
+    }
+
+    return data;
 }
 
-constexpr auto s_rowMaskTable = generateRowMaskTable();
 constexpr auto s_fileMaskTable = generateFileMaskTable();
 constexpr auto s_isolationMaskTable = generateIsolationMaskTable();
 constexpr auto s_passedPawnMaskTable = generatePassedPawnMaskTable();
 constexpr auto s_outpostSquareMaskTable = generateOutpostSquareMaskTable();
+constexpr auto s_castlingRightMaskTable = generateCastlingRightMasks();
+
+constexpr std::array<uint64_t, magic_enum::enum_count<Player>()> s_outpostRankMaskTable {
+    s_row4Mask | s_row5Mask | s_row6Mask,
+    s_row3Mask | s_row4Mask | s_row5Mask,
+};
+
+}
 
 }

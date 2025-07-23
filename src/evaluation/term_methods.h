@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/bit_board.h"
+#include "core/mask_tables.h"
 #include "evaluation/generated/tuned_terms.h"
-#include "evaluation/position_tables.h"
 #include "movegen/bishops.h"
 #include "movegen/kings.h"
 #include "movegen/knights.h"
@@ -53,11 +53,6 @@
 #define ADD_SCORE_MULTI(weightName, multi) ADD_SCORE_MULTI_INDEXED(weightName, multi, 0)
 
 namespace evaluation {
-
-constexpr std::array<uint64_t, magic_enum::enum_count<Player>()> s_outpostRankMaks {
-    s_row4Mask | s_row5Mask | s_row6Mask,
-    s_row3Mask | s_row4Mask | s_row5Mask,
-};
 
 /* A context to precompute heavy operations so we don't have to do that
  * multiple times for a single evaluation
@@ -141,20 +136,20 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
         ADD_SCORE_INDEXED(pieceValues, Pawn);
         ADD_SCORE_INDEXED(psqtPawns, utils::relativePosition<player>(pos));
 
-        const auto doubledPawns = std::popcount(ourPawns & s_fileMaskTable[pos]);
+        const auto doubledPawns = std::popcount(ourPawns & core::s_fileMaskTable[pos]);
         if (doubledPawns > 1)
             ADD_SCORE(doublePawnPenalty);
 
-        if ((ourPawns & s_isolationMaskTable[pos]) == 0)
+        if ((ourPawns & core::s_isolationMaskTable[pos]) == 0)
             ADD_SCORE(isolatedPawnPenalty);
 
-        if (s_passedPawnMaskTable[player][ourKingPos] & square) {
+        if (core::s_passedPawnMaskTable[player][ourKingPos] & square) {
             const uint8_t shieldDistance = std::min(utils::verticalDistance(ourKingPos, pos), pawnShieldSize);
             ADD_SCORE_INDEXED(pawnShieldBonus, shieldDistance - 1);
         }
 
         /* pawn storm -> advancing connected pawns together to apply pressure */
-        if (s_passedPawnMaskTable[opponent][theirKingPos] & square) {
+        if (core::s_passedPawnMaskTable[opponent][theirKingPos] & square) {
             const uint8_t shieldDistance = std::min(utils::verticalDistance(theirKingPos, pos), pawnStormSize);
             ADD_SCORE_INDEXED(pawnStormScore, shieldDistance - 1);
         }
@@ -173,7 +168,7 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
         /* passed pawn terms
          * no stoppers -> passed pawn
          * stoppers    -> check if candidate to become passed pawn */
-        const uint64_t stoppers = s_passedPawnMaskTable[player][pos] & theirPawns;
+        const uint64_t stoppers = core::s_passedPawnMaskTable[player][pos] & theirPawns;
         if (stoppers == 0) {
             /* scores requiring full context will be added in "getPassedPawnsScore" */
             ctx.passedPawns[player] |= square;
@@ -250,7 +245,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
         ctx.pieceAttacks[player][Knight] = moves;
         ctx.threats[player] |= moves;
 
-        if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_outpostRankMaks[player]) {
+        if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
             const bool isOutside = square & (s_aFileMask | s_hFileMask);
             const bool isDefended = square & pawnDefends;
 
@@ -313,7 +308,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         ctx.pieceAttacks[player][Bishop] = moves;
         ctx.threats[player] |= moves;
 
-        if (!(s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_outpostRankMaks[player]) {
+        if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
             const bool isOutside = square & (s_aFileMask | s_hFileMask);
             const bool isDefended = square & pawnDefends;
 
@@ -360,10 +355,10 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
         ctx.pieceAttacks[player][Rook] = moves;
         ctx.threats[player] |= moves;
 
-        if (((ourPawns | theirPawns) & s_fileMaskTable[pos]) == 0)
+        if (((ourPawns | theirPawns) & core::s_fileMaskTable[pos]) == 0)
             ADD_SCORE(rookOpenFileBonus);
 
-        if ((ourPawns & s_fileMaskTable[pos]) == 0)
+        if ((ourPawns & core::s_fileMaskTable[pos]) == 0)
             ADD_SCORE(rookSemiOpenFileBonus);
 
         if (rooks & row7Mask) {
@@ -401,10 +396,10 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
         ADD_SCORE_INDEXED(pieceValues, Queen);
         ADD_SCORE_INDEXED(psqtQueens, utils::relativePosition<player>(pos));
 
-        if (((ourPawns | theirPawns) & s_fileMaskTable[pos]) == 0)
+        if (((ourPawns | theirPawns) & core::s_fileMaskTable[pos]) == 0)
             ADD_SCORE(queenOpenFileBonus);
 
-        if ((ourPawns & s_fileMaskTable[pos]) == 0)
+        if ((ourPawns & core::s_fileMaskTable[pos]) == 0)
             ADD_SCORE(queenSemiOpenFileBonus);
 
         /* update mobility score based on possible moves that are not attacked by their pawns */
