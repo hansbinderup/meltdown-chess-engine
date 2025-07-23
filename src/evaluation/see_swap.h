@@ -95,7 +95,7 @@ public:
         }
 
         /* intial attack mask based on our "new board occupation" */
-        uint64_t attackers = getAttackers(board, target, occ) & occ;
+        uint64_t attackers = getAttackers(board, target, occ);
 
         while (attackers) {
             player = nextPlayer(player);
