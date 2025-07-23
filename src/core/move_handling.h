@@ -2,6 +2,7 @@
 
 #include "core/attack_generation.h"
 #include "core/bit_board.h"
+#include "core/mask_tables.h"
 #include "core/transposition.h"
 #include "core/zobrist_hashing.h"
 #include "movegen/move_generation.h"
@@ -12,46 +13,9 @@
 #include "fmt/ranges.h"
 #include "magic_enum/magic_enum.hpp"
 
-#include <cstring>
-
 namespace core {
 
 namespace {
-
-constexpr auto generateCastlingRightMasks()
-{
-    std::array<uint8_t, s_amountSquares> data {};
-
-    for (const auto pos : magic_enum::enum_values<BoardPosition>()) {
-        switch (pos) {
-        case E1:
-            data[pos] = CastleWhiteKingSide | CastleWhiteQueenSide;
-            break;
-        case A1:
-            data[pos] = CastleWhiteQueenSide;
-            break;
-        case H1:
-            data[pos] = CastleWhiteKingSide;
-            break;
-        case E8:
-            data[pos] = CastleBlackKingSide | CastleBlackQueenSide;
-            break;
-        case A8:
-            data[pos] = CastleBlackQueenSide;
-            break;
-        case H8:
-            data[pos] = CastleBlackKingSide;
-            break;
-        default:
-            data[pos] = CastleNone;
-            break;
-        }
-    }
-
-    return data;
-}
-
-constexpr auto s_castleRightMasks = generateCastlingRightMasks();
 
 constexpr static inline void clearPiece(uint64_t& piece, BoardPosition pos, Piece type, uint64_t& hash)
 {
@@ -73,7 +37,7 @@ constexpr static inline void movePiece(uint64_t& piece, BoardPosition fromPos, B
 
 constexpr inline void updateCastlingRights(BitBoard& board, BoardPosition pos)
 {
-    board.castlingRights &= ~s_castleRightMasks[pos];
+    board.castlingRights &= ~s_castlingRightMaskTable[pos];
 }
 
 template<Player player>
