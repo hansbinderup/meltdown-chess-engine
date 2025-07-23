@@ -31,7 +31,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         core::getAllMoves<movegen::MoveCapture>(*board, moves);
         REQUIRE(moves.count() == 1);
 
-        Score score = evaluation::SeeSwap::run(*board, moves[0]);
+        Score score = evaluation::SeeSwap::getCaptureScore(*board, moves[0]);
         REQUIRE(score == spsa::seePawnValue);
     }
 
@@ -48,7 +48,7 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
         REQUIRE(getPiece(*board, *move) == WhiteKnight);
         REQUIRE(move->toPos() == E5);
 
-        Score score = evaluation::SeeSwap::run(*board, *move);
+        Score score = evaluation::SeeSwap::getCaptureScore(*board, *move);
         REQUIRE(score == (spsa::seePawnValue - spsa::seeKnightValue));
     }
 }
