@@ -15,46 +15,6 @@
 
 namespace evaluation {
 
-namespace {
-
-template<Player player>
-constexpr auto generatePawnTable()
-{
-    /* pawn table with positions where pawns will be when attacking given target
-     * ie. opposite of attack generation */
-    std::array<uint64_t, s_amountSquares> table {};
-
-    if constexpr (player == PlayerWhite) {
-        for (uint8_t pos = A3; pos <= H8; pos++) {
-            const auto file = pos % 8;
-
-            if (file > 0) {
-                table[pos] |= 1ULL << (pos - 9);
-            }
-
-            if (file < 7) {
-                table[pos] |= 1ULL << (pos - 7);
-            }
-        }
-    } else {
-        for (uint8_t pos = A1; pos <= H6; pos++) {
-            const auto file = pos % 8;
-
-            if (file > 0) {
-                table[pos] |= 1ULL << (pos + 7);
-            }
-
-            if (file < 7) {
-                table[pos] |= 1ULL << (pos + 9);
-            }
-        }
-    }
-
-    return table;
-}
-
-}
-
 class SeeSwap {
 public:
     static inline int32_t run(const BitBoard& board, movegen::Move move)
@@ -135,8 +95,11 @@ private:
         const uint64_t hvSliders = board.pieces[WhiteRook] | board.pieces[BlackRook] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
         const uint64_t kings = board.pieces[WhiteKing] | board.pieces[BlackKing];
 
-        return (s_whitePawnTable[target] & board.pieces[WhitePawn])
-            | (s_blackPawnTable[target] & board.pieces[BlackPawn])
+        /* NOTE: for pawn attacks, we use White's attack patterns to compute Black's as well
+         * this works because the squares White pawns attack are exactly the ones Black pawns
+         * could attack *from* (i.e., the inverse perspective on the board) */
+        return (movegen::getPawnAttacksFromPos<PlayerWhite>(target) & board.pieces[BlackPawn])
+            | (movegen::getPawnAttacksFromPos<PlayerBlack>(target) & board.pieces[WhitePawn])
             | (movegen::getKnightMoves(target) & knights)
             | (movegen::getBishopMoves(target, occ) & diagSliders)
             | (movegen::getRookMoves(target, occ) & hvSliders)
@@ -167,9 +130,6 @@ private:
             return getLeastValuableAttacker<PlayerBlack>(board, attackers, occ);
         }
     }
-
-    constexpr static inline auto s_whitePawnTable = generatePawnTable<PlayerWhite>();
-    constexpr static inline auto s_blackPawnTable = generatePawnTable<PlayerBlack>();
 
     /* piece values simplified */
     TUNABLE_CONSTEXPR(auto)
