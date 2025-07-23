@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/mask_tables.h"
 #include "movegen/move_types.h"
 #include "utils/bit_operations.h"
 
@@ -160,8 +161,7 @@ static inline uint64_t getPawnAttacks(uint64_t pawns)
 template<Player player>
 static inline uint64_t getPawnAttacksFromPos(BoardPosition pos)
 {
-    const uint64_t square = utils::positionToSquare(pos);
-    return getPawnAttacks<player>(square);
+    return core::s_pawnAttackMaskTable[player][pos];
 }
 
 }
