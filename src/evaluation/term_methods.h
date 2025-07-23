@@ -54,11 +54,6 @@
 
 namespace evaluation {
 
-constexpr std::array<uint64_t, magic_enum::enum_count<Player>()> s_outpostRankMaks {
-    s_row4Mask | s_row5Mask | s_row6Mask,
-    s_row3Mask | s_row4Mask | s_row5Mask,
-};
-
 /* A context to precompute heavy operations so we don't have to do that
  * multiple times for a single evaluation
  * NOTE: Only values that are being reused between terms should be added here */
@@ -245,7 +240,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
         ctx.pieceAttacks[player][Knight] = moves;
         ctx.threats[player] |= moves;
 
-        if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_outpostRankMaks[player]) {
+        if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
             const bool isOutside = square & (s_aFileMask | s_hFileMask);
             const bool isDefended = square & pawnDefends;
 
@@ -308,7 +303,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         ctx.pieceAttacks[player][Bishop] = moves;
         ctx.threats[player] |= moves;
 
-        if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & s_outpostRankMaks[player]) {
+        if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
             const bool isOutside = square & (s_aFileMask | s_hFileMask);
             const bool isDefended = square & pawnDefends;
 
