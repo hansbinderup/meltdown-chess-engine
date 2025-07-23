@@ -56,6 +56,11 @@ public:
         }
     }
 
+    inline PickerPhase getPhase() const
+    {
+        return m_phase;
+    }
+
     constexpr uint16_t numGeneratedMoves()
     {
         return m_moves.count();
@@ -224,7 +229,7 @@ private:
     {
         for (uint16_t i = 0; i < m_moves.count(); i++) {
             if (m_moves[i].isCapture()) {
-                m_scores[i] = evaluation::SeeSwap::run(board, m_moves[i]);
+                m_scores[i] = evaluation::SeeSwap::getCaptureScore(board, m_moves[i]);
             } else if (m_moves[i].promotionType() == PromotionQueen) {
                 m_scores[i] = spsa::seeQueenValue;
             } else if (m_moves[i].isPromotionMove()) {
