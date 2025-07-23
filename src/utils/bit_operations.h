@@ -130,4 +130,9 @@ constexpr inline bool isKing(Piece piece)
     }
 }
 
+constexpr inline bool isKing(Piece piece)
+{
+    return piece == WhiteKing || piece == BlackKing;
+}
+
 }
