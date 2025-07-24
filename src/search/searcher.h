@@ -280,7 +280,7 @@ public:
                 if (!nullSearch) {
                     const Score nmpMargin = spsa::nmpBaseMargin + spsa::nmpMarginFactor * depth;
                     if (m_stackItr->eval + nmpMargin >= beta && !isRoot && !board.hasZugzwangProneMaterial()) {
-                        if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode)) {
+                        if (const auto nullMoveScore = nullMovePruning(board, depth, beta, cutNode, isImproving)) {
                             return nullMoveScore.value();
                         }
                     }
@@ -598,7 +598,7 @@ private:
      * null move pruning
      * https://www.chessprogramming.org/Null_Move_Pruning
      * */
-    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode)
+    std::optional<Score> nullMovePruning(const BitBoard& board, uint8_t depth, Score beta, bool cutNode, bool isImproving)
     {
         auto nullMoveBoard = board;
 
@@ -622,7 +622,7 @@ private:
         m_ply += 2;
 
         /* perform search with reduced depth (based on reduction limit) */
-        const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor);
+        const uint8_t reduction = std::min<uint8_t>(depth, spsa::nmpReductionBase + depth / spsa::nmpReductionFactor + isImproving);
         Score score = -zeroWindow(depth - reduction, nullMoveBoard, -beta + 1, !cutNode, true);
 
         m_ply -= 2;
