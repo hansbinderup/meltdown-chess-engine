@@ -258,7 +258,7 @@ public:
         }
 
         /* improving heuristics -> have the position improved since our last position? */
-        const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
+        const bool isImproving = checkIsImproving(isChecked);
 
         /* Max moves allowed by late move reduction */
         const uint64_t lmpMaxMoves = (spsa::lmpBase + spsa::lmpMargin * depth * depth) / (1 + spsa::lmpImproving * !isImproving);
@@ -708,6 +708,23 @@ private:
         }
 
         return std::nullopt;
+    }
+
+    inline bool checkIsImproving(bool isChecked)
+    {
+        if (isChecked) {
+            return false;
+        }
+
+        if (m_ply >= 2 && !scoreIsMate((m_stackItr - 2)->eval)) {
+            return m_stackItr->eval > (m_stackItr - 2)->eval;
+        }
+
+        if (m_ply >= 2 && !scoreIsMate((m_stackItr - 4)->eval)) {
+            return m_stackItr->eval > (m_stackItr - 4)->eval;
+        }
+
+        return true;
     }
 
     static inline uint8_t s_numSearchers {};
