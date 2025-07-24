@@ -36,7 +36,7 @@
     TUNABLE(efpDepthLimit, uint8_t, 6, 0, 12, 1)                    \
     TUNABLE(nmpBaseMargin, int8_t, -105, -200, 0, 10)               \
     TUNABLE(nmpMarginFactor, uint8_t, 23, 0, 100, 5)                \
-    TUNABLE(nmpReductionBase, uint8_t, 5, 1, 12, 1)                 \
+    TUNABLE(nmpReductionBase, uint8_t, 4, 1, 12, 1)                 \
     TUNABLE(nmpReductionFactor, uint8_t, 4, 1, 12, 1)               \
     TUNABLE(iirDepthLimit, uint8_t, 3, 2, 12, 1)                    \
     TUNABLE(lmpDepthLimit, uint8_t, 11, 1, 15, 1)                   \
