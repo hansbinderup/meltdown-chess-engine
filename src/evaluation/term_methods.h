@@ -129,6 +129,11 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
     /* add psqt king score here as it's the only static king score */
     ADD_SCORE_INDEXED(psqtKings, utils::relativePosition<player>(ourKingPos));
 
+    /* add score if our king attacks one or more of their pawns */
+    if (ctx.kingZone[player] & theirPawns) {
+        ADD_SCORE(kingAttackPawn);
+    }
+
     utils::bitIterate(ourPawns, [&](BoardPosition pos) {
         const uint64_t square = utils::positionToSquare(pos);
         const auto row = utils::relativeRow<player>(pos);
