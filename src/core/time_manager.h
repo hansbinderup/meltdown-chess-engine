@@ -11,32 +11,6 @@
 
 namespace {
 
-constexpr auto generateMovesLeft()
-{
-    const auto movesLeftFn = [](uint8_t ply) {
-        if (ply < 40)
-            return static_cast<uint8_t>(50 - ply); // Linear descent
-        else if (ply < 60)
-            return static_cast<uint8_t>(10 - (ply - 40) / 5); // Flattening near bottom
-        else if (ply < 70)
-            return static_cast<uint8_t>(7 + (ply - 60) / 2); // Small rise
-        else if (ply < 80)
-            return static_cast<uint8_t>(9); // Plateau
-        else if (ply < 90)
-            return static_cast<uint8_t>(10); // Slight increase
-        else
-            return static_cast<uint8_t>(11 + (ply - 90) / 10); // Trail off
-    };
-
-    std::array<uint8_t, 100> data {};
-    for (int i = 0; i < 100; i++)
-        data[i] = movesLeftFn(i);
-
-    return data;
-}
-
-constexpr auto s_movesLeftTable = generateMovesLeft();
-
 }
 
 class TimeManager {
@@ -260,6 +234,29 @@ private:
             return duration - s_moveOverhead;
         }
     }
+
+    constexpr static inline auto s_movesLeftTable = [] {
+        const auto movesLeftFn = [](uint8_t ply) {
+            if (ply < 40)
+                return static_cast<uint8_t>(50 - ply);
+            else if (ply < 60)
+                return static_cast<uint8_t>(10 - (ply - 40) / 5);
+            else if (ply < 70)
+                return static_cast<uint8_t>(7 + (ply - 60) / 2);
+            else if (ply < 80)
+                return static_cast<uint8_t>(9);
+            else if (ply < 90)
+                return static_cast<uint8_t>(10);
+            else
+                return static_cast<uint8_t>(11 + (ply - 90) / 10);
+        };
+
+        std::array<uint8_t, 100> data {};
+        for (int i = 0; i < 100; ++i)
+            data[i] = movesLeftFn(i);
+
+        return data;
+    }();
 
     static inline Duration s_whiteTime {};
     static inline Duration s_blackTime {};
