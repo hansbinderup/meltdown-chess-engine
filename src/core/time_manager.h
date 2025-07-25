@@ -9,6 +9,36 @@
 #include <cstdint>
 #include <optional>
 
+namespace {
+
+constexpr auto generateMovesLeft()
+{
+    const auto movesLeftFn = [](uint8_t ply) {
+        if (ply < 40)
+            return static_cast<uint8_t>(50 - ply); // Linear descent
+        else if (ply < 60)
+            return static_cast<uint8_t>(10 - (ply - 40) / 5); // Flattening near bottom
+        else if (ply < 70)
+            return static_cast<uint8_t>(7 + (ply - 60) / 2); // Small rise
+        else if (ply < 80)
+            return static_cast<uint8_t>(9); // Plateau
+        else if (ply < 90)
+            return static_cast<uint8_t>(10); // Slight increase
+        else
+            return static_cast<uint8_t>(11 + (ply - 90) / 10); // Trail off
+    };
+
+    std::array<uint8_t, 100> data {};
+    for (int i = 0; i < 100; i++)
+        data[i] = movesLeftFn(i);
+
+    return data;
+}
+
+constexpr auto s_movesLeftTable = generateMovesLeft();
+
+}
+
 class TimeManager {
 
 public:
@@ -84,7 +114,7 @@ public:
         s_blackTime = Duration::zero();
         s_whiteMoveInc = Duration::zero();
         s_blackMoveInc = Duration::zero();
-        s_movesToGo = 0;
+        s_movesToGo.reset();
         s_moveTime.reset();
         s_timedOut = false;
 
@@ -109,7 +139,11 @@ public:
 
     static inline void setMovesToGo(uint64_t moves)
     {
-        s_movesToGo = moves;
+        if (moves == 0) {
+            s_movesToGo.reset();
+        } else {
+            s_movesToGo = moves;
+        }
     }
 
     static inline void setMoveTime(uint64_t time)
@@ -201,10 +235,11 @@ private:
              * https://github.com/sroelants/simbelmyne/blob/main/docs/time-management.md */
 
             /* if no "movesToGo" is provided then try to estimate one using our base parameters */
-            const auto baseTime = (s_movesToGo
-                                          ? timeLeft / s_movesToGo
-                                          : timeLeft * spsa::timeManBaseFrac / 1000.0)
-                + timeInc * spsa::timeManIncFrac / 100.0;
+            const uint16_t tableMovesIndex = std::min<uint16_t>(board.fullMoves, s_movesLeftTable.size() - 1);
+            const uint16_t tableMoves = s_movesLeftTable[tableMovesIndex];
+            const uint16_t movesToGo = s_movesToGo.value_or(tableMoves);
+
+            const auto baseTime = timeLeft / movesToGo + timeInc * spsa::timeManIncFrac / 100.0;
 
             const auto limitTime = duration_cast<milliseconds>(timeLeft * spsa::timeManLimitFrac / 100.0);
 
@@ -228,7 +263,7 @@ private:
 
     static inline Duration s_whiteTime {};
     static inline Duration s_blackTime {};
-    static inline uint64_t s_movesToGo {};
+    static inline std::optional<uint16_t> s_movesToGo {};
     static inline std::optional<Duration> s_moveTime {};
     static inline Duration s_whiteMoveInc {};
     static inline Duration s_blackMoveInc {};
