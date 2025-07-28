@@ -58,6 +58,8 @@ public:
 
         /* intial attack mask based on our "new board occupation" */
         uint64_t attackers = getAttackers(board, target, occ);
+        const uint64_t diagonalSliders = board.diagonalSliders();
+        const uint64_t hvSliders = board.horizontalVerticalSliders();
 
         while (attackers) {
             depth++;
@@ -68,12 +70,19 @@ public:
             if (!piece.has_value())
                 break; // No more attackers
 
+            /* potential new bishop moves? */
+            if (utils::isPawn(*piece) || utils::isBishop(*piece) || utils::isQueen(*piece)) {
+                attackers |= movegen::getBishopMoves(target, occ) & diagonalSliders;
+            }
+
+            /* potential new rook moves? */
+            if (utils::isRook(*piece) || utils::isQueen(*piece)) {
+                attackers |= movegen::getRookMoves(target, occ) & hvSliders;
+            }
+
             /* update speculative score */
             gain[depth] = s_pieceValues[nextPiece] - gain[depth - 1];
             nextPiece = *piece;
-
-            /* update attackers after removing captured piece */
-            attackers = getAttackers(board, target, occ);
         }
 
         /* Backtrack the sequence and evaluate the score */
@@ -89,8 +98,8 @@ private:
     {
         /* create masks for both sides and return a mask with all attacks from both sides */
         const uint64_t knights = board.pieces[WhiteKnight] | board.pieces[BlackKnight];
-        const uint64_t diagSliders = board.pieces[WhiteBishop] | board.pieces[BlackBishop] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
-        const uint64_t hvSliders = board.pieces[WhiteRook] | board.pieces[BlackRook] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
+        const uint64_t diagSliders = board.diagonalSliders();
+        const uint64_t hvSliders = board.horizontalVerticalSliders();
         const uint64_t kings = board.pieces[WhiteKing] | board.pieces[BlackKing];
 
         /* NOTE: for pawn attacks, we use White's attack patterns to compute Black's as well
