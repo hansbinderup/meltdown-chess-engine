@@ -137,6 +137,16 @@ struct BitBoard {
         return false;
     }
 
+    inline uint64_t diagonalSliders() const
+    {
+        return pieces[WhiteBishop] | pieces[BlackBishop] | pieces[WhiteQueen] | pieces[BlackQueen];
+    }
+
+    inline uint64_t horizontalVerticalSliders() const
+    {
+        return pieces[WhiteRook] | pieces[BlackRook] | pieces[WhiteQueen] | pieces[BlackQueen];
+    }
+
     std::array<uint64_t, magic_enum::enum_count<Piece>()> pieces {};
     std::array<uint64_t, magic_enum::enum_count<Occupation>()> occupation {};
     std::array<uint64_t, magic_enum::enum_count<Player>()> attacks {};
