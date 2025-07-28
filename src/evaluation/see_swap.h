@@ -63,6 +63,7 @@ public:
             depth++;
 
             player = nextPlayer(player);
+            attackers &= occ;
             const auto piece = getLeastValuableAttacker(board, attackers, occ, player);
             if (!piece.has_value())
                 break; // No more attackers
@@ -109,7 +110,7 @@ private:
         constexpr auto pieces = player == PlayerWhite ? s_whitePieces : s_blackPieces;
 
         for (const auto piece : pieces) {
-            uint64_t subset = attackers & occ & board.pieces[piece];
+            uint64_t subset = attackers & board.pieces[piece];
             if (subset) {
                 occ &= ~utils::lsbToSquare(subset); /* clear the piece we just found */
                 return piece;
