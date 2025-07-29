@@ -317,6 +317,7 @@ public:
         }
 
         auto phase = PickerPhase::GenerateMoves;
+        Score maxScore = s_maxScore;
 
         if (syzygy::isTableActive(board)) {
             /* generateSyzygyMoves is not thread safe - allow primary searcher only to take this path! */
@@ -342,8 +343,10 @@ public:
                      * to help guide pruning and avoid wasting effort */
                     if (isPv && wdlTtFlag == core::TtBeta) {
                         alpha = std::max(alpha, wdlScore);
-                    } else if (isPv && wdlTtFlag == core::TtAlpha) {
-                        beta = std::min(beta, wdlScore);
+                    }
+
+                    if (isPv && wdlTtFlag == core::TtAlpha) {
+                        maxScore = wdlScore;
                     }
                 }
             }
@@ -478,6 +481,9 @@ public:
                 return 0;
             }
         }
+
+        /* score should never exceed the max given score */
+        bestScore = std::min(bestScore, maxScore);
 
         /* update correction history only if all the following conditions are met:
          *   - the side to move is not in check  → avoids "unstable" positions
