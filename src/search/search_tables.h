@@ -109,9 +109,9 @@ public:
         return m_correctionHistory.getCorrection(board);
     }
 
-    inline void updateContinuationHistory(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove, Score score)
+    inline void updateContinuationHistory(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove, Score bestScore, Score eval, uint8_t depth)
     {
-        m_continuationHistory.update(prevPiece, prevPos, currentMove, score);
+        m_continuationHistory.update(prevPiece, prevPos, currentMove, bestScore, eval, depth);
     }
 
     inline Score getContinuationHistory(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove) const

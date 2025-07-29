@@ -464,7 +464,7 @@ public:
                 if constexpr (!isRoot) {
                     const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);
-                    updateContinuationHistory(move, score);
+                    updateContinuationHistory(move, bestScore, m_stackItr->eval, depth);
                 }
 
                 break;
@@ -730,27 +730,27 @@ private:
         return correction;
     }
 
-    void updateContinuationHistory(movegen::Move move, Score score)
+    void updateContinuationHistory(movegen::Move move, Score bestScore, Score eval, uint8_t depth)
     {
         if (m_ply >= 1) {
             const auto& s = m_stack[m_ply - 1];
             if (!s.move.isNull()) {
                 const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
-                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, score);
+                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, bestScore, eval, depth);
             }
         }
         if (m_ply >= 2) {
             const auto& s = m_stack[m_ply - 2];
             if (!s.move.isNull()) {
                 const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
-                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, score);
+                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, bestScore, eval, depth);
             }
         }
         if (m_ply >= 4) {
             const auto& s = m_stack[m_ply - 4];
             if (!s.move.isNull()) {
                 const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
-                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, score);
+                m_searchTables.updateContinuationHistory(*prevPiece, s.move.toPos(), move, bestScore, eval, depth);
             }
         }
     }
