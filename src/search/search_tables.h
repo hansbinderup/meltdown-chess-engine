@@ -17,6 +17,7 @@ public:
         m_historyMoves.reset();
         m_counterMoves.reset();
         m_pvTable.reset();
+        m_continuationHistory.reset();
     }
 
     inline bool isPvMove(movegen::Move move, uint8_t ply) const

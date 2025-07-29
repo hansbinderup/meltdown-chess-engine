@@ -10,6 +10,11 @@ namespace search {
 
 class ContinuationHistory {
 public:
+    void reset()
+    {
+        m_continuationTable = {};
+    }
+
     void update(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove, Score score)
     {
         m_continuationTable[prevPiece][prevPos][currentMove.fromPos()][currentMove.toPos()] += score;
