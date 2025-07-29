@@ -3,6 +3,7 @@
 #include "core/bit_board.h"
 #include "core/board_defs.h"
 #include "movegen/move_types.h"
+#include "spsa/parameters.h"
 
 #include <array>
 
@@ -22,7 +23,7 @@ public:
 
     Score getScore(Piece prevPiece, BoardPosition prevPos, movegen::Move currentMove) const
     {
-        return m_continuationTable[prevPiece][prevPos][currentMove.fromPos()][currentMove.toPos()];
+        return m_continuationTable[prevPiece][prevPos][currentMove.fromPos()][currentMove.toPos()] / spsa::continuationDivisor;
     }
 
 private:

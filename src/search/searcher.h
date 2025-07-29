@@ -723,7 +723,7 @@ private:
             const auto& s = m_stack[m_ply - 1];
             if (!s.move.isNull()) {
                 const auto prevPiece = s.board.getTargetAtSquare(s.move.toSquare(), s.board.player);
-                correction += m_searchTables.getContinuationHistory(*prevPiece, s.move.toPos(), m_stackItr->move) / spsa::continuationDivisor;
+                correction += m_searchTables.getContinuationHistory(*prevPiece, s.move.toPos(), m_stackItr->move);
             }
         }
 
