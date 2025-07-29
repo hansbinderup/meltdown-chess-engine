@@ -464,7 +464,6 @@ public:
                 if constexpr (!isRoot) {
                     const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);
-                    updateContinuationHistory(move, bestScore, m_stackItr->eval, depth);
                 }
 
                 break;
@@ -494,6 +493,7 @@ public:
             && !(ttFlag == core::TtFlag::TtAlpha && bestScore >= m_stackItr->eval)
             && !(ttFlag == core::TtFlag::TtBeta && bestScore <= m_stackItr->eval)) {
             m_searchTables.updateCorrectionHistory(board, depth, bestScore, m_stackItr->eval);
+            updateContinuationHistory(bestMove, bestScore, m_stackItr->eval, depth);
         }
 
         core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval - correction, bestMove, ttPv, depth, m_ply, ttFlag);
