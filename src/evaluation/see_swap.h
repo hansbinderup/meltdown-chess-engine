@@ -53,16 +53,13 @@ public:
 
         /* subtract pawn from promotion value */
         if (promotionPiece.has_value()) {
-            gain[depth] -= s_pieceValues[Pawn];
+            gain[depth] += s_pieceValues[*promotionPiece] - s_pieceValues[Pawn];
         }
 
         /* intial attack mask based on our "new board occupation" */
-        uint64_t attackers = getAttackers(board, target, occ);
+        uint64_t attackers = getAttackers(board, target, occ) & occ;
 
-        if (attackers == 0)
-            return 0; // No attackers, no exchanges
-
-        while (attackers) {
+        while (true) {
             depth++;
 
             player = nextPlayer(player);
@@ -75,7 +72,7 @@ public:
             nextPiece = *piece;
 
             /* update attackers after removing captured piece */
-            attackers = getAttackers(board, target, occ);
+            attackers = getAttackers(board, target, occ) & occ;
         }
 
         /* Backtrack the sequence and evaluate the score */

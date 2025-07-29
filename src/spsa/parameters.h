@@ -55,11 +55,11 @@
     TUNABLE(timeManNodeFracBase, uint8_t, 146, 1, 200, 10)          \
     TUNABLE(timeManNodeFracMultiplier, uint8_t, 200, 1, 200, 10)    \
     TUNABLE(timeManScoreMargin, uint8_t, 9, 1, 20, 1)               \
-    TUNABLE(seePawnValue, int32_t, 115, 50, 200, 5)                 \
-    TUNABLE(seeKnightValue, int32_t, 403, 200, 600, 10)             \
-    TUNABLE(seeBishopValue, int32_t, 432, 200, 600, 10)             \
-    TUNABLE(seeRookValue, int32_t, 653, 400, 1000, 10)              \
-    TUNABLE(seeQueenValue, int32_t, 1006, 800, 1500, 10)
+    TUNABLE(seePawnValue, int32_t, 100, 50, 200, 5)                 \
+    TUNABLE(seeKnightValue, int32_t, 300, 200, 500, 10)             \
+    TUNABLE(seeBishopValue, int32_t, 300, 200, 500, 10)             \
+    TUNABLE(seeRookValue, int32_t, 500, 350, 750, 10)               \
+    TUNABLE(seeQueenValue, int32_t, 900, 750, 1150, 10)
 
 #ifdef SPSA
 
