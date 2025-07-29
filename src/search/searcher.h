@@ -450,7 +450,6 @@ public:
                 ttFlag = core::TtExact;
                 bestMove = move;
 
-                m_searchTables.updateHistoryMoves(board, move, m_ply);
                 m_searchTables.updatePvTable(move, m_ply);
             }
 
@@ -479,18 +478,19 @@ public:
             }
         }
 
-        /* update correction history only if all the following conditions are met:
+        /* update history only if all the following conditions are met:
          *   - the side to move is not in check  → avoids "unstable" positions
          *   - the best move is quiet            → excludes tactical/noisy positions
          *   - not an alpha cutoff               → avoids biased updates from fail-high
          *   - not a beta cutoff                 → avoids biased updates from fail-low
          *
-         * this ensures only stable, meaningful positions contribute to correction history */
+         * this ensures only stable, meaningful positions contribute to histories */
         if (!isChecked
             && bestMove.isQuietMove()
             && !(ttFlag == core::TtFlag::TtAlpha && bestScore >= m_stackItr->eval)
             && !(ttFlag == core::TtFlag::TtBeta && bestScore <= m_stackItr->eval)) {
             m_searchTables.updateCorrectionHistory(board, depth, bestScore, m_stackItr->eval);
+            m_searchTables.updateHistoryMoves(board, bestMove, m_ply);
         }
 
         core::TranspositionTable::writeEntry(m_stackItr->board.hash, bestScore, m_stackItr->eval - correction, bestMove, ttPv, depth, m_ply, ttFlag);
