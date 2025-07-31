@@ -242,7 +242,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
-        ctx.pieceAttacks[player][Knight] = moves;
+        ctx.pieceAttacks[player][Knight] |= moves;
         ctx.threats[player] |= moves;
 
         if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
@@ -305,7 +305,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
-        ctx.pieceAttacks[player][Bishop] = moves;
+        ctx.pieceAttacks[player][Bishop] |= moves;
         ctx.threats[player] |= moves;
 
         if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
@@ -352,7 +352,7 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
-        ctx.pieceAttacks[player][Rook] = moves;
+        ctx.pieceAttacks[player][Rook] |= moves;
         ctx.threats[player] |= moves;
 
         if (((ourPawns | theirPawns) & core::s_fileMaskTable[pos]) == 0)
@@ -408,7 +408,7 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
-        ctx.pieceAttacks[player][Queen] = moves;
+        ctx.pieceAttacks[player][Queen] |= moves;
         ctx.threats[player] |= moves;
     });
 
@@ -427,6 +427,7 @@ static inline TermScore getKingScore(const BitBoard& board, TermContext& ctx)
         const uint64_t moves = movegen::getKingMoves(pos) & ~board.occupation[player];
 
         ctx.threats[player] |= moves;
+        ctx.pieceAttacks[player][King] |= moves;
 
         /* virtual mobility - replace king with queen to see potential attacks for sliding pieces */
         const uint64_t virtualMoves
