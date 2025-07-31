@@ -340,6 +340,7 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
     const uint64_t theirPawnAttacks = ctx.pawnAttacks[opponent];
 
     utils::bitIterate(rooks, [&](BoardPosition pos) {
+        const uint64_t square = utils::positionToSquare(pos);
         const uint64_t moves = movegen::getRookMoves(pos, board.occupation[Both]) & ~board.occupation[player];
 
         phaseScore += s_piecePhaseValues[Rook];
@@ -361,7 +362,7 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
         if ((ourPawns & core::s_fileMaskTable[pos]) == 0)
             ADD_SCORE(rookSemiOpenFileBonus);
 
-        if (rooks & row7Mask) {
+        if (square & row7Mask) {
             if ((theirPawns & row7Mask) || (theirKings & row8Mask)) {
                 ADD_SCORE(rook7thRankBonus);
             }
