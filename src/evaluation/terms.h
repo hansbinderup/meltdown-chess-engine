@@ -51,6 +51,11 @@ using WeightTable = std::array<TermScore, T>;
     TERM(safeChecks, 5)                \
     TERM(unsafeChecks, 5)              \
     TERM(pawnPushThreats, 6)           \
+    TERM(weakPawnAttacked, 1)          \
+    TERM(weakMinorKingAttacked, 1)     \
+    TERM(weakMinorMajorAttacked, 1)    \
+    TERM(weakRookKingAttacked, 1)      \
+    TERM(rookAttackedByLesser, 1)      \
     TERM(psqtPawns, 64)                \
     TERM(psqtKnights, 64)              \
     TERM(psqtBishops, 64)              \

@@ -57,6 +57,7 @@ public:
         APPLY_SCORE(getChecksScore, board, ctx);
         APPLY_SCORE(getPawnPushThreatScore, board, ctx);
         APPLY_SCORE(getPassedPawnsScore, board, ctx);
+        APPLY_SCORE(getWeakPieceThreats, board, ctx);
 
         const Score evaluation = score.phaseScore(m_phase);
         return board.player == PlayerWhite ? evaluation : -evaluation;
@@ -84,6 +85,7 @@ private:
             .attacksToKingZone { 0, 0 },
             .pieceAttacks {},
             .threats { 0, 0 },
+            .multiThreats { 0, 0 },
             .passedPawns { 0, 0 },
         };
 

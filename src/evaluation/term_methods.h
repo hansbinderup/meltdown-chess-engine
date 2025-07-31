@@ -69,6 +69,7 @@ struct TermContext {
 
     /* all accumulated attacks -> threats from a given player */
     std::array<uint64_t, magic_enum::enum_count<Player>()> threats;
+    std::array<uint64_t, magic_enum::enum_count<Player>()> multiThreats;
 
     /* squares of all passed pawns -> used to compute free and protected pawns */
     std::array<uint64_t, magic_enum::enum_count<Player>()> passedPawns;
@@ -243,6 +244,7 @@ static inline TermScore getKnightScore(const BitBoard& board, TermContext& ctx, 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Knight] |= moves;
+        ctx.multiThreats[player] |= moves & ctx.threats[player];
         ctx.threats[player] |= moves;
 
         if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
@@ -306,6 +308,7 @@ static inline TermScore getBishopScore(const BitBoard& board, TermContext& ctx, 
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Bishop] |= moves;
+        ctx.multiThreats[player] |= moves & ctx.threats[player];
         ctx.threats[player] |= moves;
 
         if (!(core::s_outpostSquareMaskTable[player][pos] & theirPawns) && square & core::s_outpostRankMaskTable[player]) {
@@ -354,6 +357,7 @@ static inline TermScore getRookScore(const BitBoard& board, TermContext& ctx, ui
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Rook] |= moves;
+        ctx.multiThreats[player] |= moves & ctx.threats[player];
         ctx.threats[player] |= moves;
 
         if (((ourPawns | theirPawns) & core::s_fileMaskTable[pos]) == 0)
@@ -410,6 +414,7 @@ static inline TermScore getQueenScore(const BitBoard& board, TermContext& ctx, u
         /* moves into opponent king zone -> update potential king attacks */
         ctx.attacksToKingZone[opponent] += std::popcount(moves & ctx.kingZone[opponent]);
         ctx.pieceAttacks[player][Queen] |= moves;
+        ctx.multiThreats[player] |= moves & ctx.threats[player];
         ctx.threats[player] |= moves;
     });
 
@@ -427,6 +432,7 @@ static inline TermScore getKingScore(const BitBoard& board, TermContext& ctx)
     utils::bitIterate(king, [&](BoardPosition pos) {
         const uint64_t moves = movegen::getKingMoves(pos) & ~board.occupation[player];
 
+        ctx.multiThreats[player] |= moves & ctx.threats[player];
         ctx.threats[player] |= moves;
         ctx.pieceAttacks[player][King] |= moves;
 
@@ -614,6 +620,36 @@ static inline TermScore getPassedPawnsScore(const BitBoard& board, TermContext& 
             ADD_SCORE(pawnSquareRuleBonus);
         }
     });
+
+    return score;
+}
+
+template<Player player>
+static inline TermScore getWeakPieceThreats(const BitBoard& board, TermContext& ctx)
+{
+    TermScore score(0, 0);
+
+    constexpr Player opponent = nextPlayer(player);
+    constexpr Piece ourPawn = player == PlayerWhite ? WhitePawn : BlackPawn;
+    constexpr Piece ourRook = player == PlayerWhite ? WhiteRook : BlackRook;
+
+    const uint64_t majorAttack = ctx.pieceAttacks[opponent][Rook] | ctx.pieceAttacks[opponent][Queen];
+    const uint64_t minorAttack = ctx.pieceAttacks[opponent][Knight] | ctx.pieceAttacks[opponent][Bishop];
+    const uint64_t kingAttack = ctx.pieceAttacks[opponent][King];
+    const uint64_t pawnAttack = ctx.pieceAttacks[opponent][Pawn];
+
+    const uint64_t minors = (board.pieces[WhiteKnight] | board.pieces[WhiteBishop] | board.pieces[BlackKnight] | board.pieces[BlackBishop]);
+    const uint64_t poorlyDefended
+        = (ctx.threats[opponent] & ~ctx.threats[player])
+        | (ctx.multiThreats[opponent] & ~ctx.multiThreats[player] & ~ctx.pieceAttacks[player][Pawn]);
+
+    const uint64_t weakMinors = minors & poorlyDefended;
+
+    ADD_SCORE_MULTI(weakPawnAttacked, std::popcount(board.pieces[ourPawn] & ~pawnAttack & poorlyDefended));
+    ADD_SCORE_MULTI(weakMinorKingAttacked, std::popcount(weakMinors & kingAttack));
+    ADD_SCORE_MULTI(weakMinorMajorAttacked, std::popcount(weakMinors & majorAttack));
+    ADD_SCORE_MULTI(weakRookKingAttacked, std::popcount(board.pieces[ourRook] & poorlyDefended & kingAttack));
+    ADD_SCORE_MULTI(rookAttackedByLesser, std::popcount(board.pieces[ourRook] & (minorAttack | pawnAttack)));
 
     return score;
 }
