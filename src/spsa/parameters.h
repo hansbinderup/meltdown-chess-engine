@@ -43,9 +43,9 @@
     TUNABLE(lmpBase, uint64_t, 9, 0, 15, 1)                         \
     TUNABLE(lmpMargin, uint64_t, 3, 1, 10, 1)                       \
     TUNABLE(lmpImproving, uint64_t, 1, 0, 5, 1)                     \
-    TUNABLE(seeQuietMargin, uint8_t, 60, 0, 200, 10)                \
-    TUNABLE(seeNoisyMargin, uint8_t, 20, 0, 200, 10)                \
-    TUNABLE(seeDepthLimit, uint8_t, 10, 0, 15, 1)                   \
+    TUNABLE(seeQuietMargin, uint8_t, 65, 0, 200, 10)                \
+    TUNABLE(seeNoisyMargin, uint8_t, 25, 0, 100, 5)                 \
+    TUNABLE(seeDepthLimit, uint8_t, 10, 0, 20, 1)                   \
     TUNABLE(aspirationWindow, uint8_t, 60, 10, 100, 5)              \
     TUNABLE(pawnCorrectionWeight, uint16_t, 268, 100, 500, 25)      \
     TUNABLE(materialCorrectionWeight, uint16_t, 884, 500, 1500, 50) \
@@ -58,11 +58,11 @@
     TUNABLE(timeManNodeFracBase, uint8_t, 146, 1, 200, 10)          \
     TUNABLE(timeManNodeFracMultiplier, uint8_t, 200, 1, 200, 10)    \
     TUNABLE(timeManScoreMargin, uint8_t, 9, 1, 20, 1)               \
-    TUNABLE(seePawnValue, int32_t, 100, 50, 200, 5)                 \
-    TUNABLE(seeKnightValue, int32_t, 300, 200, 500, 10)             \
-    TUNABLE(seeBishopValue, int32_t, 300, 200, 500, 10)             \
-    TUNABLE(seeRookValue, int32_t, 500, 350, 750, 10)               \
-    TUNABLE(seeQueenValue, int32_t, 900, 750, 1150, 10)
+    TUNABLE(seePawnValue, int32_t, 100, 50, 200, 10)                \
+    TUNABLE(seeKnightValue, int32_t, 300, 200, 600, 20)             \
+    TUNABLE(seeBishopValue, int32_t, 300, 200, 600, 20)             \
+    TUNABLE(seeRookValue, int32_t, 500, 350, 850, 20)               \
+    TUNABLE(seeQueenValue, int32_t, 900, 750, 1500, 20)
 
 #ifdef SPSA
 

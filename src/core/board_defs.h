@@ -2,7 +2,6 @@
 
 #include "evaluation/score.h"
 #include "magic_enum/magic_enum.hpp"
-#include "spsa/parameters.h"
 
 #include <array>
 #include <chrono>
@@ -133,26 +132,6 @@ constexpr static inline std::array<uint8_t, s_amountPieces> s_piecePhaseValues {
     0, 1, 1, 2, 4, 0, /* white */
     0, 1, 1, 2, 4, 0, /* black */
 };
-
-/* piece values simplified */
-TUNABLE_CONSTEXPR(auto)
-s_pieceValues = std::to_array<int32_t>(
-    {
-        /* white pieces */
-        spsa::seePawnValue,
-        spsa::seeKnightValue,
-        spsa::seeBishopValue,
-        spsa::seeRookValue,
-        spsa::seeQueenValue,
-        s_maxScore,
-        /* black pieces */
-        spsa::seePawnValue,
-        spsa::seeKnightValue,
-        spsa::seeBishopValue,
-        spsa::seeRookValue,
-        spsa::seeQueenValue,
-        s_maxScore,
-    });
 
 constexpr static inline uint8_t s_maxSearchDepth { 128 };
 constexpr static inline uint8_t s_amountSquares { 64 };
