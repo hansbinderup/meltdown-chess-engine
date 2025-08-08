@@ -1,5 +1,6 @@
 #pragma once
 
+#include "search/capture_history.h"
 #include "search/correction_history.h"
 #include "search/counter_moves.h"
 #include "search/history_moves.h"
@@ -107,6 +108,22 @@ public:
         return m_correctionHistory.getCorrection(board);
     }
 
+    inline int16_t getCaptureHistory(Piece attacker, BoardPosition toPos, Piece target)
+    {
+        return m_captureHistory.getScore(attacker, toPos, target);
+    }
+
+    template<bool isPositive>
+    inline void updateCaptureHistory(const BitBoard& board, uint8_t depth, movegen::Move move)
+    {
+        m_captureHistory.update<isPositive>(board, depth, move);
+    }
+
+    inline void updateTemp(const BitBoard& board, uint8_t depth, movegen::Move move)
+    {
+        m_captureHistory.update<true>(board, depth, move);
+    }
+
 private:
     PVTable m_pvTable {};
 
@@ -114,5 +131,6 @@ private:
     HistoryMoves m_historyMoves {};
     CounterMoves m_counterMoves {};
     CorrectionHistory m_correctionHistory {};
+    CaptureHistory m_captureHistory {};
 };
 };

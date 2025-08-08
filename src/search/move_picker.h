@@ -18,11 +18,14 @@ enum KillerMoveType {
     Second,
 };
 
+// Noisy and quiet scores are never compared
 enum MovePickerOffsets : int32_t {
+    GoodCapture = 50000,
+    BadCapture = -50000,
     KillerMoveFirst = 100003,
     KillerMoveSecond = 100002,
     CounterMove = 100001,
-    BadPromotions = -10000,
+    BadPromotions = -100000,
 };
 
 enum PickerPhase {
@@ -54,6 +57,8 @@ public:
             if (m_ttMove && !m_ttMove->isCapture())
                 m_ttMove.reset();
         }
+
+        m_captureScores.fill(std::numeric_limits<int16_t>::min());
     }
 
     inline PickerPhase getPhase() const
@@ -195,6 +200,7 @@ private:
 
         m_moves[pos] = m_moves[m_tail - 1];
         m_scores[pos] = m_scores[m_tail - 1];
+        m_captureScores[pos] = m_scores[m_tail - 1];
 
         m_tail--;
 
@@ -233,11 +239,18 @@ private:
     {
         for (uint16_t i = 0; i < m_tail; i++) {
             if (m_moves[i].isCapture()) {
-                m_scores[i] = evaluation::SeeSwap::getCaptureScore(board, m_moves[i]);
+                m_scores[i] = evaluation::SeeSwap::isGreaterThanMargin(board, m_moves[i], 0) ? 1000 : -1000;
+
+                const auto attacker = board.getAttackerAtSquare(m_moves[i].fromSquare(), board.player).value();
+                const auto victim = m_moves[i].takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(m_moves[i].toSquare(), board.player).value();
+                m_captureScores[i] = m_searchTables.getCaptureHistory(attacker, m_moves[i].toPos(), victim);
             } else if (m_moves[i].promotionType() == PromotionQueen) {
                 m_scores[i] = spsa::seeQueenValue;
+                // Hack: give promotions a low capture score and include them in sorting by capture score
+                m_captureScores[i] = std::numeric_limits<int16_t>::min() + 1000;
             } else if (m_moves[i].isPromotionMove()) {
                 m_scores[i] = MovePickerOffsets::BadPromotions;
+                m_captureScores[i] = std::numeric_limits<int16_t>::min() + 1000;
             }
         }
     }
@@ -245,12 +258,13 @@ private:
     template<bool isGood>
     constexpr std::optional<movegen::Move> pickNoisyMove()
     {
-        int32_t bestScore = std::numeric_limits<int32_t>::min();
+        int32_t bestCaptureScore = std::numeric_limits<int32_t>::min();
         std::optional<uint16_t> bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_tail; i++) {
             if (m_moves[i].isNoisyMove()) {
                 const int32_t score = m_scores[i];
+                const int16_t captureScore = m_captureScores[i];
 
                 if constexpr (isGood) {
                     if (score < 0) {
@@ -264,13 +278,12 @@ private:
                     }
                 }
 
-                if (score > bestScore) {
-                    bestScore = score;
+                if (captureScore > bestCaptureScore) {
+                    bestCaptureScore = score;
                     bestMoveIndex = i;
                 }
             }
         }
-
         return bestMoveIndex ? std::make_optional(pickMove(bestMoveIndex.value())) : std::nullopt;
     }
 
@@ -326,6 +339,7 @@ private:
 
     movegen::ValidMoves m_moves {};
     std::array<int32_t, s_maxMoves> m_scores {};
+    std::array<int16_t, s_maxMoves> m_captureScores {};
     /* Non-syzygy: pick within [0, m_tail), fill gap with last unpicked move, decrease tail */
     uint16_t m_tail {};
     /* Syzygy: pick at exactly m_head, advance m_head */
