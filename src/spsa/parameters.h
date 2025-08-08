@@ -62,7 +62,9 @@
     TUNABLE(seeKnightValue, int32_t, 292, 200, 500, 10)             \
     TUNABLE(seeBishopValue, int32_t, 306, 200, 500, 10)             \
     TUNABLE(seeRookValue, int32_t, 509, 350, 750, 10)               \
-    TUNABLE(seeQueenValue, int32_t, 862, 750, 1150, 10)
+    TUNABLE(seeQueenValue, int32_t, 862, 750, 1150, 10)             \
+    TUNABLE(captureHistoryMaxBonus, int16_t, 100, 0, 400, 50)       \
+    TUNABLE(captureHistoryMaxScore, int16_t, 7000, 5000, 20000, 1000)
 
 #ifdef SPSA
 
@@ -87,7 +89,6 @@ static inline auto uciOptions = std::to_array<ucioption::UciOption>({ TUNABLE_LI
     #name ", int, " #value ".0, " #min ".0, " #max ".0, " #step ".0, 0.002\n"
 
 static inline std::string_view inputsPrint = TUNABLE_LIST(SPSA_INPUT);
-
 }
 
 #else

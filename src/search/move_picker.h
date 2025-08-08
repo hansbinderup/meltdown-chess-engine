@@ -18,7 +18,10 @@ enum KillerMoveType {
     Second,
 };
 
+// Noisy and quiet scores are never compared
 enum MovePickerOffsets : int32_t {
+    GoodCapture = 50000,
+    BadCapture = -50000,
     KillerMoveFirst = 100003,
     KillerMoveSecond = 100002,
     CounterMove = 100001,
@@ -232,13 +235,8 @@ private:
     void generateNoisyScores(const BitBoard& board)
     {
         for (uint16_t i = 0; i < m_tail; i++) {
-            if (m_moves[i].isCapture()) {
-                m_scores[i] = evaluation::SeeSwap::getCaptureScore(board, m_moves[i]);
-            } else if (m_moves[i].promotionType() == PromotionQueen) {
-                m_scores[i] = spsa::seeQueenValue;
-            } else if (m_moves[i].isPromotionMove()) {
-                m_scores[i] = MovePickerOffsets::BadPromotions;
-            }
+            const int16_t histScore = m_searchTables.getCaptureHistory(board, m_moves[i]).value_or(0);
+            m_scores[i] = histScore + (evaluation::SeeSwap::isGreaterThanMargin(board, m_moves[i], 0) ? MovePickerOffsets::GoodCapture : MovePickerOffsets::BadCapture);
         }
     }
 
@@ -274,7 +272,6 @@ private:
         return bestMoveIndex ? std::make_optional(pickMove(bestMoveIndex.value())) : std::nullopt;
     }
 
-    // TODO template over bool hasCounter, to avoid redundant check?
     template<Player player>
     void generateQuietScores(const BitBoard& board)
     {

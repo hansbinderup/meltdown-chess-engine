@@ -479,9 +479,17 @@ public:
                 if constexpr (!isRoot) {
                     const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);
+
+                    if (move.isCapture()) {
+                        m_searchTables.updateCaptureHistory<true>(board, depth, move);
+                    }
                 }
 
                 break;
+            }
+
+            if (move.isCapture()) {
+                m_searchTables.updateCaptureHistory<false>(board, depth, move);
             }
         }
 
@@ -508,6 +516,7 @@ public:
             && !(ttFlag == core::TtFlag::TtAlpha && bestScore >= m_stackItr->eval)
             && !(ttFlag == core::TtFlag::TtBeta && bestScore <= m_stackItr->eval)) {
             m_searchTables.updateCorrectionHistory(board, depth, bestScore, m_stackItr->eval);
+
             m_searchTables.updateHistoryMoves(board, bestMove, m_ply);
         }
 
