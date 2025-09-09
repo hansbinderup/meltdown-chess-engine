@@ -8,7 +8,6 @@
 #include <array>
 
 namespace search {
-// TODO description
 
 const int16_t captureHistoryMaxScore = 16384;
 
@@ -42,7 +41,7 @@ private:
 
     static inline int16_t captureHistoryScore(uint8_t depth)
     {
-        return std::min<int16_t>(spsa::captureHistoryMaxBonus, spsa::captureHistoryFactor * static_cast<int16_t>(depth) - spsa::captureHistoryOffset);
+        return std::min<int16_t>(spsa::captureHistoryMaxBonus, spsa::captureHistoryFactor * depth * depth);
     }
 
     using TypeScoreArray = std::array<int16_t, 12>;
