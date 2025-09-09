@@ -200,7 +200,7 @@ private:
 
         m_moves[pos] = m_moves[m_tail - 1];
         m_scores[pos] = m_scores[m_tail - 1];
-        m_captureScores[pos] = m_scores[m_tail - 1];
+        m_captureScores[pos] = m_captureScores[m_tail - 1];
 
         m_tail--;
 
@@ -279,7 +279,7 @@ private:
                 }
 
                 if (captureScore > bestCaptureScore) {
-                    bestCaptureScore = score;
+                    bestCaptureScore = captureScore;
                     bestMoveIndex = i;
                 }
             }
