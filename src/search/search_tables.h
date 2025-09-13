@@ -108,13 +108,13 @@ public:
         return m_correctionHistory.getCorrection(board);
     }
 
-    inline int16_t getCaptureHistory(Piece attacker, BoardPosition toPos, Piece target)
+    inline int16_t getCaptureHistory(const BitBoard& board, const movegen::Move move)
     {
-        return m_captureHistory.getScore(attacker, toPos, target);
+        return m_captureHistory.getScore(board, move);
     }
 
     template<bool isPositive>
-    inline void updateCaptureHistory(const BitBoard& board, uint8_t depth, movegen::Move move)
+    inline void updateCaptureHistory(const BitBoard& board, uint8_t depth, const movegen::Move move)
     {
         m_captureHistory.update<isPositive>(board, depth, move);
     }

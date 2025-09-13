@@ -241,9 +241,7 @@ private:
             if (m_moves[i].isCapture()) {
                 m_scores[i] = evaluation::SeeSwap::isGreaterThanMargin(board, m_moves[i], 0) ? 1000 : -1000;
 
-                const auto attacker = board.getAttackerAtSquare(m_moves[i].fromSquare(), board.player).value();
-                const auto victim = m_moves[i].takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(m_moves[i].toSquare(), board.player).value();
-                m_captureScores[i] = m_searchTables.getCaptureHistory(attacker, m_moves[i].toPos(), victim);
+                m_captureScores[i] = m_searchTables.getCaptureHistory(board, m_moves[i]);
             } else if (m_moves[i].promotionType() == PromotionQueen) {
                 m_scores[i] = spsa::seeQueenValue;
                 // Hack: give promotions a low capture score and include them in sorting by capture score

@@ -13,33 +13,33 @@ const int16_t captureHistoryMaxScore = 16384;
 
 class CaptureHistory {
 public:
-    inline int16_t getScore(Piece attacker, BoardPosition toPos, Piece victim)
+    inline int16_t getScore(const BitBoard& board, const movegen::Move move)
     {
-        return m_captureHistoryScores[attacker][toPos][victim];
+        const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
+        const auto victim = move.takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(move.toSquare(), board.player).value();
+
+        return m_captureHistoryScores[attacker][move.toPos()][victim];
     }
 
     template<bool isPositive>
     inline void update(const BitBoard& board, uint8_t depth, movegen::Move move)
     {
+        const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
+        const auto victim = move.takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(move.toSquare(), board.player).value();
+
+        const int16_t delta = bonus(depth); /*Always positive*/
+
+        auto& current = m_captureHistoryScores[attacker][move.toPos()][victim];
+
         if constexpr (isPositive) {
-            applyBonus(board, captureHistoryScore(depth), move);
+            current += delta - (current * delta) / captureHistoryMaxScore;
         } else {
-            applyBonus(board, -captureHistoryScore(depth), move);
+            current += -delta - (current * delta) / captureHistoryMaxScore;
         }
     }
 
 private:
-    inline void applyBonus(const BitBoard& board, int16_t bonus, movegen::Move move)
-    {
-        const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
-        const auto victim = move.takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(move.toSquare(), board.player).value();
-
-        int16_t old = m_captureHistoryScores[attacker][move.toPos()][victim];
-
-        m_captureHistoryScores[attacker][move.toPos()][victim] = old + bonus - (old * std::abs(bonus)) / captureHistoryMaxScore;
-    }
-
-    static inline int16_t captureHistoryScore(uint8_t depth)
+    static inline int16_t bonus(uint8_t depth)
     {
         return std::min<int16_t>(spsa::captureHistoryMaxBonus, spsa::captureHistoryFactor * depth * depth);
     }
@@ -48,7 +48,7 @@ private:
     using PosTypeScoreArray = std::array<TypeScoreArray, 64>;
     using CaptureHistoryArray = std::array<PosTypeScoreArray, 12>;
 
-    // Indexed by [capturing piece type][target][captured type]
+    // Indexed by [attacking piece type][target][captured type]
     CaptureHistoryArray m_captureHistoryScores {};
 };
 }
