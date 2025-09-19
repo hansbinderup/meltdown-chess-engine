@@ -58,7 +58,9 @@ public:
         APPLY_SCORE(getPawnPushThreatScore, board, ctx);
         APPLY_SCORE(getPassedPawnsScore, board, ctx);
 
-        const Score evaluation = score.phaseScore(m_phase);
+        const uint8_t scaleFactor = computeEgScaleFactor(board, score);
+        const Score evaluation = score.phaseScore(m_phase, scaleFactor);
+
         return board.player == PlayerWhite ? evaluation : -evaluation;
     }
 
@@ -113,6 +115,75 @@ private:
         }
 
         return score;
+    }
+
+    /* mostly borrowed from Ethereal */
+    uint8_t computeEgScaleFactor(const BitBoard& board, TermScore score)
+    {
+        const uint64_t pawns = board.pieces[WhitePawn] | board.pieces[BlackPawn];
+        const uint64_t knights = board.pieces[WhiteKnight] | board.pieces[BlackKnight];
+        const uint64_t bishops = board.pieces[WhiteBishop] | board.pieces[BlackBishop];
+        const uint64_t rooks = board.pieces[WhiteRook] | board.pieces[BlackRook];
+        const uint64_t queens = board.pieces[WhiteQueen] | board.pieces[BlackQueen];
+        const uint64_t minors = knights | bishops;
+        const uint64_t minorsAndRooks = minors | rooks;
+
+        const uint64_t weakSide = score.eg() < 0 ? board.occupation[PlayerWhite] : board.occupation[PlayerBlack];
+        const uint64_t strongSide = score.eg() < 0 ? board.occupation[PlayerBlack] : board.occupation[PlayerWhite];
+
+        /* single color bishop scalings */
+        if (std::popcount(board.pieces[WhiteBishop]) == 1
+            && std::popcount(board.pieces[BlackBishop]) == 1
+            && std::popcount(bishops & s_lightSquares) == 1) {
+
+            /* SCB + knight endgame */
+            if (!(rooks | queens)
+                && std::popcount(board.pieces[WhiteKnight]) == 1
+                && std::popcount(board.pieces[BlackKnight]) == 1) {
+                return ScaleFactor::ScbOneKnight;
+            }
+
+            /* SCB + rook endgame */
+            if (!(knights | queens)
+                && std::popcount(board.pieces[WhiteRook]) == 1
+                && std::popcount(board.pieces[BlackRook]) == 1) {
+                return ScaleFactor::ScbOneRook;
+            }
+
+            /* SCB endgame */
+            if (!(knights | rooks | queens)) {
+                return ScaleFactor::ScbBishopsOnly;
+            }
+        }
+
+        /* lone queen vs multiple minor/rook pieces → queen is often not strong
+         * enough to fully convert → scale down evaluation */
+        if (std::popcount(queens) == 1
+            && std::popcount(minorsAndRooks) > 1
+            && minorsAndRooks == (weakSide & minorsAndRooks)) {
+            return ScaleFactor::LoneQueen;
+        }
+
+        /* strong side has only a single minor piece (knight or bishop) with the king
+         * → insufficient material to win → scale to draw */
+        if ((strongSide & minors) && std::popcount(strongSide) == 2) {
+            return ScaleFactor::Draw;
+        }
+
+        /* pure pawn ending (no queens, at most one minor/rook per side)
+         * if the strong side leads by more than two pawns → scale toward
+         * decisive win (pawn majority is usually sufficient) */
+        if (!queens
+            && std::popcount(minorsAndRooks & board.occupation[PlayerWhite]) < 2
+            && std::popcount(minorsAndRooks & board.occupation[PlayerBlack]) < 2
+            && (std::popcount(strongSide & pawns) - std::popcount(weakSide & pawns)) > 2) {
+            return ScaleFactor::LargePawnAdv;
+        }
+
+        /* each pawn for the strong side adds a bonus, but is capped at Normal
+         * → the more pawns the strong side has, the closer we treat the position as "Normal" */
+        return std::min<uint8_t>(ScaleFactor::Normal,
+            ScaleFactor::BaseScale + std::popcount(pawns & strongSide) * ScaleFactor::PawnBonus);
     }
 
     KingPawnCache m_kpCache {};
