@@ -6,6 +6,24 @@
 
 namespace evaluation {
 
+/*
+ * these values seem pretty standard for a few engines out there
+ * borrow them for now and consider if they should be tunable (probably not)
+ *
+ * NOTE: SCB -> Single Color Bishop
+ */
+enum ScaleFactor : uint8_t {
+    Draw = 0,
+    PawnBonus = 8,
+    ScbBishopsOnly = 64,
+    ScbOneKnight = 106,
+    ScbOneRook = 96,
+    LoneQueen = 88,
+    BaseScale = 96,
+    Normal = 128,
+    LargePawnAdv = 144,
+};
+
 struct TermScore {
     uint32_t value;
 
@@ -29,9 +47,16 @@ struct TermScore {
         return static_cast<int16_t>(value >> 16);
     }
 
+    [[nodiscard]] constexpr Score phaseScore(uint8_t phase, uint8_t egFactor) const
+    {
+        return ((this->mg() * phase)
+                   + (this->eg() * (s_middleGamePhase - phase) * egFactor / ScaleFactor::Normal))
+            / s_middleGamePhase;
+    }
+
     [[nodiscard]] constexpr Score phaseScore(uint8_t phase) const
     {
-        return ((this->mg() * phase) + (this->eg() * (s_middleGamePhase - phase))) / s_middleGamePhase;
+        return phaseScore(phase, ScaleFactor::Normal);
     }
 
     constexpr TermScore& operator+=(const TermScore& other) noexcept
