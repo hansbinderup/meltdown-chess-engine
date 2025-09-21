@@ -9,12 +9,13 @@
 
 namespace search {
 
-const int16_t captureHistoryMaxScore = 16384;
-
 class CaptureHistory {
 public:
-    inline int16_t getScore(const BitBoard& board, const movegen::Move move)
+    inline std::optional<int16_t> getScore(const BitBoard& board, const movegen::Move move)
     {
+        if (!move.isCapture()) {
+            return std::nullopt;
+        }
         const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
         const auto victim = move.takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(move.toSquare(), board.player).value();
 
@@ -32,16 +33,16 @@ public:
         auto& current = m_captureHistoryScores[attacker][move.toPos()][victim];
 
         if constexpr (isPositive) {
-            current += delta - (current * delta) / captureHistoryMaxScore;
+            current += delta - (current * delta) / spsa::captureHistoryMaxScore;
         } else {
-            current += -delta - (current * delta) / captureHistoryMaxScore;
+            current += -delta - (current * delta) / spsa::captureHistoryMaxScore;
         }
     }
 
 private:
     static inline int16_t bonus(uint8_t depth)
     {
-        return std::min<int16_t>(spsa::captureHistoryMaxBonus, spsa::captureHistoryFactor * depth * depth);
+        return std::min<int16_t>(spsa::captureHistoryMaxBonus, depth * depth);
     }
 
     using TypeScoreArray = std::array<int16_t, 12>;

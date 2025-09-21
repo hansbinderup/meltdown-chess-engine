@@ -108,7 +108,7 @@ public:
         return m_correctionHistory.getCorrection(board);
     }
 
-    inline int16_t getCaptureHistory(const BitBoard& board, const movegen::Move move)
+    inline std::optional<int16_t> getCaptureHistory(const BitBoard& board, const movegen::Move move)
     {
         return m_captureHistory.getScore(board, move);
     }

@@ -25,7 +25,7 @@ enum MovePickerOffsets : int32_t {
     KillerMoveFirst = 100003,
     KillerMoveSecond = 100002,
     CounterMove = 100001,
-    BadPromotions = -100000,
+    BadPromotions = -10000,
 };
 
 enum PickerPhase {
@@ -57,8 +57,6 @@ public:
             if (m_ttMove && !m_ttMove->isCapture())
                 m_ttMove.reset();
         }
-
-        m_captureScores.fill(std::numeric_limits<int16_t>::min());
     }
 
     inline PickerPhase getPhase() const
@@ -200,7 +198,6 @@ private:
 
         m_moves[pos] = m_moves[m_tail - 1];
         m_scores[pos] = m_scores[m_tail - 1];
-        m_captureScores[pos] = m_captureScores[m_tail - 1];
 
         m_tail--;
 
@@ -238,31 +235,20 @@ private:
     void generateNoisyScores(const BitBoard& board)
     {
         for (uint16_t i = 0; i < m_tail; i++) {
-            if (m_moves[i].isCapture()) {
-                m_scores[i] = evaluation::SeeSwap::isGreaterThanMargin(board, m_moves[i], 0) ? 1000 : -1000;
-
-                m_captureScores[i] = m_searchTables.getCaptureHistory(board, m_moves[i]);
-            } else if (m_moves[i].promotionType() == PromotionQueen) {
-                m_scores[i] = spsa::seeQueenValue;
-                // Hack: give promotions a low capture score and include them in sorting by capture score
-                m_captureScores[i] = std::numeric_limits<int16_t>::min() + 1000;
-            } else if (m_moves[i].isPromotionMove()) {
-                m_scores[i] = MovePickerOffsets::BadPromotions;
-                m_captureScores[i] = std::numeric_limits<int16_t>::min() + 1000;
-            }
+            const int16_t histScore = m_searchTables.getCaptureHistory(board, m_moves[i]).value_or(0);
+            m_scores[i] = histScore + (evaluation::SeeSwap::isGreaterThanMargin(board, m_moves[i], 0) ? MovePickerOffsets::GoodCapture : MovePickerOffsets::BadCapture);
         }
     }
 
     template<bool isGood>
     constexpr std::optional<movegen::Move> pickNoisyMove()
     {
-        int32_t bestCaptureScore = std::numeric_limits<int32_t>::min();
+        int32_t bestScore = std::numeric_limits<int32_t>::min();
         std::optional<uint16_t> bestMoveIndex {};
 
         for (uint16_t i = 0; i < m_tail; i++) {
             if (m_moves[i].isNoisyMove()) {
                 const int32_t score = m_scores[i];
-                const int16_t captureScore = m_captureScores[i];
 
                 if constexpr (isGood) {
                     if (score < 0) {
@@ -276,16 +262,16 @@ private:
                     }
                 }
 
-                if (captureScore > bestCaptureScore) {
-                    bestCaptureScore = captureScore;
+                if (score > bestScore) {
+                    bestScore = score;
                     bestMoveIndex = i;
                 }
             }
         }
+
         return bestMoveIndex ? std::make_optional(pickMove(bestMoveIndex.value())) : std::nullopt;
     }
 
-    // TODO template over bool hasCounter, to avoid redundant check?
     template<Player player>
     void generateQuietScores(const BitBoard& board)
     {
@@ -337,7 +323,6 @@ private:
 
     movegen::ValidMoves m_moves {};
     std::array<int32_t, s_maxMoves> m_scores {};
-    std::array<int16_t, s_maxMoves> m_captureScores {};
     /* Non-syzygy: pick within [0, m_tail), fill gap with last unpicked move, decrease tail */
     uint16_t m_tail {};
     /* Syzygy: pick at exactly m_head, advance m_head */

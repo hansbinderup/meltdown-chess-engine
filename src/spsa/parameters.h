@@ -63,8 +63,8 @@
     TUNABLE(seeBishopValue, int32_t, 300, 200, 500, 10)             \
     TUNABLE(seeRookValue, int32_t, 500, 350, 750, 10)               \
     TUNABLE(seeQueenValue, int32_t, 900, 750, 1150, 10)             \
-    TUNABLE(captureHistoryMaxBonus, int16_t, 1000, 2000, 3000, 100) \
-    TUNABLE(captureHistoryFactor, int16_t, 1, 1, 5, 1)
+    TUNABLE(captureHistoryMaxBonus, int16_t, 100, 0, 400, 50)       \
+    TUNABLE(captureHistoryMaxScore, int16_t, 7000, 5000, 20000, 1000)
 
 #ifdef SPSA
 
