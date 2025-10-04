@@ -1,5 +1,6 @@
 .cache
 compile_commands.json
 .release
+subprojects
 
 # meson builds are automatically ignored - no need to add them here
