@@ -2,6 +2,7 @@
 
 #include "core/board_defs.h"
 #include "magic_enum/magic_enum.hpp"
+#include "movegen/move_types.h"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -81,6 +82,18 @@ struct BitBoard {
     constexpr bool isQuietPosition() const
     {
         return (attacks[PlayerWhite] & occupation[PlayerBlack]) == 0 && (attacks[PlayerBlack] & occupation[PlayerWhite]) == 0;
+    }
+
+    /* update me */
+    Piece getVictim(movegen::Move move) const
+    {
+        assert(move.isNoisyMove());
+
+        if (move.takeEnPessant() || move.isPromotionMove()) {
+            return player == PlayerWhite ? BlackPawn : WhitePawn;
+        }
+
+        return getTargetAtSquare(move.toSquare(), player).value();
     }
 
     /* this is a very primitive way of checking for zugzwang position

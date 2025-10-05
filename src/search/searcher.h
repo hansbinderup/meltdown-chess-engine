@@ -480,7 +480,7 @@ public:
                     const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);
 
-                    if (move.isCapture()) {
+                    if (move.isNoisyMove()) {
                         m_searchTables.updateCaptureHistory<true>(board, depth, move);
                     }
                 }
@@ -488,7 +488,7 @@ public:
                 break;
             }
 
-            if (move.isCapture()) {
+            if (move.isNoisyMove()) {
                 m_searchTables.updateCaptureHistory<false>(board, depth, move);
             }
         }

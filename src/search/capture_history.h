@@ -13,11 +13,12 @@ class CaptureHistory {
 public:
     inline std::optional<int16_t> getScore(const BitBoard& board, const movegen::Move move)
     {
-        if (!move.isCapture()) {
+        if (!move.isNoisyMove()) {
             return std::nullopt;
         }
+
         const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
-        const auto victim = move.takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(move.toSquare(), board.player).value();
+        const auto victim = board.getVictim(move);
 
         return m_captureHistoryScores[attacker][move.toPos()][victim];
     }
@@ -25,18 +26,18 @@ public:
     template<bool isPositive>
     inline void update(const BitBoard& board, uint8_t depth, movegen::Move move)
     {
+        assert(move.isNoisyMove());
+
         const auto attacker = board.getAttackerAtSquare(move.fromSquare(), board.player).value();
-        const auto victim = move.takeEnPessant() ? (board.player == PlayerWhite ? BlackPawn : WhitePawn) : board.getTargetAtSquare(move.toSquare(), board.player).value();
+        const auto victim = board.getVictim(move);
 
         const int16_t delta = bonus(depth); /*Always positive*/
 
         auto& current = m_captureHistoryScores[attacker][move.toPos()][victim];
 
-        if constexpr (isPositive) {
-            current += delta - (current * delta) / spsa::captureHistoryMaxScore;
-        } else {
-            current += -delta - (current * delta) / spsa::captureHistoryMaxScore;
-        }
+        int32_t newVal = current + (isPositive ? delta : -delta);
+        newVal -= (current * delta) / spsa::captureHistoryMaxScore;
+        current = std::clamp<int32_t>(newVal, -spsa::captureHistoryMaxScore, spsa::captureHistoryMaxScore);
     }
 
 private:
