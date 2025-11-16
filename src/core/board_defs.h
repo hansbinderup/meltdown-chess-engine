@@ -20,21 +20,6 @@ constexpr Player nextPlayer(Player p)
 }
 
 enum Piece : uint8_t {
-    WhitePawn = 0,
-    WhiteKnight,
-    WhiteBishop,
-    WhiteRook,
-    WhiteQueen,
-    WhiteKing,
-    BlackPawn,
-    BlackKnight,
-    BlackBishop,
-    BlackRook,
-    BlackQueen,
-    BlackKing,
-};
-
-enum ColorlessPiece : uint8_t {
     Pawn = 0,
     Knight,
     Bishop,
@@ -63,9 +48,6 @@ template<typename T>
 {
     return static_cast<BoardPosition>(val);
 }
-
-constexpr static inline auto s_whitePieces = std::to_array<Piece>({ WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing });
-constexpr static inline auto s_blackPieces = std::to_array<Piece>({ BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing });
 
 enum PromotionType : uint8_t {
     PromotionNone = 0,
@@ -102,7 +84,7 @@ constexpr inline char promotionToString(PromotionType p)
     return ' ';
 }
 
-constexpr inline std::optional<ColorlessPiece> promotionToColorlessPiece(PromotionType promotion)
+constexpr inline std::optional<Piece> promotionToPiece(PromotionType promotion)
 {
     switch (promotion) {
     case PromotionNone:
@@ -128,8 +110,12 @@ enum Phases : uint8_t {
 };
 
 constexpr static inline std::array<uint8_t, s_amountPieces> s_piecePhaseValues {
-    0, 1, 1, 2, 4, 0, /* white */
-    0, 1, 1, 2, 4, 0, /* black */
+    0,
+    1,
+    1,
+    2,
+    4,
+    0,
 };
 
 constexpr static inline uint8_t s_maxSearchDepth { 128 };

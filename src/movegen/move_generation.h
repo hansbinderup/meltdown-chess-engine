@@ -162,65 +162,54 @@ constexpr static inline void generateCastlingMovesBlack(ValidMoves& validMoves, 
 template<Player player, MoveType type>
 constexpr static inline void getKnightMoves(ValidMoves& validMoves, const BitBoard& board)
 {
-    if constexpr (player == PlayerWhite) {
-        generateKnightMoves<type>(validMoves, board.pieces[WhiteKnight], board.occupation[White], board.occupation[Black]);
-    } else {
-        generateKnightMoves<type>(validMoves, board.pieces[BlackKnight], board.occupation[Black], board.occupation[White]);
-    }
+    constexpr auto opponent = nextPlayer(player);
+    generateKnightMoves<type>(validMoves, board.pieces[Knight] & board.occupation[player], board.occupation[player], board.occupation[opponent]);
 }
 
 template<Player player, MoveType type>
 constexpr static inline void getRookMoves(ValidMoves& validMoves, const BitBoard& board)
 {
-    if constexpr (player == PlayerWhite) {
-        generateRookMoves<type>(validMoves, board.pieces[WhiteRook], board.occupation[White], board.occupation[Black]);
-    } else {
-        generateRookMoves<type>(validMoves, board.pieces[BlackRook], board.occupation[Black], board.occupation[White]);
-    }
+    constexpr auto opponent = nextPlayer(player);
+    generateRookMoves<type>(validMoves, board.pieces[Rook] & board.occupation[player], board.occupation[player], board.occupation[opponent]);
 }
 
 template<Player player, MoveType type>
 constexpr static inline void getBishopMoves(ValidMoves& validMoves, const BitBoard& board)
 {
-    if constexpr (player == PlayerWhite) {
-        generateBishopMoves<type>(validMoves, board.pieces[WhiteBishop], board.occupation[White], board.occupation[Black]);
-    } else {
-        generateBishopMoves<type>(validMoves, board.pieces[BlackBishop], board.occupation[Black], board.occupation[White]);
-    }
+    constexpr auto opponent = nextPlayer(player);
+    generateBishopMoves<type>(validMoves, board.pieces[Bishop] & board.occupation[player], board.occupation[player], board.occupation[opponent]);
 }
 
 template<Player player, MoveType type>
 constexpr static inline void getQueenMoves(ValidMoves& validMoves, const BitBoard& board)
 {
-    if constexpr (player == PlayerWhite) {
-        generateQueenMoves<type>(validMoves, board.pieces[WhiteQueen], board.occupation[White], board.occupation[Black]);
-    } else {
-        generateQueenMoves<type>(validMoves, board.pieces[BlackQueen], board.occupation[Black], board.occupation[White]);
-    }
+    constexpr auto opponent = nextPlayer(player);
+    generateQueenMoves<type>(validMoves, board.pieces[Queen] & board.occupation[player], board.occupation[player], board.occupation[opponent]);
 }
 
 template<Player player, MoveType type>
 constexpr static inline void getKingMoves(ValidMoves& validMoves, const BitBoard& board, uint64_t attacks)
 {
-    if constexpr (player == PlayerWhite) {
-        generateKingMoves<type>(validMoves, board.pieces[WhiteKing], board.occupation[White], board.occupation[Black], attacks);
-    } else {
-        generateKingMoves<type>(validMoves, board.pieces[BlackKing], board.occupation[Black], board.occupation[White], attacks);
-    }
+    constexpr auto opponent = nextPlayer(player);
+    generateKingMoves<type>(validMoves, board.pieces[King] & board.occupation[player], board.occupation[player], board.occupation[opponent], attacks);
 }
 
 template<Player player, MoveType type>
 constexpr static inline void getPawnMoves(ValidMoves& validMoves, const BitBoard& board)
 {
+    constexpr auto opponent = nextPlayer(player);
+
+    const uint64_t pieces = board.pieces[Pawn] & board.occupation[player];
+
     if constexpr (player == PlayerWhite) {
-        getWhitePawnMoves<type>(validMoves, board.pieces[WhitePawn], board.occupation[White], board.occupation[Black]);
+        getWhitePawnMoves<type>(validMoves, pieces, board.occupation[player], board.occupation[opponent]);
         if (board.enPessant.has_value()) {
-            getWhiteEnPessantMoves(validMoves, board.pieces[WhitePawn], board.enPessant.value(), board.occupation[Both]);
+            getWhiteEnPessantMoves(validMoves, pieces, board.enPessant.value(), board.occupation[Both]);
         }
     } else {
-        getBlackPawnMoves<type>(validMoves, board.pieces[BlackPawn], board.occupation[Black], board.occupation[White]);
+        getBlackPawnMoves<type>(validMoves, pieces, board.occupation[Black], board.occupation[White]);
         if (board.enPessant.has_value()) {
-            getBlackEnPessantMoves(validMoves, board.pieces[BlackPawn], board.enPessant.value(), board.occupation[Both]);
+            getBlackEnPessantMoves(validMoves, pieces, board.enPessant.value(), board.occupation[Both]);
         }
     }
 }

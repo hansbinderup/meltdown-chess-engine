@@ -13,27 +13,12 @@ enum Occupation {
 };
 
 struct BitBoard {
-    constexpr void updateOccupation()
-    {
-        occupation[White] = pieces[WhitePawn] | pieces[WhiteRook] | pieces[WhiteBishop] | pieces[WhiteKnight] | pieces[WhiteQueen] | pieces[WhiteKing];
-        occupation[Black] = pieces[BlackPawn] | pieces[BlackRook] | pieces[BlackBishop] | pieces[BlackKnight] | pieces[BlackQueen] | pieces[BlackKing];
-        occupation[Both] = occupation[White] | occupation[Black];
-    }
-
     template<Player player>
     constexpr std::optional<Piece> getAttackerAtSquare(uint64_t square) const
     {
-        if constexpr (player == PlayerWhite) {
-            for (const auto piece : s_whitePieces) {
-                if (square & pieces[piece]) {
-                    return piece;
-                }
-            }
-        } else {
-            for (const auto piece : s_blackPieces) {
-                if (square & pieces[piece]) {
-                    return piece;
-                }
+        for (const auto piece : magic_enum::enum_values<Piece>()) {
+            if (square & pieces[piece] & occupation[player]) {
+                return piece;
             }
         }
 
@@ -52,21 +37,8 @@ struct BitBoard {
     template<Player player>
     constexpr std::optional<Piece> getTargetAtSquare(uint64_t square) const
     {
-        if constexpr (player == PlayerWhite) {
-            for (const auto piece : s_blackPieces) {
-                if (square & pieces[piece]) {
-                    return piece;
-                }
-            }
-        } else {
-            for (const auto piece : s_whitePieces) {
-                if (square & pieces[piece]) {
-                    return piece;
-                }
-            }
-        }
-
-        return std::nullopt;
+        constexpr auto opponent = nextPlayer(player);
+        return getAttackerAtSquare<opponent>(square);
     }
 
     // Helper: calling within loops will mean redundant colour checks
@@ -89,9 +61,9 @@ struct BitBoard {
     constexpr inline bool hasZugzwangProneMaterial() const
     {
         if (player == PlayerWhite)
-            return occupation[PlayerWhite] == (pieces[WhitePawn] | pieces[WhiteKing]);
+            return occupation[PlayerWhite] == ((pieces[Pawn] | pieces[King]) & occupation[PlayerWhite]);
         else
-            return occupation[PlayerBlack] == (pieces[BlackPawn] | pieces[BlackKing]);
+            return occupation[PlayerBlack] == ((pieces[Pawn] | pieces[King]) & occupation[PlayerBlack]);
     }
 
     inline bool hasInsufficientMaterial() const
@@ -103,7 +75,7 @@ struct BitBoard {
         }
 
         /* if pawns or majors are on the board, there is always sufficient material */
-        const uint64_t majorsOrPawns = pieces[WhitePawn] | pieces[BlackPawn] | pieces[WhiteRook] | pieces[BlackRook] | pieces[WhiteQueen] | pieces[BlackQueen];
+        const uint64_t majorsOrPawns = pieces[Pawn] | pieces[Rook] | pieces[Queen];
         if (std::popcount(majorsOrPawns) != 0) {
             return false;
         }
@@ -114,17 +86,17 @@ struct BitBoard {
         }
 
         if (totalPieces == 3) {
-            const uint64_t minors = pieces[WhiteBishop] | pieces[BlackBishop] | pieces[WhiteKnight] | pieces[BlackKnight];
+            const uint64_t minors = pieces[Bishop] | pieces[Knight];
 
             /* one minor piece + kings is still a draw */
             return std::popcount(minors) == 1;
         }
 
         if (totalPieces == 4) {
-            const uint64_t bishops = pieces[WhiteBishop] | pieces[BlackBishop];
+            const uint64_t bishops = pieces[Bishop];
 
             /* check for exactly one bishop per side */
-            const bool oneWhiteBishop = std::popcount(pieces[WhiteBishop]) == 1;
+            const bool oneWhiteBishop = std::popcount(pieces[Bishop] & occupation[PlayerWhite]) == 1;
 
             /* check if bishops are on opposite color squares */
             const bool bishopOnLight = std::popcount(s_lightSquares & bishops) == 1;

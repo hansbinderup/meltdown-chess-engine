@@ -42,10 +42,10 @@ TEST_CASE("Test See Swap", "[SeeSwap]")
 
         movegen::ValidMoves moves;
         core::getAllMoves<movegen::MoveCapture>(*board, moves);
-        const auto move = findMoveToTarget(*board, moves, WhiteKnight, E5);
+        const auto move = findMoveToTarget(*board, moves, Knight, E5);
 
         REQUIRE(move.has_value());
-        REQUIRE(getPiece(*board, *move) == WhiteKnight);
+        REQUIRE(getPiece(*board, *move) == Knight);
         REQUIRE(move->toPos() == E5);
 
         Score score = evaluation::SeeSwap::getCaptureScore(*board, *move);

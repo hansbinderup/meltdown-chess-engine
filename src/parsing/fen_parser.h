@@ -97,10 +97,13 @@ public:
                     return false;
                 }
 
-                const auto piece = parsing::pieceFromChar(c);
-                if (piece.has_value()) {
+                const auto piecePlayer = parsing::piecePlayerFromChar(c);
+                if (piecePlayer.has_value()) {
+                    const auto [piece, player] = piecePlayer.value();
                     const auto pos = intToBoardPosition((row * 8) + column);
-                    board.pieces[piece.value()] |= utils::positionToSquare(pos);
+                    const auto square = utils::positionToSquare(pos);
+                    board.pieces[piece] |= square;
+                    board.occupation[player] |= square;
                     column++;
                 } else {
                     const uint8_t skip = c - '0';
@@ -114,8 +117,7 @@ public:
             return false;
         }
 
-        board.updateOccupation();
-
+        board.occupation[Both] = board.occupation[PlayerWhite] | board.occupation[PlayerBlack];
         board.attacks[PlayerWhite] = attackgen::getAllAttacks<PlayerWhite>(board);
         board.attacks[PlayerBlack] = attackgen::getAllAttacks<PlayerBlack>(board);
 

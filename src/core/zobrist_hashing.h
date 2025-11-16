@@ -22,13 +22,16 @@ constexpr uint64_t splitmix64(uint64_t& seed)
 
 constexpr auto createPieceHashTables()
 {
-    using PieceHash = std::array<uint64_t, s_amountSquares>;
-    std::array<PieceHash, magic_enum::enum_count<Piece>()> table;
+    using SquareHash = std::array<uint64_t, s_amountSquares>;
+    using PieceHash = std::array<SquareHash, magic_enum::enum_count<Piece>()>;
+    std::array<PieceHash, magic_enum::enum_count<Player>()> table;
 
     uint64_t seed = 0xDEADBEEFCAFEBABE;
-    for (auto& pieceTable : table) {
-        for (auto& hash : pieceTable) {
-            hash = splitmix64(seed);
+    for (auto& playerTable : table) {
+        for (auto& pieceTable : playerTable) {
+            for (auto& hash : pieceTable) {
+                hash = splitmix64(seed);
+            }
         }
     }
 
@@ -78,9 +81,9 @@ constexpr static inline uint64_t splitMixHash(uint64_t value)
     return splitmix64(value);
 }
 
-constexpr static inline void hashPiece(Piece piece, BoardPosition pos, uint64_t& hash)
+constexpr static inline void hashPiece(Piece piece, Player player, BoardPosition pos, uint64_t& hash)
 {
-    hash ^= s_pieceHashTable[piece][pos];
+    hash ^= s_pieceHashTable[player][piece][pos];
 }
 
 constexpr static inline void hashEnpessant(BoardPosition pos, uint64_t& hash)
@@ -101,12 +104,14 @@ constexpr static inline void hashPlayer(uint64_t& hash)
 constexpr uint64_t generateHash(const BitBoard& board)
 {
     uint64_t hash = 0;
-    for (const auto pieceEnum : magic_enum::enum_values<Piece>()) {
-        uint64_t piece = board.pieces[pieceEnum];
+    for (const auto player : magic_enum::enum_values<Player>()) {
+        for (const auto pieceEnum : magic_enum::enum_values<Piece>()) {
+            uint64_t piece = board.pieces[pieceEnum] & board.occupation[player];
 
-        utils::bitIterate(piece, [&](BoardPosition pos) {
-            hash ^= s_pieceHashTable[pieceEnum][pos];
-        });
+            utils::bitIterate(piece, [&](BoardPosition pos) {
+                hash ^= s_pieceHashTable[player][pieceEnum][pos];
+            });
+        }
     }
 
     hash ^= s_castlingHashTable[board.castlingRights];
@@ -126,13 +131,16 @@ constexpr uint64_t generateHash(const BitBoard& board)
 static inline uint64_t generateKingPawnHash(const BitBoard& board)
 {
     uint64_t hash = 0;
-    constexpr auto kpPieces = std::to_array<Piece>({ WhitePawn, WhiteKing, BlackPawn, BlackKing });
-    for (const auto pieceEnum : kpPieces) {
-        uint64_t piece = board.pieces[pieceEnum];
+    constexpr auto kpPieces = std::to_array<Piece>({ Pawn, King });
 
-        utils::bitIterate(piece, [&](BoardPosition pos) {
-            hash ^= s_pieceHashTable[pieceEnum][pos];
-        });
+    for (const auto player : magic_enum::enum_values<Player>()) {
+        for (const auto pieceEnum : kpPieces) {
+            uint64_t piece = board.pieces[pieceEnum] & board.occupation[player];
+
+            utils::bitIterate(piece, [&](BoardPosition pos) {
+                hash ^= s_pieceHashTable[player][pieceEnum][pos];
+            });
+        }
     }
 
     return hash;
@@ -142,13 +150,14 @@ static inline uint64_t generateKingPawnHash(const BitBoard& board)
 static inline uint64_t generateMaterialHash(const BitBoard& board)
 {
     /* we don't care about kings here - they're always present */
-    constexpr auto materialPieces = std::to_array<Piece>({ WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen,
-        BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen });
+    constexpr auto materialPieces = std::to_array<Piece>({ Pawn, Knight, Bishop, Rook, Queen });
 
     uint64_t hash = 0;
-    for (const auto pieceEnum : materialPieces) {
-        uint8_t count = std::popcount(board.pieces[pieceEnum]);
-        hash ^= s_pieceHashTable[pieceEnum][count];
+    for (const auto player : magic_enum::enum_values<Player>()) {
+        for (const auto pieceEnum : materialPieces) {
+            uint8_t count = std::popcount(board.pieces[pieceEnum] & board.occupation[player]);
+            hash ^= s_pieceHashTable[player][pieceEnum][count];
+        }
     }
 
     return hash;

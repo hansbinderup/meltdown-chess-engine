@@ -110,29 +110,4 @@ constexpr inline BoardPosition relativePosition(BoardPosition pos) noexcept
     }
 }
 
-template<Player player>
-constexpr inline bool isPawn(Piece piece)
-{
-    if constexpr (player == PlayerWhite) {
-        return piece == WhitePawn;
-    } else {
-        return piece == BlackPawn;
-    }
-}
-
-template<Player player>
-constexpr inline bool isKing(Piece piece)
-{
-    if constexpr (player == PlayerWhite) {
-        return piece == WhiteKing;
-    } else {
-        return piece == BlackKing;
-    }
-}
-
-constexpr inline bool isKing(Piece piece)
-{
-    return piece == WhiteKing || piece == BlackKing;
-}
-
 }

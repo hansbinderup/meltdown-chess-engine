@@ -16,8 +16,7 @@ namespace attackgen {
 template<Player player>
 constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
 {
-    constexpr Piece ourKnights = player == PlayerWhite ? WhiteKnight : BlackKnight;
-    const uint64_t knights = board.pieces[ourKnights];
+    const uint64_t knights = board.pieces[Knight] & board.occupation[player];
 
     uint64_t attacks = {};
     utils::bitIterate(knights, [&](BoardPosition from) {
@@ -30,8 +29,7 @@ constexpr static inline uint64_t getKnightAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
 {
-    constexpr Piece ourRooks = player == PlayerWhite ? WhiteRook : BlackRook;
-    const uint64_t rooks = board.pieces[ourRooks];
+    const uint64_t rooks = board.pieces[Rook] & board.occupation[player];
     const uint64_t occupancy = board.occupation[Both];
 
     uint64_t attacks = {};
@@ -45,8 +43,7 @@ constexpr static inline uint64_t getRookAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
 {
-    constexpr Piece ourBishops = player == PlayerWhite ? WhiteBishop : BlackBishop;
-    const uint64_t bishops = board.pieces[ourBishops];
+    const uint64_t bishops = board.pieces[Bishop] & board.occupation[player];
     const uint64_t occupancy = board.occupation[Both];
 
     uint64_t attacks = {};
@@ -60,8 +57,7 @@ constexpr static inline uint64_t getBishopAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
 {
-    constexpr Piece ourQueens = player == PlayerWhite ? WhiteQueen : BlackQueen;
-    const uint64_t queens = board.pieces[ourQueens];
+    const uint64_t queens = board.pieces[Queen] & board.occupation[player];
     const uint64_t occupancy = board.occupation[Both];
 
     uint64_t attacks = {};
@@ -76,8 +72,7 @@ constexpr static inline uint64_t getQueenAttacks(const BitBoard& board)
 template<Player player>
 constexpr static inline uint64_t getKingAttacks(const BitBoard& board)
 {
-    constexpr Piece ourKing = player == PlayerWhite ? WhiteKing : BlackKing;
-    const uint64_t king = board.pieces[ourKing];
+    const uint64_t king = board.pieces[King] & board.occupation[player];
 
     if (king == 0) {
         return 0;
@@ -90,13 +85,13 @@ template<Player player>
 constexpr static inline uint64_t getPawnAttacks(const BitBoard& board)
 {
     if constexpr (player == PlayerWhite) {
-        const uint64_t pawns = board.pieces[WhitePawn];
+        const uint64_t pawns = board.pieces[Pawn] & board.occupation[PlayerWhite];
         uint64_t attacks = ((pawns & ~s_aFileMask) << 7);
         attacks |= ((pawns & ~s_hFileMask) << 9);
 
         return attacks;
     } else {
-        const uint64_t pawns = board.pieces[BlackPawn];
+        const uint64_t pawns = board.pieces[Pawn] & board.occupation[PlayerBlack];
         uint64_t attacks = ((pawns & ~s_aFileMask) >> 9);
         attacks |= ((pawns & ~s_hFileMask) >> 7);
 
@@ -123,16 +118,14 @@ template<Player player>
 constexpr uint64_t getDiscoveredAttacks(const BitBoard& board, BoardPosition pos)
 {
     constexpr Player opponent = nextPlayer(player);
-    constexpr Piece opponentRook = opponent == PlayerWhite ? WhiteRook : BlackRook;
-    constexpr Piece opponentBishop = opponent == PlayerWhite ? WhiteBishop : BlackBishop;
 
     const uint64_t occupancy = board.occupation[Both];
 
     const uint64_t rookAttacks = movegen::getRookMoves(pos, occupancy);
     const uint64_t bishopAttacks = movegen::getBishopMoves(pos, occupancy);
 
-    const uint64_t rooks = board.pieces[opponentRook] & ~rookAttacks;
-    const uint64_t bishops = board.pieces[opponentBishop] & ~bishopAttacks;
+    const uint64_t rooks = board.pieces[Rook] & board.occupation[opponent] & ~rookAttacks;
+    const uint64_t bishops = board.pieces[Bishop] & board.occupation[opponent] & ~bishopAttacks;
 
     return (rooks & movegen::getRookMoves(pos, occupancy & ~rookAttacks))
         | (bishops & movegen::getBishopMoves(pos, occupancy & ~bishopAttacks));

@@ -5,11 +5,13 @@ uint32_t countOccurenciesInAllTables(uint64_t hash)
 {
     uint32_t count {};
 
-    for (const auto& table : core::s_pieceHashTable) {
-        count += std::count_if(
-            table.begin(),
-            table.end(),
-            [hash](uint64_t h) { return h == hash; });
+    for (const auto& playerTable : core::s_pieceHashTable) {
+        for (const auto& pieceTable : playerTable) {
+            count += std::count_if(
+                pieceTable.begin(),
+                pieceTable.end(),
+                [hash](uint64_t h) { return h == hash; });
+        }
     }
 
     count += std::count_if(
@@ -33,9 +35,11 @@ TEST_CASE("Zobrist hashing", "[zobrist]")
 {
     SECTION("Test piece hash uniqueness")
     {
-        for (const auto& table : core::s_pieceHashTable) {
-            for (const auto hash : table) {
-                REQUIRE(countOccurenciesInAllTables(hash) == 1);
+        for (const auto& playerTable : core::s_pieceHashTable) {
+            for (const auto& pieceTable : playerTable) {
+                for (const auto hash : pieceTable) {
+                    REQUIRE(countOccurenciesInAllTables(hash) == 1);
+                }
             }
         }
     }

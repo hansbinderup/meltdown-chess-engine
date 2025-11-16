@@ -65,12 +65,12 @@ TEST_CASE("Scoring", "[scoring]")
             }
 
             REQUIRE(results.count() == 3);
-            REQUIRE(getPiece(*board, results[0]) == WhitePawn);
-            REQUIRE(getPiece(*board, results[1]) == WhiteKing);
-            REQUIRE(getPiece(*board, results[2]) == WhiteRook);
+            REQUIRE(getPiece(*board, results[0]) == Pawn);
+            REQUIRE(getPiece(*board, results[1]) == King);
+            REQUIRE(getPiece(*board, results[2]) == Rook);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
-            REQUIRE(getPiece(*board, move) == WhitePawn);
+            REQUIRE(getPiece(*board, move) == Pawn);
         }
 
         SECTION("Test capture and evasion moves")
@@ -86,12 +86,12 @@ TEST_CASE("Scoring", "[scoring]")
                 results.addMove(moveOpt.value());
             }
 
-            REQUIRE(getPiece(*board, results[0]) == WhitePawn);
-            REQUIRE(getPiece(*board, results[1]) == WhiteKing);
-            REQUIRE(getPiece(*board, results[2]) == WhiteRook);
+            REQUIRE(getPiece(*board, results[0]) == Pawn);
+            REQUIRE(getPiece(*board, results[1]) == King);
+            REQUIRE(getPiece(*board, results[2]) == Rook);
 
             const auto move = s_evaluator.getBestMove(board.value(), 4);
-            REQUIRE(getPiece(*board, move) == WhiteQueen); // evading attack + checking king = better move!
+            REQUIRE(getPiece(*board, move) == Queen); // evading attack + checking king = better move!
         }
     }
 }

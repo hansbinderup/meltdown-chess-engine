@@ -33,11 +33,11 @@ public:
         /* the position we are operation on - all attacks will be targeted here */
         const BoardPosition target = move.toPos();
 
-        const auto promotionPiece = promotionToColorlessPiece(move.promotionType());
+        const auto promotionPiece = promotionToPiece(move.promotionType());
 
         /* piece that will track the scoring of next piece */
-        Piece nextPiece = promotionPiece.has_value()
-            ? static_cast<Piece>(promotionPiece.value())
+        auto nextPiece = promotionPiece.has_value()
+            ? promotionPiece.value()
             : board.getAttackerAtSquare(fromSquare, board.player).value();
 
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
@@ -47,7 +47,7 @@ public:
             occ &= ~core::enpessantCaptureSquare(toSquare, board.player);
             balance += s_pieceValues[Pawn];
         } else if (move.isCapture()) {
-            const Piece target = board.getTargetAtSquare(toSquare, board.player).value();
+            const auto target = board.getTargetAtSquare(toSquare, board.player).value();
             balance += s_pieceValues[target];
         }
 
@@ -69,7 +69,7 @@ public:
                 break; /* no more attackers */
 
             /* illegal position if king is attacked after capturing */
-            if (utils::isKing(*piece) && ((attackers & occ & board.occupation[nextPlayer(board.player)]) != 0)) {
+            if (*piece == King && ((attackers & occ & board.occupation[nextPlayer(board.player)]) != 0)) {
                 break;
             }
 
@@ -103,11 +103,11 @@ public:
         int depth = 0;
         std::array<int32_t, 32> gain {}; // Stores gains for each exchange depth
 
-        const auto promotionPiece = promotionToColorlessPiece(move.promotionType());
+        const auto promotionPiece = promotionToPiece(move.promotionType());
 
         /* piece that will track the scoring of next piece */
-        Piece nextPiece = promotionPiece.has_value()
-            ? static_cast<Piece>(promotionPiece.value())
+        auto nextPiece = promotionPiece.has_value()
+            ? promotionPiece.value()
             : board.getAttackerAtSquare(fromSquare, board.player).value();
 
         /* remove our current move's piece - it's "assumed" to already have been moved to the target square */
@@ -157,30 +157,25 @@ public:
 private:
     constexpr static inline uint64_t getAttackers(const BitBoard& board, BoardPosition target, uint64_t occ)
     {
-        /* create masks for both sides and return a mask with all attacks from both sides */
-        const uint64_t knights = board.pieces[WhiteKnight] | board.pieces[BlackKnight];
-        const uint64_t diagSliders = board.pieces[WhiteBishop] | board.pieces[BlackBishop] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
-        const uint64_t hvSliders = board.pieces[WhiteRook] | board.pieces[BlackRook] | board.pieces[WhiteQueen] | board.pieces[BlackQueen];
-        const uint64_t kings = board.pieces[WhiteKing] | board.pieces[BlackKing];
+        const uint64_t diagSliders = board.pieces[Bishop] | board.pieces[Queen];
+        const uint64_t hvSliders = board.pieces[Rook] | board.pieces[Queen];
 
         /* NOTE: for pawn attacks, we use White's attack patterns to compute Black's as well
          * this works because the squares White pawns attack are exactly the ones Black pawns
          * could attack *from* (i.e., the inverse perspective on the board) */
-        return (movegen::getPawnAttacksFromPos<PlayerWhite>(target) & board.pieces[BlackPawn])
-            | (movegen::getPawnAttacksFromPos<PlayerBlack>(target) & board.pieces[WhitePawn])
-            | (movegen::getKnightMoves(target) & knights)
+        return (movegen::getPawnAttacksFromPos<PlayerWhite>(target) & board.pieces[Pawn] & board.occupation[PlayerBlack])
+            | (movegen::getPawnAttacksFromPos<PlayerBlack>(target) & board.pieces[Pawn] & board.occupation[PlayerWhite])
+            | (movegen::getKnightMoves(target) & board.pieces[Knight])
             | (movegen::getBishopMoves(target, occ) & diagSliders)
             | (movegen::getRookMoves(target, occ) & hvSliders)
-            | (movegen::getKingMoves(target) & kings);
+            | (movegen::getKingMoves(target) & board.pieces[King]);
     }
 
     template<Player player>
     constexpr static inline std::optional<Piece> getLeastValuableAttacker(const BitBoard& board, uint64_t attackers, uint64_t& occ)
     {
-        constexpr auto pieces = player == PlayerWhite ? s_whitePieces : s_blackPieces;
-
-        for (const auto piece : pieces) {
-            uint64_t subset = attackers & board.pieces[piece];
+        for (const auto piece : magic_enum::enum_values<Piece>()) {
+            uint64_t subset = attackers & board.pieces[piece] & board.occupation[player];
             if (subset) {
                 occ &= ~utils::lsbToSquare(subset); /* clear the piece we just found */
                 return piece;
@@ -201,22 +196,13 @@ private:
 
     /* piece values simplified */
     TUNABLE_CONSTEXPR(auto)
-    s_pieceValues = std::to_array<int32_t>(
-        {
-            /* white pieces */
-            spsa::seePawnValue,
-            spsa::seeKnightValue,
-            spsa::seeBishopValue,
-            spsa::seeRookValue,
-            spsa::seeQueenValue,
-            s_maxScore,
-            /* black pieces */
-            spsa::seePawnValue,
-            spsa::seeKnightValue,
-            spsa::seeBishopValue,
-            spsa::seeRookValue,
-            spsa::seeQueenValue,
-            s_maxScore,
-        });
+    s_pieceValues = std::to_array<int32_t>({
+        spsa::seePawnValue,
+        spsa::seeKnightValue,
+        spsa::seeBishopValue,
+        spsa::seeRookValue,
+        spsa::seeQueenValue,
+        s_maxScore,
+    });
 };
 }

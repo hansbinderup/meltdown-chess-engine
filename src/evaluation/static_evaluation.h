@@ -120,11 +120,11 @@ private:
     /* mostly borrowed from Ethereal */
     uint8_t computeEgScaleFactor(const BitBoard& board, TermScore score)
     {
-        const uint64_t pawns = board.pieces[WhitePawn] | board.pieces[BlackPawn];
-        const uint64_t knights = board.pieces[WhiteKnight] | board.pieces[BlackKnight];
-        const uint64_t bishops = board.pieces[WhiteBishop] | board.pieces[BlackBishop];
-        const uint64_t rooks = board.pieces[WhiteRook] | board.pieces[BlackRook];
-        const uint64_t queens = board.pieces[WhiteQueen] | board.pieces[BlackQueen];
+        const uint64_t pawns = board.pieces[Pawn];
+        const uint64_t knights = board.pieces[Knight];
+        const uint64_t bishops = board.pieces[Bishop];
+        const uint64_t rooks = board.pieces[Rook];
+        const uint64_t queens = board.pieces[Queen];
         const uint64_t minors = knights | bishops;
         const uint64_t minorsAndRooks = minors | rooks;
 
@@ -132,21 +132,21 @@ private:
         const uint64_t strongSide = score.eg() < 0 ? board.occupation[PlayerBlack] : board.occupation[PlayerWhite];
 
         /* single color bishop scalings */
-        if (std::popcount(board.pieces[WhiteBishop]) == 1
-            && std::popcount(board.pieces[BlackBishop]) == 1
+        if (std::popcount(bishops & board.occupation[PlayerWhite]) == 1
+            && std::popcount(bishops & board.occupation[PlayerBlack]) == 1
             && std::popcount(bishops & s_lightSquares) == 1) {
 
             /* SCB + knight endgame */
             if (!(rooks | queens)
-                && std::popcount(board.pieces[WhiteKnight]) == 1
-                && std::popcount(board.pieces[BlackKnight]) == 1) {
+                && std::popcount(knights & board.occupation[PlayerWhite]) == 1
+                && std::popcount(knights & board.occupation[PlayerBlack]) == 1) {
                 return ScaleFactor::ScbOneKnight;
             }
 
             /* SCB + rook endgame */
             if (!(knights | queens)
-                && std::popcount(board.pieces[WhiteRook]) == 1
-                && std::popcount(board.pieces[BlackRook]) == 1) {
+                && std::popcount(rooks & board.occupation[PlayerWhite]) == 1
+                && std::popcount(rooks & board.occupation[PlayerBlack]) == 1) {
                 return ScaleFactor::ScbOneRook;
             }
 
