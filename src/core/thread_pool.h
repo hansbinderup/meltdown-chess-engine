@@ -91,13 +91,13 @@ public:
 
         for (size_t i = 0; i < newThreadCount; ++i) {
             m_workers.emplace_back(
-                [this](std::stop_token stoken) { this->worker(stoken); },
+                [this](const std::stop_token& stoken) { this->worker(stoken); },
                 m_stop.get_token());
         }
     }
 
 private:
-    void worker(std::stop_token stopToken)
+    void worker(const std::stop_token& stopToken)
     {
         while (!stopToken.stop_requested()) {
             Job job;

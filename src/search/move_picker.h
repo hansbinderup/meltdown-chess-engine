@@ -13,7 +13,7 @@
 
 namespace search {
 
-enum KillerMoveType {
+enum KillerMoveType : uint8_t {
     First,
     Second,
 };
@@ -25,7 +25,7 @@ enum MovePickerOffsets : int32_t {
     BadPromotions = -10000,
 };
 
-enum PickerPhase {
+enum PickerPhase : uint8_t {
     GenerateSyzygyMoves,
     Syzygy,
     GenerateMoves,

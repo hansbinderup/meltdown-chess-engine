@@ -9,7 +9,7 @@
 
 namespace syzygy {
 
-enum WdlResult {
+enum WdlResult : uint8_t {
     WdlResultLoss,
     WdlResultDraw,
     WdlResultWin,

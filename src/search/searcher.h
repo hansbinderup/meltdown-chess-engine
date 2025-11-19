@@ -667,7 +667,7 @@ private:
 
         /* update stack for next iteration */
         m_stackItr++;
-        m_stackItr->board = std::move(newBoard);
+        m_stackItr->board = newBoard;
         m_stackItr->move = move;
 
         m_ply++;

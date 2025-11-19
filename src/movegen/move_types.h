@@ -7,7 +7,7 @@
 
 namespace movegen {
 
-enum MoveType {
+enum MoveType : uint8_t {
     MovePseudoLegal,
     MoveCapture,
     MoveNoisy,
@@ -264,7 +264,7 @@ public:
 
     void addMove(Move move)
     {
-        m_moves[m_count++] = std::move(move);
+        m_moves[m_count++] = move;
     }
 
     Move* begin()

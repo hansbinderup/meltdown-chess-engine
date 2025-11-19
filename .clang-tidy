@@ -1,0 +1,6 @@
+---
+Checks: '
+performance-*,
+'
+HeaderFilterRegex: '^.*/src/.*$'
+ExcludeHeaderFilterRegex: 'subprojects'

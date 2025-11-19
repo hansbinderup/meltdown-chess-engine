@@ -6,7 +6,7 @@
 #include <chrono>
 #include <cstdint>
 
-enum Player {
+enum Player : uint8_t {
     PlayerWhite,
     PlayerBlack,
 };
@@ -128,8 +128,18 @@ enum Phases : uint8_t {
 };
 
 constexpr static inline std::array<uint8_t, s_amountPieces> s_piecePhaseValues {
-    0, 1, 1, 2, 4, 0, /* white */
-    0, 1, 1, 2, 4, 0, /* black */
+    0,
+    1,
+    1,
+    2,
+    4,
+    0, /* white */
+    0,
+    1,
+    1,
+    2,
+    4,
+    0, /* black */
 };
 
 constexpr static inline uint8_t s_maxSearchDepth { 128 };

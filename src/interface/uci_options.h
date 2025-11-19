@@ -41,7 +41,7 @@ struct UciOption {
 };
 
 template<typename T>
-constexpr auto make(std::string_view name, T defaultVal, std::function<void(const T&)> cb)
+constexpr auto make(std::string_view name, const T& defaultVal, std::function<void(const T&)> cb)
 {
     return UciOption {
         .name = name,

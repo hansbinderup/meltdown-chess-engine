@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <optional>
 
-enum Occupation {
+enum Occupation : uint8_t {
     White,
     Black,
     Both,

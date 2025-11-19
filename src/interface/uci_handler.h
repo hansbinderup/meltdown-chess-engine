@@ -157,7 +157,7 @@ private:
         } else if (command == "fen") {
             const auto board = parsing::FenParser::parse(args);
             if (board.has_value()) {
-                s_board = std::move(board.value());
+                s_board = board.value();
 
                 s_evaluator.reset();
 

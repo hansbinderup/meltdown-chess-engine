@@ -21,7 +21,7 @@ namespace {
 
 static inline bool s_isPrettyPrintEnabled = s_prettyPrintSupported;
 
-inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
+inline void printSearchInfoUci(const std::shared_ptr<search::Searcher>& searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
     const auto timeDiff = TimeManager::timeElapsedMs().count();
     const uint16_t hashFull = core::TranspositionTable::getHashFull();
@@ -39,7 +39,7 @@ inline void printSearchInfoUci(std::shared_ptr<search::Searcher> searcher, Score
     fmt::println("{}", fmt::join(searcher->getPvTable(), " "));
 }
 
-inline void printSearchInfoPretty(std::shared_ptr<search::Searcher> searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
+inline void printSearchInfoPretty(const std::shared_ptr<search::Searcher>& searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
     using namespace fmt;
     using namespace std::chrono_literals;
@@ -216,7 +216,7 @@ inline void printEngineInfo()
     }
 }
 
-inline void printSearchInfo(std::shared_ptr<search::Searcher> searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
+inline void printSearchInfo(const std::shared_ptr<search::Searcher>& searcher, Score score, uint8_t currentDepth, uint64_t nodes, uint64_t tbHits)
 {
     if (s_isPrettyPrintEnabled) {
         printSearchInfoPretty(searcher, score, currentDepth, nodes, tbHits);
