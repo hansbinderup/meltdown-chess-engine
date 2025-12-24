@@ -9,6 +9,30 @@
 #include <cstdint>
 #include <optional>
 
+namespace {
+
+constexpr static inline auto createGamePhaseScaleTable()
+{
+    std::array<double, s_middleGamePhase + 1> table {};
+    for (size_t phase = 0; phase <= s_middleGamePhase; ++phase) {
+        const double normalizedPhase = static_cast<double>(phase) / s_middleGamePhase;
+        constexpr double earlyGameFactor = 0.6;
+        constexpr double midGameFactor = 1.4;
+        constexpr double endGameFactor = 0.6;
+
+        if (normalizedPhase < 0.5) {
+            table[phase] = earlyGameFactor + (midGameFactor - earlyGameFactor) * (normalizedPhase * 2.0);
+        } else {
+            table[phase] = midGameFactor + (endGameFactor - midGameFactor) * ((normalizedPhase - 0.5) * 2.0);
+        }
+    }
+    return table;
+}
+
+constexpr static inline auto s_gamePhaseScaleTable = createGamePhaseScaleTable();
+
+}
+
 class TimeManager {
 
 public:
@@ -179,6 +203,18 @@ public:
     }
 
 private:
+    static inline uint8_t calculateGamePhase(const BitBoard& board)
+    {
+        uint8_t phase = 0;
+        for (Piece piece : s_whitePieces) {
+            phase += std::popcount(board.pieces[piece]) * s_piecePhaseValues[piece];
+        }
+        for (Piece piece : s_blackPieces) {
+            phase += std::popcount(board.pieces[piece]) * s_piecePhaseValues[piece];
+        }
+        return std::min(phase, s_middleGamePhase);
+    }
+
     static inline void setupTimeControls(const BitBoard& board)
     {
         using namespace std::chrono;
@@ -208,8 +244,11 @@ private:
 
             const auto limitTime = duration_cast<milliseconds>(timeLeft * spsa::timeManLimitFrac / 100.0);
 
-            s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime));
-            s_hardTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime));
+            const uint8_t gamePhase = calculateGamePhase(board);
+            const double phaseScaleFactor = s_gamePhaseScaleTable[gamePhase];
+
+            s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime * phaseScaleFactor));
+            s_hardTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime * phaseScaleFactor));
         }
     }
 
