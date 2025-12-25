@@ -141,8 +141,30 @@ static inline TermScore getStaticKingPawnScore(const BitBoard& board, TermContex
         if (doubledPawns > 1)
             ADD_SCORE(doublePawnPenalty);
 
-        if ((ourPawns & core::s_isolationMaskTable[pos]) == 0)
+        const bool isIsolated = (ourPawns & core::s_isolationMaskTable[pos]) == 0;
+        if (isIsolated)
             ADD_SCORE(isolatedPawnPenalty);
+
+        /* backward pawn: cannot advance safely and cannot be defended by friendly pawns
+         * - the square in front is attacked by enemy pawns
+         * - no friendly pawns on adjacent files that can defend it */
+        if (!isIsolated) {
+            const uint64_t pushedSquare = utils::pushForwardFromPos<player>(pos);
+            const bool cannotAdvance = (pushedSquare & ctx.pawnAttacks[opponent]) != 0;
+
+            if (cannotAdvance) {
+                /* check if any adjacent pawns are behind us (can't support) */
+                const uint64_t adjacentFiles = core::s_isolationMaskTable[pos];
+                const uint64_t behindMask = player == PlayerWhite
+                    ? core::s_passedPawnMaskTable[PlayerBlack][pos]
+                    : core::s_passedPawnMaskTable[PlayerWhite][pos];
+                const uint64_t supportingPawns = ourPawns & adjacentFiles & ~behindMask;
+
+                if (supportingPawns == 0) {
+                    ADD_SCORE(backwardPawnPenalty);
+                }
+            }
+        }
 
         if (core::s_passedPawnMaskTable[player][ourKingPos] & square) {
             const uint8_t shieldDistance = std::min(utils::verticalDistance(ourKingPos, pos), pawnShieldSize);
