@@ -53,8 +53,6 @@
     TUNABLE(timeManIncFrac, uint16_t, 122, 1, 150, 5)               \
     TUNABLE(timeManBaseFrac, uint16_t, 42, 1, 150, 5)               \
     TUNABLE(timeManLimitFrac, uint16_t, 80, 1, 150, 5)              \
-    TUNABLE(timeManSoftFrac, uint16_t, 62, 1, 150, 5)               \
-    TUNABLE(timeManHardFrac, uint16_t, 456, 100, 500, 20)           \
     TUNABLE(timeManNodeFracBase, uint8_t, 140, 1, 200, 10)          \
     TUNABLE(timeManNodeFracMultiplier, uint8_t, 180, 1, 200, 10)    \
     TUNABLE(timeManScoreMargin, uint8_t, 10, 1, 20, 1)              \

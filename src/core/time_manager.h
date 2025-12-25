@@ -203,13 +203,13 @@ private:
             /* if no "movesToGo" is provided then try to estimate one using our base parameters */
             const auto baseTime = (s_movesToGo
                                           ? timeLeft / s_movesToGo
-                                          : timeLeft * spsa::timeManBaseFrac / 1000.0)
-                + timeInc * spsa::timeManIncFrac / 100.0;
+                                          : timeLeft / 20)
+                + timeInc * 3 / 4;
 
             const auto limitTime = duration_cast<milliseconds>(timeLeft * spsa::timeManLimitFrac / 100.0);
 
-            s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManSoftFrac / 100.0 * baseTime));
-            s_hardTimeLimit = std::min(limitTime, duration_cast<milliseconds>(spsa::timeManHardFrac / 100.0 * baseTime));
+            s_softTimeLimit = std::min(limitTime, duration_cast<milliseconds>(0.6 * baseTime));
+            s_hardTimeLimit = std::min(limitTime, duration_cast<milliseconds>(2.0 * baseTime));
         }
     }
 
