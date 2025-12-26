@@ -82,7 +82,7 @@ public:
             TimeManager::start(board);
         }
 
-        return scanForBestMove(depthInput.value_or(s_maxSearchDepth), board);
+        return startIterativeDeepening(depthInput.value_or(s_maxSearchDepth), board);
     }
 
     constexpr bool startPondering(const BitBoard& board)
@@ -189,144 +189,214 @@ private:
         return static_cast<double>(pvNodes) / totalNodes;
     }
 
-    constexpr movegen::Move scanForBestMove(uint8_t depth, const BitBoard& board)
+    constexpr movegen::Move startIterativeDeepening(uint8_t depth, const BitBoard& board)
     {
-        Score alpha = s_minScore;
-        Score beta = s_maxScore;
+        const movegen::Move bestMove = m_searchers.size() == 1
+            ? iterativeDeepeningSingle(depth, board)
+            : iterativeDeepeningMulti(depth, board);
 
-        /*
-         * iterative deeping - with aspiration window
-         * https://web.archive.org/web/20070705134903/www.seanet.com/%7Ebrucemo/topics/aspiration.htm
-         */
+        stop();
+
+        return bestMove;
+    }
+
+    struct AspirationWindow {
+        Score alpha;
+        Score beta;
+        Score delta;
+        uint8_t depthReduction;
+        const uint8_t depth;
+
+        explicit AspirationWindow(uint8_t depth, Score prevScore)
+            : depth(depth)
+        {
+            if (depth >= spsa::aspirationMinDepth) {
+                alpha = std::max<Score>(s_minScore, prevScore - spsa::aspirationWindow);
+                beta = std::min<Score>(s_maxScore, prevScore + spsa::aspirationWindow);
+            } else {
+                alpha = s_minScore;
+                beta = s_maxScore;
+            }
+            delta = spsa::aspirationWindow;
+            depthReduction = 0;
+        }
+
+        inline void widenOnFailLow()
+        {
+            alpha = std::max<Score>(s_minScore, alpha - delta);
+            beta = (alpha + beta) / 2;
+            depthReduction = 0;
+        }
+
+        inline void widenOnFailHigh()
+        {
+            beta = std::min<Score>(s_maxScore, beta + delta);
+            depthReduction++;
+        }
+
+        inline void grow()
+        {
+            delta *= 2;
+            if (delta > spsa::aspirationMaxWindow) {
+                alpha = s_minScore;
+                beta = s_maxScore;
+                depthReduction = 0;
+            }
+        }
+
+        inline uint8_t searchDepth() const
+        {
+            /* noia check - don't want to overflow nor search depth 0 */
+            return depthReduction < depth
+                ? depth - depthReduction
+                : 1;
+        }
+    };
+
+    constexpr movegen::Move iterativeDeepeningSingle(uint8_t depth, const BitBoard& board)
+    {
+        const auto& singleSearcher = m_searchers.front();
+        Score bestScore = 0;
+        movegen::Move bestMove;
+
+        for (uint8_t d = 1; d <= depth; d++) {
+            if (!TimeManager::timeForAnotherSearch(d)) {
+                break;
+            }
+
+            AspirationWindow window(d, bestScore);
+
+            while (true) {
+                Searcher::setSearchStopped(false);
+
+                const auto score = singleSearcher->startSearch(window.searchDepth(), board, window.alpha, window.beta);
+
+                if (TimeManager::hasTimedOut()) {
+                    break;
+                }
+
+                if (score <= window.alpha) {
+                    window.widenOnFailLow();
+                } else if (score >= window.beta) {
+                    window.widenOnFailHigh();
+                } else {
+                    bestScore = score;
+                    interface::printSearchInfo(singleSearcher, score, d, getNodes(), getTbHits());
+                    bestMove = singleSearcher->getPvMove();
+                    m_ponderMove = singleSearcher->getPonderMove();
+                    TimeManager::updateMoveStability(bestMove, score, pvMoveNodeFraction(bestMove));
+
+                    break;
+                }
+
+                window.grow();
+            }
+        }
+
+        return bestMove;
+    }
+
+    /* currently using a more primitive iterative deepening with fixed window search
+     * update to use similar implementation as single threaded search */
+    constexpr movegen::Move iterativeDeepeningMulti(uint8_t depth, const BitBoard& board)
+    {
         movegen::Move bestMove;
         uint8_t d = 1;
+        Score alpha = s_minScore;
+        Score beta = s_maxScore;
 
         while (d <= depth) {
             if (!TimeManager::timeForAnotherSearch(d)) {
                 break;
             }
 
-            if (m_searchers.size() == 1) {
-                const auto& singleSearcher = m_searchers.front();
+            Searcher::setSearchStopped(false);
 
-                Searcher::setSearchStopped(false);
-                const auto score = singleSearcher->startSearch(d, board, alpha, beta);
+            /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
+            std::array<SearcherResult, s_maxThreads> searchResults {};
+            uint8_t numSearchResults {};
 
-                /* use previous search if we timed out - it means that the current search was incomplete */
-                if (TimeManager::hasTimedOut()) {
-                    break;
-                }
-
-                if ((score <= alpha) || (score >= beta)) {
-                    alpha = s_minScore;
-                    beta = s_maxScore;
-
-                    continue;
-                }
-
-                /* prepare window for next iteration */
-                alpha = score - spsa::aspirationWindow;
-                beta = score + spsa::aspirationWindow;
-
-                interface::printSearchInfo(singleSearcher, score, d, getNodes(), getTbHits());
-
-                bestMove = singleSearcher->getPvMove();
-                m_ponderMove = singleSearcher->getPonderMove();
-
-                TimeManager::updateMoveStability(bestMove, score, pvMoveNodeFraction(bestMove));
-            } else {
-                Searcher::setSearchStopped(false);
-
-                /* Thread voting: https://www.chessprogramming.org/Lazy_SMP */
-                std::array<SearcherResult, s_maxThreads> searchResults {};
-                uint8_t numSearchResults {};
-
-                for (auto& searcher : m_searchers) {
-                    searcher->startSearchAsync(m_threadPool, d, board, alpha, beta);
-                }
-
-                for (auto& searcher : m_searchers) {
-                    const auto& result = searcher->getSearchResult();
-                    if (result.has_value()) {
-                        // If didn't fall out of window and wasn't an immediate early termination, push back to results
-                        if ((result.value().score > alpha) && (result.value().score < beta) && result.value().searchedDepth > 0) {
-                            searchResults.at(numSearchResults) = result.value();
-                            ++numSearchResults;
-                        }
-                    }
-                }
-
-                /* use previous search if we timed out - it means that the current search was incomplete */
-                if (TimeManager::hasTimedOut()) {
-                    break;
-                }
-
-                if (numSearchResults == 0) {
-                    alpha = s_minScore;
-                    beta = s_maxScore;
-
-                    continue;
-                }
-
-                m_movesVotes.clear();
-
-                for (uint8_t i = 0; i < numSearchResults; i++) {
-
-                    const auto& result = searchResults.at(i);
-
-                    const Score score = result.score;
-                    const uint8_t depth = result.searchedDepth;
-                    const auto move = result.pvMove;
-
-                    /* Can be tweaked for optimization */
-                    int64_t voteWeight = (score - s_minScore) * depth;
-
-                    m_movesVotes.insertOrIncrement(move, voteWeight);
-                }
-
-                int64_t maxVote = -std::numeric_limits<int64_t>::max();
-
-                for (const auto& [move, vote] : m_movesVotes) {
-                    if (vote > maxVote) {
-                        maxVote = vote;
-                        bestMove = move;
-                    }
-                }
-
-                uint8_t bestWinningDepth = 0;
-                SearcherResult bestWinningResult;
-
-                for (uint8_t i = 0; i < numSearchResults; i++) {
-                    if (searchResults.at(i).pvMove == bestMove) {
-                        if (depth > bestWinningDepth) {
-                            bestWinningResult = searchResults.at(i);
-                            bestWinningDepth = depth;
-                        }
-                    }
-                }
-
-                /* prepare window for next iteration */
-                alpha = bestWinningResult.score - spsa::aspirationWindow;
-                beta = bestWinningResult.score + spsa::aspirationWindow;
-
-                const auto searcher = bestWinningResult.searcher.lock();
-                if (!searcher) {
-                    /* should not happen during a search - have we been stopped? */
-                    break;
-                }
-
-                interface::printSearchInfo(searcher, bestWinningResult.score, d, getNodes(), getTbHits());
-                m_ponderMove = searcher->getPonderMove();
-
-                TimeManager::updateMoveStability(bestMove, bestWinningResult.score, pvMoveNodeFraction(bestMove));
+            for (auto& searcher : m_searchers) {
+                searcher->startSearchAsync(m_threadPool, d, board, alpha, beta);
             }
 
-            /* only increment depth, if we didn't fall out of the window */
+            for (auto& searcher : m_searchers) {
+                const auto& result = searcher->getSearchResult();
+                if (result.has_value()) {
+                    // If didn't fall out of window and wasn't an immediate early termination, push back to results
+                    if ((result.value().score > alpha) && (result.value().score < beta) && result.value().searchedDepth > 0) {
+                        searchResults.at(numSearchResults) = result.value();
+                        ++numSearchResults;
+                    }
+                }
+            }
+
+            /* use previous search if we timed out - it means that the current search was incomplete */
+            if (TimeManager::hasTimedOut()) {
+                break;
+            }
+
+            if (numSearchResults == 0) {
+                alpha = s_minScore;
+                beta = s_maxScore;
+
+                continue;
+            }
+
+            m_movesVotes.clear();
+
+            for (uint8_t i = 0; i < numSearchResults; i++) {
+
+                const auto& result = searchResults.at(i);
+
+                const Score score = result.score;
+                const uint8_t depth = result.searchedDepth;
+                const auto move = result.pvMove;
+
+                /* Can be tweaked for optimization */
+                int64_t voteWeight = (score - s_minScore) * depth;
+
+                m_movesVotes.insertOrIncrement(move, voteWeight);
+            }
+
+            int64_t maxVote = -std::numeric_limits<int64_t>::max();
+
+            for (const auto& [move, vote] : m_movesVotes) {
+                if (vote > maxVote) {
+                    maxVote = vote;
+                    bestMove = move;
+                }
+            }
+
+            uint8_t bestWinningDepth = 0;
+            SearcherResult bestWinningResult;
+
+            for (uint8_t i = 0; i < numSearchResults; i++) {
+                if (searchResults.at(i).pvMove == bestMove) {
+                    if (depth > bestWinningDepth) {
+                        bestWinningResult = searchResults.at(i);
+                        bestWinningDepth = depth;
+                    }
+                }
+            }
+
+            /* prepare window for next iteration */
+            alpha = bestWinningResult.score - spsa::aspirationWindow;
+            beta = bestWinningResult.score + spsa::aspirationWindow;
+
+            const auto searcher = bestWinningResult.searcher.lock();
+            if (!searcher) {
+                /* should not happen during a search - have we been stopped? */
+                break;
+            }
+
+            interface::printSearchInfo(searcher, bestWinningResult.score, d, getNodes(), getTbHits());
+            m_ponderMove = searcher->getPonderMove();
+
+            TimeManager::updateMoveStability(bestMove, bestWinningResult.score, pvMoveNodeFraction(bestMove));
+
             d++;
         }
-
-        /* in case we're scanning to a certain depth we need to ensure that we're stopping the time handler */
-        stop();
 
         return bestMove;
     }

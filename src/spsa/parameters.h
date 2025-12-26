@@ -47,6 +47,8 @@
     TUNABLE(seeNoisyMargin, uint8_t, 18, 0, 100, 5)                 \
     TUNABLE(seeDepthLimit, uint8_t, 10, 0, 15, 1)                   \
     TUNABLE(aspirationWindow, uint8_t, 81, 10, 100, 5)              \
+    TUNABLE(aspirationMinDepth, uint8_t, 4, 1, 10, 1)               \
+    TUNABLE(aspirationMaxWindow, uint16_t, 500, 200, 1000, 50)      \
     TUNABLE(pawnCorrectionWeight, uint16_t, 404, 100, 500, 25)      \
     TUNABLE(materialCorrectionWeight, uint16_t, 526, 500, 1500, 50) \
     TUNABLE(threatCorrectionWeight, uint16_t, 580, 250, 1000, 25)   \
