@@ -67,6 +67,11 @@ public:
         return m_searchTables.getHistoryNodes(move);
     }
 
+    constexpr void clearKillers()
+    {
+        return m_searchTables.resetKillerMoves();
+    }
+
     constexpr uint8_t getSelDepth() const
     {
         return m_selDepth;

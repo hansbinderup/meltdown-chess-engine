@@ -264,6 +264,8 @@ private:
                 break;
             }
 
+            singleSearcher->clearKillers();
+
             AspirationWindow window(d, bestScore);
 
             while (true) {

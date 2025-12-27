@@ -18,6 +18,11 @@ public:
         m_pvTable.reset();
     }
 
+    inline void resetKillerMoves()
+    {
+        m_killerMoves.reset();
+    }
+
     inline bool isPvMove(movegen::Move move, uint8_t ply) const
     {
         return m_pvTable.isPvMove(move, ply);
