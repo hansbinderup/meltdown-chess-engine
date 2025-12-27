@@ -280,6 +280,7 @@ private:
     void generateQuietScores(const BitBoard& board)
     {
         const auto killerMoves = m_searchTables.getKillerMove(m_ply);
+        const auto counterMove = m_searchTables.getCounterMove(m_prevMove.value_or(movegen::Move()));
 
         for (uint16_t i = m_head; i < m_tail; i++) {
             if (!m_moves[i].isQuietMove())
@@ -289,7 +290,7 @@ private:
                 m_scores[i] = MovePickerOffsets::KillerMoveFirst;
             } else if (m_moves[i] == killerMoves.second) {
                 m_scores[i] = MovePickerOffsets::KillerMoveSecond;
-            } else if (m_prevMove && m_moves[i] == m_searchTables.getCounterMove(m_prevMove.value())) {
+            } else if (m_moves[i] == counterMove) {
                 m_scores[i] = MovePickerOffsets::CounterMove;
             } else {
                 const auto attacker = board.getAttackerAtSquare<player>(m_moves[i].fromSquare());

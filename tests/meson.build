@@ -14,6 +14,7 @@ unit_test_names = [
   'test_scoring',
   'test_thread_pool',
   'test_move_vote_map',
+  'test_move_picker',
 ]
 
 foreach test_name : unit_test_names
