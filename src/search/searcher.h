@@ -428,6 +428,13 @@ public:
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
 
+                    // FIXME: half of max correction
+                    if (correction > 4096) {
+                        reduction -= 1; /* reduce less if we have a good correction */
+                    } else if (correction < -4096) {
+                        reduction += 1; /* reduce more if we have a bad correction */
+                    }
+
                     reduction = std::clamp<uint8_t>(reduction, 0, depth - 1);
                 }
 
