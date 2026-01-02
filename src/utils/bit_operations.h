@@ -135,4 +135,24 @@ constexpr inline bool isKing(Piece piece)
     return piece == WhiteKing || piece == BlackKing;
 }
 
+template<Player player>
+constexpr inline bool isMajor(Piece piece)
+{
+    if constexpr (player == PlayerWhite) {
+        return piece == WhiteRook || piece == WhiteQueen;
+    } else {
+        return piece == BlackRook || piece == BlackQueen;
+    }
+}
+
+template<Player player>
+constexpr inline bool isMinor(Piece piece)
+{
+    if constexpr (player == PlayerWhite) {
+        return piece == WhiteKnight || piece == WhiteBishop;
+    } else {
+        return piece == BlackKnight || piece == BlackBishop;
+    }
+}
+
 }

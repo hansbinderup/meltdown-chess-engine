@@ -147,4 +147,69 @@ static inline uint64_t generateKingPawnHash(const BitBoard& board)
     return hash;
 }
 
+static inline uint64_t generatePawnHash(const BitBoard& board)
+{
+    uint64_t hash = 0;
+    constexpr auto pieces = std::to_array<Piece>({ WhitePawn, BlackPawn });
+    for (const auto pieceEnum : pieces) {
+        uint64_t piece = board.pieces[pieceEnum];
+
+        utils::bitIterate(piece, [&](BoardPosition pos) {
+            hash ^= s_pieceHashTable[pieceEnum][pos];
+        });
+    }
+
+    return hash;
+}
+
+template<Player player>
+static inline uint64_t generateNonPawnHash(const BitBoard& board)
+{
+    uint64_t hash = 0;
+
+    constexpr auto whitePieces = std::to_array<Piece>({ WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing });
+    constexpr auto blackPieces = std::to_array<Piece>({ BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing });
+    constexpr auto pieces = player == PlayerWhite ? whitePieces : blackPieces;
+
+    for (const auto pieceEnum : pieces) {
+        uint64_t piece = board.pieces[pieceEnum];
+
+        utils::bitIterate(piece, [&](BoardPosition pos) {
+            hash ^= s_pieceHashTable[pieceEnum][pos];
+        });
+    }
+
+    return hash;
+}
+
+static inline uint64_t generateMinorHash(const BitBoard& board)
+{
+    uint64_t hash = 0;
+    constexpr auto pieces = std::to_array<Piece>({ WhiteKnight, WhiteBishop, BlackKnight, BlackBishop });
+    for (const auto pieceEnum : pieces) {
+        uint64_t piece = board.pieces[pieceEnum];
+
+        utils::bitIterate(piece, [&](BoardPosition pos) {
+            hash ^= s_pieceHashTable[pieceEnum][pos];
+        });
+    }
+
+    return hash;
+}
+
+static inline uint64_t generateMajorHash(const BitBoard& board)
+{
+    uint64_t hash = 0;
+    constexpr auto pieces = std::to_array<Piece>({ WhiteRook, WhiteQueen, BlackRook, BlackQueen });
+    for (const auto pieceEnum : pieces) {
+        uint64_t piece = board.pieces[pieceEnum];
+
+        utils::bitIterate(piece, [&](BoardPosition pos) {
+            hash ^= s_pieceHashTable[pieceEnum][pos];
+        });
+    }
+
+    return hash;
+}
+
 }

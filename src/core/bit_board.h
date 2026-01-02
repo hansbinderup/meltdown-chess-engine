@@ -155,6 +155,9 @@ struct BitBoard {
 
     /* hashes for the current position */
     uint64_t hash {};
+    uint64_t minorHash {};
+    uint64_t majorHash {};
+    uint64_t pawnHash {};
     uint64_t kpHash {};
-    uint64_t materialHash {};
+    std::array<uint64_t, magic_enum::enum_count<Player>()> nonPawnHashes;
 };

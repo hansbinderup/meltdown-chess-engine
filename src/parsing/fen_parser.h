@@ -74,7 +74,12 @@ public:
         /* last thing to do - update hashes so they reflect the full board state */
         board.hash = core::generateHash(board);
         board.kpHash = core::generateKingPawnHash(board);
-        board.materialHash = core::generateMaterialHash(board);
+        board.pawnHash = core::generatePawnHash(board);
+        board.minorHash = core::generateMinorHash(board);
+        board.majorHash = core::generateMajorHash(board);
+
+        board.nonPawnHashes[PlayerWhite] = core::generateNonPawnHash<PlayerWhite>(board);
+        board.nonPawnHashes[PlayerBlack] = core::generateNonPawnHash<PlayerBlack>(board);
 
         if (success)
             return board;
