@@ -10,6 +10,7 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 {
     REQUIRE(board.hash == core::generateHash(board));
     REQUIRE(board.kpHash == core::generateKingPawnHash(board));
+    REQUIRE(board.materialHash == core::generateMaterialHash(board));
 
     movegen::ValidMoves moves;
     core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
@@ -23,6 +24,7 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
 
         REQUIRE(newBoard.hash == core::generateHash(newBoard));
         REQUIRE(newBoard.kpHash == core::generateKingPawnHash(newBoard));
+        REQUIRE(newBoard.materialHash == core::generateMaterialHash(newBoard));
 
         if (depth != 0) {
             testAllMoves(newBoard, depth - 1);

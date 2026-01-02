@@ -37,7 +37,7 @@ public:
         const uint64_t threatKey = core::splitMixHash(board.attacks[opponent] & board.occupation[player]);
 
         const Score kpCorrection = getEntry<player>(board.kpHash);
-        const Score materialCorrection = getEntry<player>(core::generateMaterialHash(board));
+        const Score materialCorrection = getEntry<player>(board.materialHash);
         const Score threatCorrection = getEntry<player>(threatKey);
 
         const Score correction

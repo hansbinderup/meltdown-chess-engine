@@ -74,6 +74,7 @@ public:
         /* last thing to do - update hashes so they reflect the full board state */
         board.hash = core::generateHash(board);
         board.kpHash = core::generateKingPawnHash(board);
+        board.materialHash = core::generateMaterialHash(board);
 
         if (success)
             return board;
