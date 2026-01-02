@@ -98,7 +98,7 @@ constexpr static inline void hashPlayer(uint64_t& hash)
     hash ^= s_playerKey;
 }
 
-constexpr uint64_t generateHash(const BitBoard& board)
+static inline uint64_t generateMaterialHash(const BitBoard& board)
 {
     uint64_t hash = 0;
     for (const auto pieceEnum : magic_enum::enum_values<Piece>()) {
@@ -108,6 +108,13 @@ constexpr uint64_t generateHash(const BitBoard& board)
             hash ^= s_pieceHashTable[pieceEnum][pos];
         });
     }
+
+    return hash;
+}
+
+constexpr uint64_t generateHash(const BitBoard& board)
+{
+    uint64_t hash = generateMaterialHash(board);
 
     hash ^= s_castlingHashTable[board.castlingRights];
 
@@ -133,22 +140,6 @@ static inline uint64_t generateKingPawnHash(const BitBoard& board)
         utils::bitIterate(piece, [&](BoardPosition pos) {
             hash ^= s_pieceHashTable[pieceEnum][pos];
         });
-    }
-
-    return hash;
-}
-
-/* slightly more efficient way to generate material hash */
-static inline uint64_t generateMaterialHash(const BitBoard& board)
-{
-    /* we don't care about kings here - they're always present */
-    constexpr auto materialPieces = std::to_array<Piece>({ WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen,
-        BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen });
-
-    uint64_t hash = 0;
-    for (const auto pieceEnum : materialPieces) {
-        uint8_t count = std::popcount(board.pieces[pieceEnum]);
-        hash ^= s_pieceHashTable[pieceEnum][count];
     }
 
     return hash;

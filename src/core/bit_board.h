@@ -155,5 +155,6 @@ struct BitBoard {
 
     /* hashes for the current position */
     uint64_t hash {};
+    uint64_t materialHash {};
     uint64_t kpHash {};
 };
