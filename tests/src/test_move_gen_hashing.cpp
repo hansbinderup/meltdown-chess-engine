@@ -6,11 +6,20 @@
 
 constexpr uint8_t s_defaultSearchDepth = 3;
 
-void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
+void compareHashes(const BitBoard& board)
 {
     REQUIRE(board.hash == core::generateHash(board));
     REQUIRE(board.kpHash == core::generateKingPawnHash(board));
-    REQUIRE(board.materialHash == core::generateMaterialHash(board));
+    REQUIRE(board.minorHash == core::generateMinorHash(board));
+    REQUIRE(board.majorHash == core::generateMajorHash(board));
+    REQUIRE(board.pawnHash == core::generatePawnHash(board));
+    REQUIRE(board.nonPawnHashes[PlayerWhite] == core::generateNonPawnHash<PlayerWhite>(board));
+    REQUIRE(board.nonPawnHashes[PlayerBlack] == core::generateNonPawnHash<PlayerBlack>(board));
+}
+
+void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
+{
+    compareHashes(board);
 
     movegen::ValidMoves moves;
     core::getAllMoves<movegen::MovePseudoLegal>(board, moves);
@@ -21,10 +30,6 @@ void testAllMoves(const BitBoard& board, uint8_t depth = s_defaultSearchDepth)
         if (core::isKingAttacked(newBoard, board.player)) {
             continue;
         }
-
-        REQUIRE(newBoard.hash == core::generateHash(newBoard));
-        REQUIRE(newBoard.kpHash == core::generateKingPawnHash(newBoard));
-        REQUIRE(newBoard.materialHash == core::generateMaterialHash(newBoard));
 
         if (depth != 0) {
             testAllMoves(newBoard, depth - 1);
