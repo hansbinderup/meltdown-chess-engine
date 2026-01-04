@@ -57,7 +57,7 @@ public:
         m_historyMoves.resetNodes();
     }
 
-    inline std::pair<movegen::Move, movegen::Move> getKillerMove(uint8_t ply) const
+    inline movegen::Move getKillerMove(uint8_t ply) const
     {
         return m_killerMoves.get(ply);
     }

@@ -475,7 +475,10 @@ public:
                 bestMove = move;
                 ttFlag = core::TtBeta;
 
-                m_searchTables.updateKillerMoves(move, m_ply);
+                if (move.isQuietMove()) {
+                    m_searchTables.updateKillerMoves(move, m_ply);
+                }
+
                 if constexpr (!isRoot) {
                     const auto prevMove = (m_stackItr - 1)->move;
                     m_searchTables.updateCounterMoves(prevMove, move);

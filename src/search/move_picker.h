@@ -19,8 +19,7 @@ enum KillerMoveType {
 };
 
 enum MovePickerOffsets : int32_t {
-    KillerMoveFirst = 100003,
-    KillerMoveSecond = 100002,
+    KillerMove = 100002,
     CounterMove = 100001,
     BadPromotions = -10000,
 };
@@ -278,16 +277,14 @@ private:
     template<Player player>
     void generateQuietScores(const BitBoard& board)
     {
-        const auto killerMoves = m_searchTables.getKillerMove(m_ply);
+        const auto killerMove = m_searchTables.getKillerMove(m_ply);
 
         for (uint16_t i = 0; i < m_tail; i++) {
             if (!m_moves[i].isQuietMove())
                 continue;
 
-            if (m_moves[i] == killerMoves.first) {
-                m_scores[i] = MovePickerOffsets::KillerMoveFirst;
-            } else if (m_moves[i] == killerMoves.second) {
-                m_scores[i] = MovePickerOffsets::KillerMoveSecond;
+            if (m_moves[i] == killerMove) {
+                m_scores[i] = MovePickerOffsets::KillerMove;
             } else if (m_prevMove && m_moves[i] == m_searchTables.getCounterMove(m_prevMove.value())) {
                 m_scores[i] = MovePickerOffsets::CounterMove;
             } else {
