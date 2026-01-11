@@ -36,9 +36,9 @@ public:
         constexpr Player opponent = nextPlayer(player);
         const uint64_t threatKey = core::splitMixHash(board.attacks[opponent] & board.occupation[player]);
 
-        const Score kpCorrection = getEntry<player>(board.kpHash);
-        const Score materialCorrection = getEntry<player>(board.materialHash);
-        const Score threatCorrection = getEntry<player>(threatKey);
+        const Score kpCorrection = getEntry<player>(m_kpTable, board.kpHash);
+        const Score materialCorrection = getEntry<player>(m_materialTable, board.materialHash);
+        const Score threatCorrection = getEntry<player>(m_threatTable, threatKey);
 
         const Score correction
             = kpCorrection * spsa::pawnCorrectionWeight
@@ -54,9 +54,9 @@ public:
         constexpr Player opponent = nextPlayer(player);
         const uint64_t threatKey = core::splitMixHash(board.attacks[opponent] & board.occupation[player]);
 
-        updateEntry<player>(board.kpHash, score, eval, depth);
-        updateEntry<player>(board.materialHash, score, eval, depth);
-        updateEntry<player>(threatKey, score, eval, depth);
+        updateEntry<player>(m_kpTable, board.kpHash, score, eval, depth);
+        updateEntry<player>(m_materialTable, board.materialHash, score, eval, depth);
+        updateEntry<player>(m_threatTable, threatKey, score, eval, depth);
     }
 
     inline void update(const BitBoard& board, uint8_t depth, Score score, Score eval)
@@ -69,17 +69,25 @@ public:
     }
 
 private:
+    /* cache settings */
+    constexpr static inline size_t s_cacheKeySize { 14 };
+    constexpr static inline size_t s_cacheSize { 1 << s_cacheKeySize };
+    constexpr static inline uint16_t s_cacheMask { s_cacheKeySize - 1 };
+
+    using CorrectionHistoryEntry = std::array<Score, s_cacheSize>;
+    using CorrectionTable = std::array<CorrectionHistoryEntry, magic_enum::enum_count<Player>()>;
+
     template<Player player>
-    Score getEntry(uint64_t hash) const
+    Score getEntry(const CorrectionTable& table, uint64_t hash) const
     {
-        return m_table[player][hash & s_cacheMask] / s_grain;
+        return table[player][hash % s_cacheMask] / s_grain;
     }
 
     /* updates the correction entry using a weighted mix of current and new data */
     template<Player player>
-    void updateEntry(uint64_t hash, Score bestScore, Score eval, uint8_t depth)
+    void updateEntry(CorrectionTable& table, uint64_t hash, Score bestScore, Score eval, uint8_t depth)
     {
-        Score& entry = m_table[player][hash & s_cacheMask];
+        Score& entry = table[player][hash % s_cacheMask];
 
         /* mix previous correction with new data:
          * - compute difference between best score and evaluation
@@ -113,13 +121,9 @@ private:
     constexpr static inline uint16_t s_maxValue { 32 * s_grain };
     constexpr static inline uint16_t s_maxUpdate { s_maxValue / 4 };
 
-    /* cache settings */
-    constexpr static inline size_t s_cacheKeySize { 16 };
-    constexpr static inline uint16_t s_cacheMask { 0xffff };
-    constexpr static inline size_t s_cacheSize { 1 << s_cacheKeySize };
-
-    using CorrectionHistoryEntry = std::array<Score, s_cacheSize>;
-    std::array<CorrectionHistoryEntry, magic_enum::enum_count<Player>()> m_table {};
+    CorrectionTable m_kpTable {};
+    CorrectionTable m_materialTable {};
+    CorrectionTable m_threatTable {};
 };
 
 }
