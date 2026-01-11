@@ -420,10 +420,13 @@ public:
                     && !move.isPromotionMove()) {
 
                     const bool isGivingCheck = core::isKingAttacked(m_stackItr->board);
+                    const bool isKillerMove = m_searchTables.getKillerMove(m_ply) == move;
+
                     reduction = getLmrReduction(depth, movesSearched);
 
                     reduction -= static_cast<int8_t>(isChecked); /* reduce less when checked */
                     reduction -= static_cast<int8_t>(isGivingCheck); /* reduce less when giving check */
+                    reduction -= static_cast<int8_t>(isKillerMove); /* reduce less when searching a killer move */
                     reduction += static_cast<int8_t>(!isPv); /* reduce more when not pv line */
                     reduction += static_cast<int8_t>(!isImproving); /* reduce more when not improving */
                     reduction += static_cast<int8_t>(cutNode); /* reduce more when cut-node */
