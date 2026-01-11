@@ -261,7 +261,7 @@ public:
         const bool isImproving = !isChecked && m_ply >= 2 && (m_stackItr - 2)->eval < m_stackItr->eval;
 
         /* Max moves allowed by late move reduction */
-        const uint64_t lmpMaxMoves = (spsa::lmpBase + spsa::lmpMargin * depth * depth) / (1 + spsa::lmpImproving * !isImproving);
+        const uint64_t lmpMaxMoves = (5 + depth * depth) / (2 - isImproving);
 
         /* static pruning - try to prove that the position is good enough to not need
          * searching the entire branch */
@@ -366,21 +366,27 @@ public:
             /* static forward pruning
              * prune entire branches at pre-frontier nodes based on static criterias */
             if constexpr (!isPv) {
-                if (!isChecked && !picker.getSkipQuiets() && bestScore > s_minScore) {
-
-                    const uint8_t lmrDepth = depth - std::min<uint8_t>(getLmrReduction(depth, movesSearched), depth);
-                    const Score margin = spsa::efpBase + (spsa::efpMargin * lmrDepth) + (spsa::efpImproving * isImproving);
-
-                    /* extended futility pruning (EFP)
-                     * after searching a certain depth we can start pruning
-                     * moves that will most likely not improve alpha (for now skip quiets) */
-                    if (lmrDepth <= spsa::efpDepthLimit && m_stackItr->eval + margin < alpha) {
-                        picker.setSkipQuiets(true);
+                if (bestScore > s_minScore) {
+                    /* late move pruning
+                     * prune moves searched late by the move picker
+                     * these moves might have a bad history, is marked "bad" etc and therefore
+                     * are not actually expected to be that good */
+                    if (movesSearched >= lmpMaxMoves) {
+                        /* very aggressive pruning -> skip the rest of the moves entirely */
+                        break;
                     }
 
-                    /* Late move pruning: https://www.madchess.net/2020/02/08/madchess-3-0-beta-4478cb8-late-move-pruning/ */
-                    if (depth <= spsa::lmpDepthLimit && movesSearched >= lmpMaxMoves) {
-                        picker.setSkipQuiets(true);
+                    if (!isChecked && !picker.getSkipQuiets()) {
+
+                        const uint8_t lmrDepth = depth - std::min<uint8_t>(getLmrReduction(depth, movesSearched), depth);
+                        const Score margin = spsa::efpBase + (spsa::efpMargin * lmrDepth) + (spsa::efpImproving * isImproving);
+
+                        /* extended futility pruning (EFP)
+                         * after searching a certain depth we can start pruning
+                         * moves that will most likely not improve alpha (for now skip quiets) */
+                        if (lmrDepth <= spsa::efpDepthLimit && m_stackItr->eval + margin < alpha) {
+                            picker.setSkipQuiets(true);
+                        }
                     }
                 }
             }
